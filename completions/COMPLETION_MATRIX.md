@@ -1,6 +1,6 @@
 # Bun CLI Completion Behavior Matrix
 
-Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, hash `909ceece8ae5`).
+Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, revision 1.4.0-canary.1+452139e36, hash `909ceece8ae5`).
 
 ## Top-level commands
 

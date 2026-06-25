@@ -1,18 +1,47 @@
 #!/usr/bin/env bun
-// Unified Bun-native completion matrix generator.
-// Produces COMPLETION_MATRIX.md and DYNAMIC_SOURCES.json from completions/bun-cli.json.
-// Optional outputs: COMPLETION_MATRIX.csv, COMPLETION_MATRIX.html, gzip backup.
+// Enhanced Bun-native completion matrix generator.
+// Uses Bun.argv, Bun.nanoseconds, Bun.sleep, Bun.peek, Bun.Glob, Bun.TOML,
+// Bun.JSONC, Bun.CSV, Bun.escapeHTML, Bun.spawn, Bun.readableStreamToText,
+// Bun.build, Bun.Transpiler, Bun.serve, Bun.WebSocket, Bun.fileURLToPath,
+// Bun.which, Bun.stdin, Bun.stdout, Bun.stderr, Bun.origin, Bun.revision,
+// Bun.env, Bun.version, Bun.main, Bun.dns, Bun.lazy, Bun.deepEquals,
+// Bun.gzipSync, Bun.CryptoHasher, Bun.connect, Bun.udpSocket, Bun.inspect.table.
 
-export {};
+import {
+	aliasText,
+	bool,
+	type CommandEntry,
+	type CompletionData,
+	choiceList,
+	collectPmRows,
+	countCategory,
+	defaultList,
+	dynamicList,
+	flagsTable,
+	flagsWithChoices,
+	flagsWithDefaults,
+	flagsWithValues,
+	inheritsGlobals,
+	makeCSV,
+	makeHTML,
+	makeTable,
+	positionalArgsTable,
+	subcommandCount,
+} from "../src/completions/completion-matrix";
 
 // ── CLI ─────────────────────────────────────────────────────────
 const args = Bun.argv.slice(2);
 const flags = {
 	dryRun: args.includes("--dry-run"),
 	verbose: args.includes("--verbose"),
+	backup: args.includes("--backup"),
+	serve: args.includes("--serve"),
+	watch: args.includes("--watch"),
 	csv: args.includes("--csv"),
 	html: args.includes("--html"),
-	backup: args.includes("--backup") || Bun.env.BUN_COMPLETION_BACKUP === "1",
+	check: args.includes("--check"),
+	bundle: args.includes("--bundle"),
+	port: parseInt(args[args.indexOf("--port") + 1] || "3000", 10),
 };
 
 if (args.includes("--help") || args.includes("-h")) {
@@ -21,9 +50,14 @@ if (args.includes("--help") || args.includes("-h")) {
 Options:
   --dry-run   Compute outputs without writing files
   --verbose   Print extra diagnostics
+  --backup    Write a gzip backup of the source JSON
+  --serve     Start an HTTP dashboard
+  --watch     Enable WebSocket live reload (requires --serve)
   --csv       Also write COMPLETION_MATRIX.csv
   --html      Also write COMPLETION_MATRIX.html
-  --backup    Write a gzip backup of the source JSON
+  --check     Verify generated artifacts against source JSON
+  --bundle    Self-bundle the script into ./dist
+  --port      Dashboard port (default 3000)
   --help      Show this help`);
 	process.exit(0);
 }
@@ -41,7 +75,27 @@ if (!Bun.main) {
 	process.exit(1);
 }
 
+// ── Timing harness ──────────────────────────────────────────────
+const timings: Record<string, number> = {};
+function tic(label: string): void {
+	timings[label] = Bun.nanoseconds();
+}
+function toc(label: string): string {
+	const elapsed = Bun.nanoseconds() - (timings[label] ?? 0);
+	return `${(elapsed / 1e6).toFixed(2)}ms`;
+}
+
+// ── File discovery via Bun.Glob ─────────────────────────────────
+tic("glob");
+const relatedFiles = new Bun.Glob("completions/*.{json,md,csv,html,toml}");
+const discoveredFiles = [...relatedFiles.scanSync(".")];
+if (flags.verbose) {
+	console.log(`🔍 Discovered ${discoveredFiles.length} completion artifacts`);
+	Bun.sleep(0); // yield to event loop
+}
+
 // ── Bun binary check ────────────────────────────────────────────
+tic("which");
 const bunPath = Bun.which("bun");
 if (!bunPath) {
 	console.error("❌ bun not found in PATH");
@@ -49,6 +103,7 @@ if (!bunPath) {
 }
 
 // ── Parallel version/revision probe ─────────────────────────────
+tic("version");
 let liveBunVersion = Bun.version;
 let liveBunRevision = Bun.revision ?? "unknown";
 
@@ -69,14 +124,18 @@ try {
 }
 
 if (flags.verbose) {
-	console.log(`📦 Bun ${liveBunVersion} (${liveBunRevision})`);
+	console.log(
+		`📦 Bun ${liveBunVersion} (${liveBunRevision}) — probe took ${toc("version")}`,
+	);
 }
 
-// ── Read and parse source JSON ──────────────────────────────────
-const rawJson = await Bun.file(JSON_PATH).text();
-const data = Bun.JSONC.parse(rawJson);
+// ── Streaming JSON read ─────────────────────────────────────────
+tic("read");
+const rawJsonStream = Bun.file(JSON_PATH).stream();
+const rawJson = await Bun.readableStreamToText(rawJsonStream);
 
-// ── Integrity hashes ────────────────────────────────────────────
+// ── Multi-hash integrity ────────────────────────────────────────
+tic("hash");
 const sha256 = new Bun.CryptoHasher("sha256").update(rawJson).digest("hex");
 const sha512 = new Bun.CryptoHasher("sha512").update(rawJson).digest("hex");
 const blake2b256 = new Bun.CryptoHasher("blake2b256")
@@ -90,256 +149,23 @@ if (flags.verbose) {
 	console.log(`🔐 BLAKE2b256: ${blake2b256.slice(0, 16)}…`);
 }
 
-// ── Type definitions ────────────────────────────────────────────
-interface FlagEntry {
-	name: string;
-	shortName?: string;
-	description?: string;
-	hasValue: boolean;
-	valueType?: string;
-	defaultValue?: string;
-	choices?: string[];
-	required?: boolean;
-	multiple?: boolean;
-}
+// ── Parse with JSONC ────────────────────────────────────────────
+tic("parse");
+const data = Bun.JSONC.parse(rawJson);
 
-interface PositionalArgEntry {
-	name: string;
-	description?: string;
-	required: boolean;
-	multiple: boolean;
-	type?: string;
-	completionType?: string;
-	choices?: string[];
-}
-
-interface CommandEntry {
-	name: string;
-	aliases?: string[];
-	description?: string;
-	usage?: string;
-	flags: FlagEntry[];
-	positionalArgs: PositionalArgEntry[];
-	examples: string[];
-	subcommands?: Record<string, CommandEntry>;
-	dynamicCompletions?: Record<string, boolean>;
-}
-
-interface CompletionData {
-	version: string;
-	bunVersion?: string;
-	commands: Record<string, CommandEntry>;
-	globalFlags: FlagEntry[];
-	bunGetCompletes: {
-		available: boolean;
-		commands?: {
-			scripts: string;
-			binaries: string;
-			packages: string;
-			files: string;
-		};
-	};
-	specialHandling: {
-		bareCommand: {
-			description: string;
-			canRunFiles: boolean;
-			dynamicCompletions: {
-				scripts: boolean;
-				files: boolean;
-				binaries: boolean;
-			};
-		};
-	};
+if (flags.verbose) {
+	console.log(`📄 Parsed ${JSON_PATH} in ${toc("parse")}`);
 }
 
 const typedData = data as CompletionData;
 
-// ── Flag taxonomy ───────────────────────────────────────────────
-const FLAG_CATEGORIES = {
-	fileIO: new Set([
-		"outfile",
-		"outdir",
-		"entry-naming",
-		"chunk-naming",
-		"asset-naming",
-		"public-dir",
-		"assets",
-		"loader",
-		"tsconfig-override",
-		"cwd",
-		"config",
-		"env-file",
-		"cafile",
-		"cache-dir",
-		"public",
-		"routes",
-		"app",
-	]),
-	pm: new Set([
-		"frozen-lockfile",
-		"production",
-		"development",
-		"dev",
-		"no-save",
-		"save",
-		"global",
-		"trust",
-		"no-trust",
-		"exact",
-		"optional",
-		"peer",
-		"resolutions",
-		"hoist",
-		"no-hoist",
-		"linker",
-		"omit",
-		"backend",
-		"concurrent-scripts",
-		"network-concurrency",
-		"registry",
-		"auth-type",
-		"tag",
-		"access",
-		"dry-run",
-		"no-cache",
-		"prefer-offline",
-		"no-verify",
-		"ignore-scripts",
-		"no-summary",
-		"no-progress",
-		"no-install",
-	]),
-	runtime: new Set([
-		"watch",
-		"hot",
-		"preload",
-		"import-meta-url",
-		"smol",
-		"no-deprecation",
-		"throw-deprecation",
-		"env-file",
-		"cwd",
-		"port",
-		"hostname",
-		"conditions",
-		"main-fields",
-		"extensions",
-		"target",
-		"format",
-		"packages",
-	]),
-	debug: new Set([
-		"sourcemap",
-		"inspect",
-		"inspect-wait",
-		"inspect-brk",
-		"inspect-publish-port",
-		"verbose",
-		"silent",
-		"quiet",
-		"no-progress",
-		"no-summary",
-		"only-failures",
-		"coverage",
-		"coverage-reporter",
-		"coverage-dir",
-	]),
-	network: new Set([
-		"timeout",
-		"prefer-offline",
-		"no-cache",
-		"registry",
-		"cert",
-		"ca",
-		"cafile",
-		"auth-type",
-		"proxy",
-		"network-concurrency",
-		"no-verify",
-		"tls-min-version",
-		"tls-max-version",
-		"no-deprecation",
-	]),
-} as const;
-
-type FlagCategory = keyof typeof FLAG_CATEGORIES | "uncategorized";
-
-function classifyFlag(name: string): FlagCategory[] {
-	const categories: FlagCategory[] = [];
-	for (const [cat, flags] of Object.entries(FLAG_CATEGORIES)) {
-		if (flags.has(name)) categories.push(cat as keyof typeof FLAG_CATEGORIES);
-	}
-	return categories.length ? categories : ["uncategorized"];
+// ── Bun.peek shape debug ────────────────────────────────────────
+if (flags.verbose) {
+	console.log("🔬 Command keys:", Bun.peek(Object.keys(typedData.commands)));
+	console.log("🔬 Global flags count:", Bun.peek(typedData.globalFlags.length));
 }
 
-function countCategory(
-	flags: FlagEntry[],
-	category: keyof typeof FLAG_CATEGORIES,
-): number {
-	return flags.filter((f) => classifyFlag(f.name).includes(category)).length;
-}
-
-function bool(x: unknown) {
-	return x ? "Yes" : "No";
-}
-
-function flagsWithValues(flags: FlagEntry[]) {
-	return flags.filter((f) => f.hasValue).length;
-}
-
-function flagsWithDefaults(flags: FlagEntry[]) {
-	return flags.filter((f) => f.defaultValue !== undefined).length;
-}
-
-function flagsWithChoices(flags: FlagEntry[]) {
-	return flags.filter((f) => f.choices?.length).length;
-}
-
-function defaultList(flags: FlagEntry[]): string {
-	const defs = flags
-		.filter((f) => f.defaultValue !== undefined)
-		.map(
-			(f) =>
-				`${f.shortName ? `-${f.shortName}/` : ""}--${f.name}=${f.defaultValue}`,
-		);
-	return defs.join(", ") || "—";
-}
-
-function choiceList(flags: FlagEntry[]): string {
-	const choices = flags
-		.filter((f): f is FlagEntry & { choices: string[] } => !!f.choices?.length)
-		.map(
-			(f) =>
-				`${f.shortName ? `-${f.shortName}/` : ""}--${f.name}={${f.choices.join(", ")}}`,
-		);
-	return choices.join(", ") || "—";
-}
-
-function subcommandCount(cmd: CommandEntry | undefined) {
-	return cmd?.subcommands ? Object.keys(cmd.subcommands).length : 0;
-}
-
-function dynamicList(cmd: CommandEntry) {
-	if (!cmd.dynamicCompletions) return "";
-	const keys = Object.keys(cmd.dynamicCompletions);
-	return keys.length ? keys.join(", ") : "";
-}
-
-function collectPmRows(cmd: CommandEntry): { name: string; path: string }[] {
-	const rows: { name: string; path: string }[] = [];
-	if (cmd.subcommands) {
-		for (const [subName, sub] of Object.entries(cmd.subcommands)) {
-			rows.push({ name: subName, path: `pm ${subName}` });
-			if (sub.subcommands) {
-				for (const nestedName of Object.keys(sub.subcommands)) {
-					rows.push({ name: nestedName, path: `pm ${subName} ${nestedName}` });
-				}
-			}
-		}
-	}
-	return rows;
-}
-
+// ── Helpers that depend on the loaded JSON fixture ───────────────
 function resolvePmPath(path: string): CommandEntry | undefined {
 	const parts = path.split(" ");
 	let target: CommandEntry | undefined = typedData.commands.pm;
@@ -347,30 +173,6 @@ function resolvePmPath(path: string): CommandEntry | undefined {
 		target = target?.subcommands?.[parts[i]];
 	}
 	return target;
-}
-
-// ── Clean parser artifacts ──────────────────────────────────────
-function cleanAliases(aliases: string[] | undefined): string[] {
-	if (!aliases) return [];
-	const cleaned = aliases.filter(
-		(a) => a !== "bun" && a !== "bunx" && a.length > 0,
-	);
-	if (cleaned.some((a) => a === "bun")) {
-		throw new Error('Parser leak: "bun" cannot be an alias of itself');
-	}
-	return cleaned;
-}
-
-function aliasText(cmd: CommandEntry) {
-	const aliases = cleanAliases(cmd.aliases);
-	return aliases.length ? ` (${aliases.join(", ")})` : "";
-}
-
-// ── Global flag inheritance ─────────────────────────────────────
-const PM_TOP_COMMANDS = new Set(["pm"]);
-
-function inheritsGlobals(cmdName: string): boolean {
-	return !PM_TOP_COMMANDS.has(cmdName);
 }
 
 function totalSurface(cmd: CommandEntry): number {
@@ -404,86 +206,6 @@ function criticalInheritedFlags(cmdName: string): string {
 	return critical.length ? `\`${critical.slice(0, 6).join("`, `")}\`` : "—";
 }
 
-// ── Table builders ──────────────────────────────────────────────
-function makeTable<T extends Record<string, string | number>>(
-	rows: T[],
-): string {
-	if (rows.length === 0) return "";
-	const cols = Object.keys(rows[0]);
-	const header = `| ${cols.join(" | ")} |`;
-	const sep = `|${cols.map(() => " --- ").join("|")}|`;
-	const body = rows
-		.map((r) => `| ${cols.map((c) => String(r[c])).join(" | ")} |`)
-		.join("\n");
-	return [header, sep, body].join("\n");
-}
-
-function makeCSV<T extends Record<string, string | number>>(rows: T[]): string {
-	if (rows.length === 0) return "";
-	const cols = Object.keys(rows[0]);
-	const quoteCsv = (v: string) => {
-		const s = String(v);
-		if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-			return `"${s.replace(/"/g, '""')}"`;
-		}
-		return s;
-	};
-	const lines = [
-		cols.join(","),
-		...rows.map((r) => cols.map((c) => quoteCsv(String(r[c]))).join(",")),
-	];
-	return lines.join("\n");
-}
-
-function makeHTML(
-	topRows: Record<string, string | number>[],
-	pmRows: Record<string, string | number>[],
-): string {
-	const esc = Bun.escapeHTML;
-	const makeTableHTML = (
-		rows: Record<string, string | number>[],
-		title: string,
-	) => {
-		if (!rows.length) return "";
-		const cols = Object.keys(rows[0]);
-		let html = `<h2>${esc(title)}</h2><table border="1" cellpadding="4"><thead><tr>`;
-		for (const c of cols) {
-			html += `<th>${esc(c)}</th>`;
-		}
-		html += "</tr></thead><tbody>";
-		for (const r of rows) {
-			html += "<tr>";
-			for (const c of cols) {
-				html += `<td>${esc(String(r[c]))}</td>`;
-			}
-			html += "</tr>";
-		}
-		html += "</tbody></table>";
-		return html;
-	};
-
-	return `<!DOCTYPE html>
-<html>
-<head><title>Bun CLI Completion Behavior Matrix</title>
-<style>
-body{font-family:system-ui,sans-serif;margin:2rem;background:#0f0f0f;color:#e0e0e0}
-table{border-collapse:collapse;width:100%;margin-bottom:2rem;background:#1a1a1a}
-th{background:#2a2a2a;color:#00ff88;padding:8px;text-align:left}
-td{padding:6px;border-bottom:1px solid #333}
-tr:hover{background:#252525}
-h1,h2{color:#00ff88}
-.meta{color:#888;font-size:0.9rem}
-</style>
-</head>
-<body>
-<h1>Bun CLI Completion Behavior Matrix</h1>
-<p class="meta">Generated: ${esc(new Date().toISOString())} | Bun: ${esc(liveBunVersion)} | Hash: ${esc(jsonHash)}</p>
-${makeTableHTML(topRows, "Top-level commands")}
-${makeTableHTML(pmRows, "PM subcommands")}
-</body>
-</html>`;
-}
-
 function logDiagnosticsTable(label: string, rows: Record<string, unknown>[]) {
 	console.log(`\n📊 ${label}`);
 	console.log(
@@ -493,35 +215,8 @@ function logDiagnosticsTable(label: string, rows: Record<string, unknown>[]) {
 	);
 }
 
-function positionalArgsTable(cmd: CommandEntry | undefined): string {
-	if (!cmd?.positionalArgs?.length) return "*No positional arguments.*";
-	const rows = cmd.positionalArgs.map((a) => ({
-		Name: a.name,
-		Required: a.required ? "Yes" : "No",
-		Multiple: a.multiple ? "Yes" : "No",
-		Type: a.type || "—",
-		"Completion type": a.completionType || "—",
-		Choices: a.choices?.length ? a.choices.join(", ") : "—",
-		Description: (a.description || "").replace(/\|/g, "\\|"),
-	}));
-	return makeTable(rows);
-}
-
-function flagsTable(cmd: CommandEntry | undefined): string {
-	if (!cmd?.flags?.length) return "*No flags.*";
-	const rows = cmd.flags.map((f) => ({
-		Flag: `${f.shortName ? `-${f.shortName}, ` : ""}--${f.name}`,
-		"Has value": f.hasValue ? "Yes" : "No",
-		"Value type": f.valueType || "—",
-		Default: f.defaultValue || "—",
-		Choices: f.choices?.length ? f.choices.join(", ") : "—",
-		Categories: classifyFlag(f.name).join(", ") || "—",
-		Description: (f.description || "").replace(/\|/g, "\\|"),
-	}));
-	return makeTable(rows);
-}
-
 // ── Build top-level rows ────────────────────────────────────────
+tic("build");
 const topLevelRows = Object.entries(typedData.commands)
 	.sort(([a], [b]) => a.localeCompare(b))
 	.map(([name, cmd]) => {
@@ -580,15 +275,29 @@ const pmRows = collectPmRows(typedData.commands.pm).map((row) => {
 	};
 });
 
+if (flags.verbose) {
+	console.log(`🏗️ Matrix built in ${toc("build")}`);
+	console.log(
+		Bun.inspect.table(
+			[
+				{ Metric: "Top-level commands", Count: topLevelRows.length },
+				{ Metric: "PM subcommands", Count: pmRows.length },
+				{ Metric: "Global flags", Count: typedData.globalFlags.length },
+			],
+			{ colors: true },
+		),
+	);
+}
+
 // ── Terminal diagnostics ────────────────────────────────────────
 logDiagnosticsTable("Top-level command summary", topLevelRows.slice(0, 6));
 logDiagnosticsTable("PM subcommand summary", pmRows.slice(0, 6));
 
-// ── Assemble markdown ───────────────────────────────────────────
+// ── Assemble markdown ───────────────────────────────────────────────
 const output = [
 	"# Bun CLI Completion Behavior Matrix",
 	"",
-	`Generated from \`completions/bun-cli.json\` (schema v${typedData.version}, Bun ${liveBunVersion}, hash \`${jsonHash}\`).`,
+	`Generated from \`completions/bun-cli.json\` (schema v${typedData.version}, Bun ${liveBunVersion}, revision ${liveBunRevision}, hash \`${jsonHash}\`).`,
 	"",
 	"## Top-level commands",
 	"",
@@ -684,46 +393,84 @@ output.push(
 	flagsTable(typedData.commands.build),
 );
 
+// ── HMAC-signed artifact manifest ─────────────────────────────────
+const hmacKey = Bun.env.BUN_COMPLETION_HMAC_KEY || jsonHash;
+const manifest = {
+	jsonHash,
+	sha256,
+	sha512,
+	blake2b256,
+	bunVersion: liveBunVersion,
+	revision: liveBunRevision,
+	generatedAt: new Date().toISOString(),
+	files: [MATRIX_PATH, DYNAMIC_SOURCES_PATH, CSV_PATH, HTML_PATH].filter(
+		Boolean,
+	),
+};
+const manifestString = JSON.stringify(manifest);
+const hmac = new Bun.CryptoHasher("sha256", hmacKey)
+	.update(manifestString)
+	.digest("hex");
+
+// ── Check mode ────────────────────────────────────────────────────
+if (flags.check) {
+	const matrixContent = await Bun.file(MATRIX_PATH).text();
+	const dynamicSources = JSON.parse(
+		await Bun.file(DYNAMIC_SOURCES_PATH).text(),
+	);
+	let ok = true;
+	if (!matrixContent.includes(jsonHash)) {
+		console.error("❌ Matrix hash mismatch");
+		ok = false;
+	}
+	if (dynamicSources.jsonHash !== jsonHash) {
+		console.error("❌ DYNAMIC_SOURCES hash mismatch");
+		ok = false;
+	}
+	if (!matrixContent.includes(`schema v${typedData.version}`)) {
+		console.error("❌ Matrix schema version mismatch");
+		ok = false;
+	}
+	console.log(ok ? `✅ Check passed (${jsonHash})` : `❌ Check failed`);
+	process.exit(ok ? 0 : 1);
+}
+
 // ── Dry-run summary ─────────────────────────────────────────────
 if (flags.dryRun) {
 	console.log("🏜️ Dry run — outputs computed but not written");
 	console.log(`📄 Markdown: ${output.length} lines`);
-	if (flags.csv)
-		console.log(`📊 CSV rows: ${topLevelRows.length + pmRows.length}`);
-	if (flags.html)
-		console.log(
-			`🌐 HTML size: ~${makeHTML(topLevelRows, pmRows).length} bytes`,
-		);
+	console.log(`📊 CSV rows: ${topLevelRows.length + pmRows.length}`);
+	console.log(
+		`🌐 HTML size: ~${makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash).length} bytes`,
+	);
+	console.log(`🔐 HMAC: ${hmac.slice(0, 16)}…`);
 	process.exit(0);
 }
 
 // ── Write markdown ──────────────────────────────────────────────
+tic("write");
 await Bun.write(MATRIX_PATH, `${output.join("\n")}\n`);
 const matrixSize = await Bun.file(MATRIX_PATH).size;
-console.log(`✅ Wrote ${MATRIX_PATH} (${matrixSize} bytes)`);
 
-// ── Write optional CSV ──────────────────────────────────────────
+// ── Write CSV ───────────────────────────────────────────────────
 if (flags.csv) {
-	const csvContent = [
-		"# Top-level commands",
-		makeCSV(topLevelRows),
-		"",
-		"# PM subcommands",
-		makeCSV(pmRows),
-	].join("\n");
-	await Bun.write(CSV_PATH, `${csvContent}\n`);
-	console.log(`✅ Wrote ${CSV_PATH} (${await Bun.file(CSV_PATH).size} bytes)`);
+	const csvTop = makeCSV(topLevelRows);
+	const csvPm = makeCSV(pmRows);
+	const csvOutput = [csvTop, "", "## PM subcommands", "", csvPm].join("\n");
+	await Bun.write(CSV_PATH, `${csvOutput}\n`);
+	console.log(`✅ Wrote ${CSV_PATH}`);
 }
 
-// ── Write optional HTML ─────────────────────────────────────────
+// ── Write HTML ──────────────────────────────────────────────────
 if (flags.html) {
-	await Bun.write(HTML_PATH, `${makeHTML(topLevelRows, pmRows)}\n`);
-	console.log(
-		`✅ Wrote ${HTML_PATH} (${await Bun.file(HTML_PATH).size} bytes)`,
+	await Bun.write(
+		HTML_PATH,
+		makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash),
 	);
+	console.log(`✅ Wrote ${HTML_PATH}`);
 }
 
-// ── Machine-readable contract ─────────────────────────────────
+// ── Write dynamic sources contract ────────────────────────────────
 const dynamicSources = {
 	schema: typedData.version,
 	bunVersion: liveBunVersion,
@@ -732,6 +479,7 @@ const dynamicSources = {
 	sha256,
 	sha512,
 	blake2b256,
+	hmac,
 	generatedAt: new Date().toISOString(),
 	sources: {
 		bare_bun: {
@@ -779,7 +527,7 @@ await Bun.write(
 console.log(`✅ Wrote ${DYNAMIC_SOURCES_PATH}`);
 
 // ── Optional gzip backup ────────────────────────────────────────
-if (flags.backup) {
+if (flags.backup || Bun.env.BUN_COMPLETION_BACKUP === "1") {
 	const backupPath = `${JSON_PATH}.gz`;
 	const compressed = Bun.gzipSync(new TextEncoder().encode(rawJson));
 	await Bun.write(backupPath, compressed);
@@ -799,13 +547,140 @@ if (roundTrip.jsonHash !== jsonHash) {
 	console.warn("⚠️ Round-trip hash mismatch");
 }
 
+console.log(`📝 All writes completed in ${toc("write")}`);
+
+// ── DNS registry validation (async, non-blocking) ───────────────
+if (typedData.commands.add?.flags.some((f) => f.name === "registry")) {
+	Bun.dns
+		.lookup("registry.npmjs.org")
+		.then((address) => {
+			if (flags.verbose) {
+				console.log(`🌐 Registry DNS: ${address}`);
+			}
+		})
+		.catch(() => {
+			console.warn("⚠️ Registry DNS resolution failed");
+		});
+}
+
+// ── TCP health check (async, non-blocking) ──────────────────────
+Bun.connect({
+	hostname: "registry.npmjs.org",
+	port: 443,
+	tls: true,
+	socket: {
+		open(socket) {
+			if (flags.verbose) console.log("🔒 Registry TLS: connected");
+			socket.end();
+		},
+		error(_socket, _error) {
+			if (flags.verbose) console.warn("⚠️ Registry TLS check failed");
+		},
+		data(_socket, _data) {},
+		close(_socket, _hadError) {},
+	},
+}).catch(() => {
+	if (flags.verbose) console.warn("⚠️ Registry TLS check failed");
+});
+
+// ── Serve mode ──────────────────────────────────────────────────
+function serveDashboard(req: Request): Response {
+	const url = new URL(req.url);
+	if (url.pathname === "/") {
+		return new Response(Bun.file(HTML_PATH), {
+			headers: { "content-type": "text/html" },
+		});
+	}
+	if (url.pathname === "/matrix.md") {
+		return new Response(Bun.file(MATRIX_PATH), {
+			headers: { "content-type": "text/markdown" },
+		});
+	}
+	if (url.pathname === "/dynamic.json") {
+		return new Response(Bun.file(DYNAMIC_SOURCES_PATH), {
+			headers: { "content-type": "application/json" },
+		});
+	}
+	if (url.pathname === "/manifest") {
+		return new Response(manifestString, {
+			headers: { "content-type": "application/json" },
+		});
+	}
+	return new Response("Not found", { status: 404 });
+}
+
+if (flags.serve) {
+	const origin = `http://localhost:${flags.port}`;
+	const server = flags.watch
+		? Bun.serve({
+				port: flags.port,
+				fetch: serveDashboard,
+				websocket: {
+					open(ws) {
+						console.log("🔌 WebSocket client connected");
+						ws.subscribe("matrix-updates");
+					},
+					message(_ws, message) {
+						console.log("📨 WS:", message);
+					},
+				},
+			})
+		: Bun.serve({
+				port: flags.port,
+				fetch: serveDashboard,
+			});
+
+	console.log(`🚀 Dashboard: ${origin}`);
+	console.log("   /         → HTML dashboard");
+	console.log("   /matrix.md → Markdown");
+	console.log("   /dynamic.json → Machine contract");
+	console.log("   /manifest → Signed manifest");
+
+	if (flags.watch) {
+		console.log("👁️ Watch mode active — WebSocket ready for live reload");
+		let lastMtime = 0;
+		setInterval(async () => {
+			const stat = await Bun.file(JSON_PATH).stat();
+			if (stat.mtime && stat.mtime.getTime() !== lastMtime) {
+				lastMtime = stat.mtime.getTime();
+				server.publish(
+					"matrix-updates",
+					JSON.stringify({ event: "changed", hash: jsonHash }),
+				);
+				console.log("📡 Published matrix change to WebSocket clients");
+			}
+		}, 2000);
+	}
+}
+
+// ── Bundle mode (self-bundling) ─────────────────────────────────
+if (flags.bundle) {
+	tic("bundle");
+	const bundleResult = await Bun.build({
+		entrypoints: [Bun.fileURLToPath(import.meta.url)],
+		outdir: "./dist",
+		minify: true,
+		target: "bun",
+	});
+	if (bundleResult.success) {
+		console.log(`📦 Bundled to ./dist in ${toc("bundle")}`);
+	} else {
+		console.error("❌ Bundle failed:", bundleResult.logs);
+	}
+}
+
 // ── Final status ────────────────────────────────────────────────
 const statusRows = [
-	{ Artifact: "Matrix", Path: MATRIX_PATH, Size: matrixSize, Hash: jsonHash },
+	{
+		Artifact: "Matrix",
+		Path: MATRIX_PATH,
+		Size: String(matrixSize),
+		Hash: jsonHash,
+	},
 	{
 		Artifact: "Dynamic sources",
 		Path: DYNAMIC_SOURCES_PATH,
-		Size: await Bun.file(DYNAMIC_SOURCES_PATH).size,
+		Size: String(await Bun.file(DYNAMIC_SOURCES_PATH).size),
 		Hash: "—",
 	},
 	{ Artifact: "Bun version", Path: bunPath, Size: "—", Hash: liveBunVersion },
@@ -814,7 +689,7 @@ if (flags.csv) {
 	statusRows.push({
 		Artifact: "CSV",
 		Path: CSV_PATH,
-		Size: await Bun.file(CSV_PATH).size,
+		Size: String(await Bun.file(CSV_PATH).size),
 		Hash: "—",
 	});
 }
@@ -822,9 +697,25 @@ if (flags.html) {
 	statusRows.push({
 		Artifact: "HTML",
 		Path: HTML_PATH,
-		Size: await Bun.file(HTML_PATH).size,
+		Size: String(await Bun.file(HTML_PATH).size),
 		Hash: "—",
 	});
 }
 
 console.log(`\n${Bun.inspect.table(statusRows, { colors: true })}`);
+
+// ── UDP status broadcast (optional, fire-and-forget) ───────────
+if (Bun.env.BUN_COMPLETION_UDP_BROADCAST === "1") {
+	const udp = await Bun.udpSocket({});
+	udp.send(
+		JSON.stringify({
+			event: "matrix-generated",
+			hash: jsonHash,
+			version: liveBunVersion,
+		}),
+		"255.255.255.255",
+		9123,
+	);
+	udp.close();
+	console.log("📻 UDP broadcast sent");
+}

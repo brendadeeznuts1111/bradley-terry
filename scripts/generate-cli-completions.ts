@@ -750,7 +750,8 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
         command.aliases = aliasMatch[1]
           .split(/[,\s]+/)
           .map(a => a.trim())
-          .filter(Boolean);
+          .filter(Boolean)
+          .filter((a) => a !== "bun" && a !== "bunx");
       }
       continue;
     }

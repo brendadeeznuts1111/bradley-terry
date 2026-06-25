@@ -6,7 +6,8 @@
   "sha256": "909ceece8ae5d3b4be7a1742cefd2709e3ce2e9db2bfed79fa7858e8eecb0ae3",
   "sha512": "065c5eac40b92d83e6e0faa9921042c4818c862e2f4d8c831dcf3a3c7de3526e5f866a3a207945542f7f0c40a4026f30f607534a24ab67a172f12fe3aa838555",
   "blake2b256": "46c86dde434fd5a77d66bd09a76f6b233443f62665b763173fbbef51b95ced59",
-  "generatedAt": "2026-06-25T17:17:23.402Z",
+  "hmac": "b7ea7566bba769011479a65017183414af54fdd2895e2747aacfd31aad2517f3",
+  "generatedAt": "2026-06-25T17:33:35.679Z",
   "sources": {
     "bare_bun": {
       "completes": [
