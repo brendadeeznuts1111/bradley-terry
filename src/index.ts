@@ -1,3 +1,7 @@
+// Central barrel export fixing all references
 export * from './bradley-terry';
 export * from './schema';
-export { toBtMatches } from './converters/to-bt-matches';
+export * from './repository/index';
+export * from './integrations/cascade-mover';
+export * from './data/massey-importer';
+// All paths standardized

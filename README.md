@@ -1,1 +1,1 @@
-Updated comprehensive documentation: full feature list, all increments v0.2.1-v0.2.7, Massey integration section, usage examples, directory map, contribution guide.
+All references fixed. Import examples updated. Code is consistent.
