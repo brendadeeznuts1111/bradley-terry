@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-6%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-49%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.2-success)](#api)
 [![Cascade](https://img.shields.io/badge/Cascade-Integrated-success)](docs/ARCHITECTURE.md)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
@@ -148,9 +148,16 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-6 property tests across 3 files:
+49 tests across 13 files:
 
-| File | Invariant |
+| Directory | Count | Purpose |
+| --- | --- | --- |
+| `test/property/` | 9 | fast-check invariants: MM invariants, graph connectivity, error handling |
+| `test/integration/` | 5 | CLI completions generator integration tests |
+| `test/completions/` | 33 | Completion matrix helpers, flag taxonomy, Bun native APIs, SQLite |
+| `test/benchmark/` | 2 | 50k-match performance target |
+
+| Property test | Invariant |
 | --- | --- |
 | `test/property/mm-invariants.test.ts` | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
 | `test/property/graph-connectivity.test.ts` | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
