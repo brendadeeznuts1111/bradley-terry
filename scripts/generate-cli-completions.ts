@@ -560,6 +560,7 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
           // If nestedName looks like a positional arg ([arg], <arg>, or name[arg]),
           // store it as a positionalArg instead of a subcommand
           if (nestedName.startsWith("[") || nestedName.startsWith("<") || nestedName.includes("[")) {
+            parent.positionalArgs = parent.positionalArgs || [];
             parent.positionalArgs.push({
               name: nestedName.replace(/[\[\]<>]/g, ""),
               description: nestedDesc.trim(),
@@ -946,10 +947,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
       { name: "cwd", shortName: "C", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
     "run": [
-      { name: "bunfile", description: "Specify a bunfile to run", hasValue: true },
+      { name: "bunfile", shortName: "f", hasValue: true, description: "Specify a bunfile to run" },
     ],
     "test": [
-      { name: "bunfile", shortName: "f", description: "Specify a bunfile to run", hasValue: true },
+      { name: "bunfile", shortName: "f", hasValue: true, description: "Specify a bunfile to run" },
     ],
     "create": [
       { name: "template", description: "Specify a template to use", hasValue: true },
