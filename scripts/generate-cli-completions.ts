@@ -76,6 +76,7 @@ interface CommandInfo {
 
 interface CompletionData {
   version: string;
+  bunVersion?: string;
   commands: Record<string, CommandInfo>;
   globalFlags: FlagInfo[];
   specialHandling: {
@@ -103,7 +104,9 @@ interface CompletionData {
 const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
 
 /**
- * Parse flag line from help output
+ * Parse flag line from help output.
+ * Tries strict patterns first, then falls back to a flexible parser
+ * that tolerates spacing/separator variations.
  */
 function parseFlag(line: string): FlagInfo | null {
   // Match patterns like:
@@ -128,78 +131,127 @@ function parseFlag(line: string): FlagInfo | null {
   for (const pattern of patterns) {
     const match = line.match(pattern);
     if (match) {
-      let shortName: string | undefined;
-      let longName: string;
-      let valueSpec: string | undefined;
-      let description: string;
+      return extractFlagFromMatch(match, line);
+    }
+  }
 
-      if (match.length === 5) {
-        // Pattern with short flag, long flag, and value
-        [, shortName, longName, valueSpec, description] = match;
-      } else if (match.length === 4) {
-        if (match[1].startsWith("-") && match[1].length === 2) {
-          // Short flag with long flag
-          [, shortName, longName, description] = match;
-        } else if (match[2].startsWith("<")) {
-          // Long flag with value
-          [, longName, valueSpec, description] = match;
+  // Flexible fallback: split on 2+ spaces to separate flags from description
+  const flexibleMatch = line.match(/^\s*(.+?)\s{2,}(.+)$/);
+  if (flexibleMatch) {
+    const flagPart = flexibleMatch[1].trim();
+    const description = flexibleMatch[2].trim();
+
+    // Parse the flag part: could be "-h, --help", "--flag=<val>", "--flag", "-h"
+    const tokens = flagPart.split(/[,\s]+/).filter(Boolean);
+    let shortName: string | undefined;
+    let longName: string | undefined;
+    let valueSpec: string | undefined;
+
+    for (const token of tokens) {
+      if (token.startsWith("--")) {
+        const eqIdx = token.indexOf("=");
+        if (eqIdx > 0) {
+          longName = token.slice(0, eqIdx);
+          valueSpec = token.slice(eqIdx + 1);
         } else {
-          // Long flag without value
-          [, longName, description] = match;
+          longName = token;
         }
-      } else if (match.length === 3) {
-        if (match[1].length === 2) {
-          // Short flag only
-          [, shortName, description] = match;
-          longName = shortName.replace("-", "--");
-        } else {
-          // Long flag without value
-          [, longName, description] = match;
-        }
-      } else {
-        continue;
+      } else if (token.startsWith("-") && token.length === 2) {
+        shortName = token;
+      } else if (token.startsWith("<") && token.endsWith(">")) {
+        valueSpec = token;
       }
+    }
 
-      // Extract additional info from description
-      const hasValue = !!valueSpec;
-      let valueType: string | undefined;
-      let defaultValue: string | undefined;
-      let choices: string[] | undefined;
-
-      if (valueSpec) {
-        valueType = valueSpec.replace(/[<>]/g, "");
-      }
-
-      // Look for default values in description
-      const defaultMatch = description.match(/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/);
-      if (defaultMatch) {
-        defaultValue = defaultMatch[1];
-      }
-
-      // Look for choices/enums
-      const choicesMatch = description.match(/(?:One of|Valid (?:orders?|values?|options?)):?\s*"?([^"]+)"?/);
-      if (choicesMatch) {
-        choices = choicesMatch[1]
-          .split(/[,\s]+/)
-          .map(s => s.replace(/[",]/g, "").trim())
-          .filter(Boolean);
-      }
-
-      return {
-        name: longName.replace(/^--/, ""),
-        shortName: shortName?.replace(/^-/, ""),
-        description: description.trim(),
-        hasValue,
-        valueType,
-        defaultValue,
-        choices,
-        required: false, // We'll determine this from usage patterns
-        multiple: description.toLowerCase().includes("multiple") || description.includes("[]"),
-      };
+    if (longName || shortName) {
+      return buildFlagInfo(longName, shortName, valueSpec, description);
     }
   }
 
   return null;
+}
+
+/**
+ * Extract FlagInfo from a regex match array.
+ */
+function extractFlagFromMatch(match: RegExpMatchArray, _line: string): FlagInfo | null {
+  let shortName: string | undefined;
+  let longName: string;
+  let valueSpec: string | undefined;
+  let description: string;
+
+  if (match.length === 5) {
+    [, shortName, longName, valueSpec, description] = match;
+  } else if (match.length === 4) {
+    if (match[1].startsWith("-") && match[1].length === 2) {
+      [, shortName, longName, description] = match;
+    } else if (match[2].startsWith("<")) {
+      [, longName, valueSpec, description] = match;
+    } else {
+      [, longName, description] = match;
+    }
+  } else if (match.length === 3) {
+    if (match[1].length === 2) {
+      [, shortName, description] = match;
+      longName = shortName.replace("-", "--");
+    } else {
+      [, longName, description] = match;
+    }
+  } else {
+    return null;
+  }
+
+  return buildFlagInfo(longName, shortName, valueSpec, description);
+}
+
+/**
+ * Build a FlagInfo object from parsed components.
+ */
+function buildFlagInfo(
+  longName: string | undefined,
+  shortName: string | undefined,
+  valueSpec: string | undefined,
+  description: string
+): FlagInfo | null {
+  if (!longName && !shortName) return null;
+  const name = (longName ?? shortName!).replace(/^--?/, "");
+
+  // Extract additional info from description
+  const hasValue = !!valueSpec;
+  let valueType: string | undefined;
+  let defaultValue: string | undefined;
+  let choices: string[] | undefined;
+
+  if (valueSpec) {
+    valueType = valueSpec.replace(/[<>]/g, "");
+  }
+
+  // Look for default values in description
+  const defaultMatch = description.match(/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/);
+  if (defaultMatch) {
+    defaultValue = defaultMatch[1];
+  }
+
+  // Look for choices/enums
+  const choicesMatch = description.match(/(?:One of|Valid (?:orders?|values?|options?)):?\s*"?([^"]+)"?/);
+  if (choicesMatch) {
+    choices = choicesMatch[1]
+      .split(/[,\s]+/)
+      .map(s => s.replace(/[",]/g, "").trim())
+      .filter(Boolean);
+  }
+
+  return {
+    name,
+    shortName: shortName?.replace(/^-/, ""),
+    description: description.trim(),
+    hasValue,
+    valueType,
+    defaultValue,
+    choices,
+    required: false,
+    multiple: description.toLowerCase().includes("multiple") || description.includes("[]"),
+  };
 }
 
 /**
@@ -269,18 +321,37 @@ function parseUsage(usage: string): {
   return args;
 }
 
-const temppackagejson = mkdtempSync("package");
-writeFileSync(
-  join(temppackagejson, "package.json"),
-  JSON.stringify({
-    name: "test",
-    version: "1.0.0",
-    scripts: {},
-  }),
-);
-process.once("beforeExit", () => {
-  rmSync(temppackagejson, { recursive: true });
-});
+let temppackagejson: string;
+
+/**
+ * Create a temporary directory with a dummy package.json so that
+ * `bun run --help` doesn't pick up scripts from the real repo.
+ */
+function setupTempEnv(): string {
+  temppackagejson = mkdtempSync("package");
+  writeFileSync(
+    join(temppackagejson, "package.json"),
+    JSON.stringify({
+      name: "test",
+      version: "1.0.0",
+      scripts: {},
+    }),
+  );
+  return temppackagejson;
+}
+
+/**
+ * Remove the temporary directory, ignoring errors if it's already gone.
+ */
+function cleanupTempEnv(): void {
+  if (temppackagejson) {
+    try {
+      rmSync(temppackagejson, { recursive: true, force: true });
+    } catch {
+      // already gone — fine
+    }
+  }
+}
 
 /**
  * Execute bun command and get help output.
@@ -409,7 +480,8 @@ async function checkGetCompletes(): Promise<CompletionData["bunGetCompletes"]> {
 }
 
 /**
- * Parse PM subcommands from help output
+ * Parse PM subcommands from help output.
+ * Recursively discovers nested subcommands by running their --help too.
  */
 function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
   const lines = helpText.split("\n");
@@ -439,28 +511,34 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
           flags: [],
           positionalArgs: [],
         };
-
-        // Special handling for subcommands with their own subcommands
-        if (name === "cache") {
-          subcommands[name].subcommands = {
-            rm: {
-              name: "rm",
-              description: "clear the cache",
-            },
-          };
-        } else if (name === "pkg") {
-          subcommands[name].subcommands = {
-            get: { name: "get", description: "get values from package.json" },
-            set: { name: "set", description: "set values in package.json" },
-            delete: { name: "delete", description: "delete keys from package.json" },
-            fix: { name: "fix", description: "auto-correct common package.json errors" },
-          };
-        }
       }
     }
   }
 
   return subcommands;
+}
+
+/**
+ * Recursively discover nested subcommands by running --help on each.
+ * E.g., `bun pm pkg --help` reveals get/set/delete/fix.
+ */
+async function discoverNestedSubcommands(
+  parentPath: string[],
+  subcommands: Record<string, SubcommandInfo>
+): Promise<void> {
+  for (const [name, sub] of Object.entries(subcommands)) {
+    // Heuristic: short-named subcommands like "pkg", "cache" often have
+    // their own subcommands. Probe each one.
+    const helpText = await getHelpOutput([...parentPath, name]);
+    if (helpText.trim()) {
+      const nested = parsePmSubcommands(helpText);
+      if (Object.keys(nested).length > 0) {
+        sub.subcommands = nested;
+        // Recurse one more level
+        await discoverNestedSubcommands([...parentPath, name], nested);
+      }
+    }
+  }
 }
 
 /**
@@ -544,6 +622,9 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
       const flag = parseFlag(line);
       if (flag) {
         command.flags.push(flag);
+      } else {
+        // Flag-looking line that didn't match any parser pattern
+        console.warn(`⚠️  Unparsed flag line in "${commandName}": ${line.trim()}`);
       }
     }
 
@@ -686,10 +767,11 @@ function parseGlobalFlags(helpText: string): FlagInfo[] {
 }
 
 /**
- * Add command aliases based on common patterns
+ * Add fallback aliases for commands that don't have an "Alias:" line in help.
+ * Aliases parsed from help text (in parseHelpOutput) take priority.
  */
 function addCommandAliases(commands: Record<string, CommandInfo>): void {
-  const aliasMap: Record<string, string[]> = {
+  const fallbackAliases: Record<string, string[]> = {
     "install": ["i"],
     "add": ["a"],
     "remove": ["rm"],
@@ -697,10 +779,29 @@ function addCommandAliases(commands: Record<string, CommandInfo>): void {
     "x": ["bunx"], // bunx is an alias for bun x
   };
 
-  for (const [command, aliases] of Object.entries(aliasMap)) {
-    if (commands[command]) {
+  for (const [command, aliases] of Object.entries(fallbackAliases)) {
+    if (commands[command] && !commands[command].aliases) {
       commands[command].aliases = aliases;
     }
+  }
+}
+
+/**
+ * Get the Bun version string for embedding in the JSON output.
+ */
+async function getBunVersion(): Promise<string | undefined> {
+  try {
+    const proc = spawn({
+      cmd: [BUN_EXECUTABLE, "--version"],
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: temppackagejson,
+    });
+    const [stdout] = await Promise.all([new Response(proc.stdout).text()]);
+    await proc.exited;
+    return stdout.trim() || undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -708,116 +809,158 @@ function addCommandAliases(commands: Record<string, CommandInfo>): void {
  * Main function to generate completion data
  */
 async function generateCompletions(): Promise<void> {
-  console.log("🔍 Discovering Bun commands...");
+  setupTempEnv();
 
-  // Get main help and extract commands
-  const mainHelpText = await getHelpOutput([]);
-  const mainCommands = await getMainCommands();
-  const globalFlags = parseGlobalFlags(mainHelpText);
+  // Ensure cleanup on SIGINT/SIGTERM as well as normal exit
+  const cleanup = () => {
+    cleanupTempEnv();
+    process.exit(130);
+  };
+  process.once("SIGINT", cleanup);
+  process.once("SIGTERM", cleanup);
 
-  console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
+  try {
+    console.log("🔍 Discovering Bun commands...");
 
-  const completionData: CompletionData = {
-    version: "1.1.0",
-    commands: {},
-    globalFlags,
-    specialHandling: {
-      bareCommand: {
-        description: "Run JavaScript/TypeScript files directly or access package scripts and binaries",
-        canRunFiles: true,
-        dynamicCompletions: {
-          scripts: true,
-          files: true,
-          binaries: true,
+    // Get Bun version for the JSON output
+    const bunVersion = await getBunVersion();
+    if (bunVersion) {
+      console.log(`📌 Bun version: ${bunVersion}`);
+    }
+
+    // Get main help and extract commands
+    const mainHelpText = await getHelpOutput([]);
+    const mainCommands = await getMainCommands();
+    const globalFlags = parseGlobalFlags(mainHelpText);
+
+    console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
+
+    // Probe getcompletes in parallel with version
+    const [bunGetCompletes] = await Promise.all([
+      checkGetCompletes(),
+    ]);
+
+    const completionData: CompletionData = {
+      version: "1.1.0",
+      bunVersion,
+      commands: {},
+      globalFlags,
+      specialHandling: {
+        bareCommand: {
+          description: "Run JavaScript/TypeScript files directly or access package scripts and binaries",
+          canRunFiles: true,
+          dynamicCompletions: {
+            scripts: true,
+            files: true,
+            binaries: true,
+          },
         },
       },
-    },
-    bunGetCompletes: await checkGetCompletes(),
-  };
+      bunGetCompletes,
+    };
 
-  // Parse each command
-  for (const commandName of mainCommands) {
-    console.log(`📖 Parsing help for: ${commandName}`);
-
-    try {
-      const helpText = await getHelpOutput([commandName]);
-      if (helpText.trim()) {
-        const commandInfo = parseHelpOutput(helpText, commandName);
-        completionData.commands[commandName] = commandInfo;
-      } else {
-        console.warn(`⚠️  No help output for "${commandName}" — skipping (command may be internal or undocumented).`);
-      }
-    } catch (error) {
-      console.error(`❌ Failed to parse ${commandName}:`, error);
-    }
-  }
-
-  // Add common aliases
-  addCommandAliases(completionData.commands);
-
-  // Also check some common subcommands that might have their own help
-  const additionalCommands = ["pm"];
-  for (const commandName of additionalCommands) {
-    if (!completionData.commands[commandName]) {
-      console.log(`📖 Parsing help for additional command: ${commandName}`);
-
-      try {
-        const helpText = await getHelpOutput([commandName]);
-        if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
-          const commandInfo = parseHelpOutput(helpText, commandName);
-          completionData.commands[commandName] = commandInfo;
-        } else if (!helpText.trim()) {
-          console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to parse ${commandName}:`, error);
-      }
-    }
-  }
-
-  // Ensure completions directory exists
-  const completionsDir = join(process.cwd(), "completions");
-  try {
-    mkdirSync(completionsDir, { recursive: true });
-  } catch (error) {
-    // Directory might already exist
-  }
-
-  // Write the JSON file
-  const outputPath = join(completionsDir, "bun-cli.json");
-  const jsonData = JSON.stringify(completionData, null, 2);
-
-  writeFileSync(outputPath, jsonData, "utf8");
-
-  console.log(`✅ Generated CLI completion data at: ${outputPath}`);
-  console.log(`📊 Statistics:`);
-  console.log(`   - Commands: ${Object.keys(completionData.commands).length}`);
-  console.log(`   - Global flags: ${completionData.globalFlags.length}`);
-
-  let totalFlags = 0;
-  let totalExamples = 0;
-  let totalSubcommands = 0;
-  for (const [name, cmd] of Object.entries(completionData.commands)) {
-    totalFlags += cmd.flags.length;
-    totalExamples += cmd.examples.length;
-    const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
-    totalSubcommands += subcommandCount;
-
-    const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
-    const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
-    const dynamicInfo = cmd.dynamicCompletions ? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]` : "";
-
-    console.log(
-      `   - ${name}${aliasInfo}: ${cmd.flags.length} flags, ${cmd.positionalArgs.length} positional args, ${cmd.examples.length} examples${subcommandInfo}${dynamicInfo}`,
+    // Parse each command — fetch all help texts in parallel
+    console.log(`📖 Fetching help for ${mainCommands.length} commands in parallel...`);
+    const helpResults = await Promise.all(
+      mainCommands.map(async (name) => ({
+        name,
+        helpText: await getHelpOutput([name]),
+      }))
     );
-  }
 
-  console.log(`   - Total command flags: ${totalFlags}`);
-  console.log(`   - Total examples: ${totalExamples}`);
-  console.log(`   - Total subcommands: ${totalSubcommands}`);
+    for (const { name, helpText } of helpResults) {
+      if (helpText.trim()) {
+        const commandInfo = parseHelpOutput(helpText, name);
+        completionData.commands[name] = commandInfo;
+      } else {
+        console.warn(`⚠️  No help output for "${name}" — skipping (command may be internal or undocumented).`);
+      }
+    }
+
+    // Add fallback aliases (only for commands without a parsed "Alias:" line)
+    addCommandAliases(completionData.commands);
+
+    // Also check some common subcommands that might have their own help
+    const additionalCommands = ["pm"];
+    for (const commandName of additionalCommands) {
+      if (!completionData.commands[commandName]) {
+        console.log(`📖 Parsing help for additional command: ${commandName}`);
+
+        try {
+          const helpText = await getHelpOutput([commandName]);
+          if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
+            const commandInfo = parseHelpOutput(helpText, commandName);
+            completionData.commands[commandName] = commandInfo;
+          } else if (!helpText.trim()) {
+            console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to parse ${commandName}:`, error);
+        }
+      }
+    }
+
+    // Recursively discover nested pm subcommands
+    if (completionData.commands["pm"]?.subcommands) {
+      console.log(`📖 Discovering nested pm subcommands...`);
+      await discoverNestedSubcommands(["pm"], completionData.commands["pm"].subcommands);
+    }
+
+    // Ensure completions directory exists
+    const completionsDir = join(process.cwd(), "completions");
+    try {
+      mkdirSync(completionsDir, { recursive: true });
+    } catch {
+      // Directory might already exist
+    }
+
+    // Write the JSON file
+    const outputPath = join(completionsDir, "bun-cli.json");
+    const jsonData = JSON.stringify(completionData, null, 2);
+
+    writeFileSync(outputPath, jsonData, "utf8");
+
+    console.log(`✅ Generated CLI completion data at: ${outputPath}`);
+    console.log(`📊 Statistics:`);
+    console.log(`   - Commands: ${Object.keys(completionData.commands).length}`);
+    console.log(`   - Global flags: ${completionData.globalFlags.length}`);
+    if (bunVersion) {
+      console.log(`   - Bun version: ${bunVersion}`);
+    }
+
+    let totalFlags = 0;
+    let totalExamples = 0;
+    let totalSubcommands = 0;
+    for (const [name, cmd] of Object.entries(completionData.commands)) {
+      totalFlags += cmd.flags.length;
+      totalExamples += cmd.examples.length;
+      const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
+      totalSubcommands += subcommandCount;
+
+      const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
+      const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
+      const dynamicInfo = cmd.dynamicCompletions ? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]` : "";
+
+      console.log(
+        `   - ${name}${aliasInfo}: ${cmd.flags.length} flags, ${cmd.positionalArgs.length} positional args, ${cmd.examples.length} examples${subcommandInfo}${dynamicInfo}`,
+      );
+    }
+
+    console.log(`   - Total command flags: ${totalFlags}`);
+    console.log(`   - Total examples: ${totalExamples}`);
+    console.log(`   - Total subcommands: ${totalSubcommands}`);
+  } finally {
+    cleanupTempEnv();
+    process.removeListener("SIGINT", cleanup);
+    process.removeListener("SIGTERM", cleanup);
+  }
 }
 
 // Run the script
 if (import.meta.main) {
-  generateCompletions().catch(console.error);
+  generateCompletions().catch((error) => {
+    console.error("Fatal error:", error);
+    cleanupTempEnv();
+    process.exit(1);
+  });
 }
