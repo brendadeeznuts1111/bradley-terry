@@ -1,13 +1,13 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`Snapshot contracts DYNAMIC_SOURCES.json has stable schema with dynamic values 1`] = `
+exports[`Snapshot contracts DYNAMIC_SOURCES.json schema contract full schema with dynamic value matchers 1`] = `
 {
   "blake2b256": Any<String>,
-  "bunVersion": Any<String>,
+  "bunVersion": "1.4.0",
   "generatedAt": Any<String>,
   "hmac": Any<String>,
   "jsonHash": Any<String>,
-  "revision": Any<String>,
+  "revision": "1.4.0-canary.1+452139e36",
   "schema": "1.1.0",
   "sha256": Any<String>,
   "sha512": Any<String>,
@@ -81,11 +81,11 @@ exports[`Snapshot contracts DYNAMIC_SOURCES.json has stable schema with dynamic 
 }
 `;
 
-exports[`Snapshot contracts COMPLETION_MATRIX.md header has stable format with dynamic values 1`] = `
+exports[`Snapshot contracts COMPLETION_MATRIX.md header format header object with dynamic value matchers 1`] = `
 {
-  "bunVersion": Any<String>,
+  "bunVersion": "1.4.0",
   "hash": Any<String>,
-  "revision": Any<String>,
+  "revision": "1.4.0-canary.1+452139e36",
   "schema": "1.1.0",
   "source": "completions/bun-cli.json",
 }
