@@ -17,9 +17,10 @@
  * shell completions (fish, bash, zsh).
  */
 
-import { spawn } from "bun";
-import { mkdirSync, writeFileSync, mkdtempSync, rmSync } from "fs";
+import { spawnSync } from "bun";
+import { mkdirSync, writeFileSync, mkdtempSync, rmSync, realpathSync } from "fs";
 import { join } from "path";
+import os from "node:os";
 
 interface FlagInfo {
   name: string;
@@ -102,6 +103,61 @@ interface CompletionData {
 }
 
 const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
+
+/**
+ * Clean env for spawning Bun subprocesses — strips debug noise that would
+ * pollute help output. Modeled after the Bun repo's `bunEnv` from test/harness.ts.
+ */
+const bunEnv: Record<string, string | undefined> = {
+  ...process.env,
+  NO_COLOR: "1",
+  FORCE_COLOR: undefined,
+  BUN_DEBUG_QUIET_LOGS: "1",
+  BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
+  TZ: "Etc/UTC",
+};
+
+// Strip undefined keys (Bun.spawnSync inherits them otherwise)
+for (const key of Object.keys(bunEnv)) {
+  if (bunEnv[key] === undefined) delete bunEnv[key];
+}
+
+/**
+ * Resolve the Bun executable path. On Windows, normalize backslashes.
+ * Modeled after the Bun repo's `bunExe()` from test/harness.ts.
+ */
+function bunExe(): string {
+  if (process.platform === "win32") return process.execPath.replaceAll("\\", "/");
+  return BUN_EXECUTABLE;
+}
+
+/**
+ * A temporary directory that auto-cleans via `Symbol.dispose`.
+ * Usage: `using dir = createTempPackageDir();`
+ * Modeled after the Bun repo's `DisposableString` from test/harness.ts.
+ */
+class DisposableTempDir extends String {
+  [Symbol.dispose]() {
+    rmSync(this + "", { recursive: true, force: true });
+  }
+  [Symbol.asyncDispose]() {
+    return import("fs/promises").then(m => m.rm(this + "", { recursive: true, force: true }));
+  }
+}
+
+/**
+ * Create a temp directory under os.tmpdir() (not CWD) with a dummy
+ * package.json, so `bun run --help` doesn't pick up real repo scripts.
+ * Returns a DisposableTempDir — use with `using` for auto-cleanup.
+ */
+function createTempPackageDir(): DisposableTempDir {
+  const base = mkdtempSync(join(realpathSync(os.tmpdir()), "bun-completions-"));
+  writeFileSync(
+    join(base, "package.json"),
+    JSON.stringify({ name: "test", version: "1.0.0", scripts: {} }),
+  );
+  return new DisposableTempDir(base);
+}
 
 /**
  * Parse flag line from help output.
@@ -321,62 +377,27 @@ function parseUsage(usage: string): {
   return args;
 }
 
-let temppackagejson: string;
-
 /**
- * Create a temporary directory with a dummy package.json so that
- * `bun run --help` doesn't pick up scripts from the real repo.
- */
-function setupTempEnv(): string {
-  temppackagejson = mkdtempSync("package");
-  writeFileSync(
-    join(temppackagejson, "package.json"),
-    JSON.stringify({
-      name: "test",
-      version: "1.0.0",
-      scripts: {},
-    }),
-  );
-  return temppackagejson;
-}
-
-/**
- * Remove the temporary directory, ignoring errors if it's already gone.
- */
-function cleanupTempEnv(): void {
-  if (temppackagejson) {
-    try {
-      rmSync(temppackagejson, { recursive: true, force: true });
-    } catch {
-      // already gone — fine
-    }
-  }
-}
-
-/**
- * Execute bun command and get help output.
+ * Execute bun command and get help output synchronously via spawnSync.
  * Retries once on empty output and logs a warning if still empty.
  */
-async function getHelpOutput(command: string[]): Promise<string> {
+function getHelpOutput(command: string[], cwd: string): string {
   const label = command.length === 0 ? "bun" : `bun ${command.join(" ")}`;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const proc = spawn({
-        cmd: [BUN_EXECUTABLE, ...command, "--help"],
+      const result = spawnSync({
+        cmd: [bunExe(), ...command, "--help"],
         stdout: "pipe",
         stderr: "pipe",
-        cwd: temppackagejson,
+        cwd,
+        env: bunEnv,
       });
 
-      const [stdout, stderr] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-      ]);
-
-      await proc.exited;
-
+      const stdout = result.stdout?.toString() ?? "";
+      const stderr = result.stderr?.toString() ?? "";
       const output = stdout || stderr || "";
+
       if (output.trim()) {
         return output;
       }
@@ -387,7 +408,6 @@ async function getHelpOutput(command: string[]): Promise<string> {
         continue;
       }
     } catch (error) {
-      // Bun spawn throws on ENOENT — log a concise warning without the full stack
       const msg = error instanceof Error ? error.message : String(error);
       if (attempt === 1) {
         console.warn(`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`);
@@ -405,11 +425,11 @@ async function getHelpOutput(command: string[]): Promise<string> {
 
 /**
  * Check whether `bun getcompletes` is available and which subcommands work.
- * Probes --help and each of the known subcommands (s, b, j, a).
+ * Probes --help and each of the known subcommands (s, b, j, a) via spawnSync.
  * Returns the bunGetCompletes section for CompletionData, with
  * available=false and no commands map if the feature is absent.
  */
-async function checkGetCompletes(): Promise<CompletionData["bunGetCompletes"]> {
+function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
   const subcommands: Record<string, string> = {
     scripts: "bun getcompletes s",
     binaries: "bun getcompletes b",
@@ -419,25 +439,20 @@ async function checkGetCompletes(): Promise<CompletionData["bunGetCompletes"]> {
 
   // First probe: does `bun getcompletes --help` exist at all?
   try {
-    const proc = spawn({
-      cmd: [BUN_EXECUTABLE, "getcompletes", "--help"],
+    const result = spawnSync({
+      cmd: [bunExe(), "getcompletes", "--help"],
       stdout: "pipe",
       stderr: "pipe",
-      cwd: temppackagejson,
+      cwd,
+      env: bunEnv,
     });
-    const [stdout, stderr] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-    ]);
-    await proc.exited;
 
-    const output = (stdout || stderr || "").trim();
+    const output = ((result.stdout?.toString() ?? "") + (result.stderr?.toString() ?? "")).trim();
     if (!output) {
       console.warn("⚠️  `bun getcompletes` returned no output — marking as unavailable.");
       return { available: false };
     }
 
-    // Some Bun versions print "Usage: bun getcompletes" or "error:" if unknown
     if (output.toLowerCase().includes("error") && !output.toLowerCase().includes("usage")) {
       console.warn("⚠️  `bun getcompletes` reported an error — marking as unavailable.");
       return { available: false };
@@ -449,16 +464,18 @@ async function checkGetCompletes(): Promise<CompletionData["bunGetCompletes"]> {
 
   // Probe each subcommand to confirm it works
   const working: string[] = [];
-  for (const [key, label] of Object.entries(subcommands)) {
+  for (const [key, _label] of Object.entries(subcommands)) {
     try {
-      const proc = spawn({
-        cmd: [BUN_EXECUTABLE, "getcompletes", key === "packages" ? "a" : key[0]],
+      const result = spawnSync({
+        cmd: [bunExe(), "getcompletes", key === "packages" ? "a" : key[0]],
         stdout: "pipe",
         stderr: "pipe",
-        cwd: temppackagejson,
+        cwd,
+        env: bunEnv,
       });
-      await proc.exited;
-      working.push(key);
+      if (result.exitCode === 0 || (result.stdout?.toString() ?? "").length > 0) {
+        working.push(key);
+      }
     } catch {
       console.warn(`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`);
     }
@@ -522,20 +539,18 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
  * Recursively discover nested subcommands by running --help on each.
  * E.g., `bun pm pkg --help` reveals get/set/delete/fix.
  */
-async function discoverNestedSubcommands(
+function discoverNestedSubcommands(
   parentPath: string[],
-  subcommands: Record<string, SubcommandInfo>
-): Promise<void> {
+  subcommands: Record<string, SubcommandInfo>,
+  cwd: string
+): void {
   for (const [name, sub] of Object.entries(subcommands)) {
-    // Heuristic: short-named subcommands like "pkg", "cache" often have
-    // their own subcommands. Probe each one.
-    const helpText = await getHelpOutput([...parentPath, name]);
+    const helpText = getHelpOutput([...parentPath, name], cwd);
     if (helpText.trim()) {
       const nested = parsePmSubcommands(helpText);
       if (Object.keys(nested).length > 0) {
         sub.subcommands = nested;
-        // Recurse one more level
-        await discoverNestedSubcommands([...parentPath, name], nested);
+        discoverNestedSubcommands([...parentPath, name], nested, cwd);
       }
     }
   }
@@ -697,8 +712,8 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 /**
  * Get list of main commands from bun --help
  */
-async function getMainCommands(): Promise<string[]> {
-  const helpText = await getHelpOutput([]);
+function getMainCommands(cwd: string): string[] {
+  const helpText = getHelpOutput([], cwd);
   const lines = helpText.split("\n");
   const commands: string[] = [];
 
@@ -789,178 +804,210 @@ function addCommandAliases(commands: Record<string, CommandInfo>): void {
 /**
  * Get the Bun version string for embedding in the JSON output.
  */
-async function getBunVersion(): Promise<string | undefined> {
+function getBunVersion(cwd: string): string | undefined {
   try {
-    const proc = spawn({
-      cmd: [BUN_EXECUTABLE, "--version"],
+    const result = spawnSync({
+      cmd: [bunExe(), "--version"],
       stdout: "pipe",
       stderr: "pipe",
-      cwd: temppackagejson,
+      cwd,
+      env: bunEnv,
     });
-    const [stdout] = await Promise.all([new Response(proc.stdout).text()]);
-    await proc.exited;
-    return stdout.trim() || undefined;
+    return (result.stdout?.toString() ?? "").trim() || undefined;
   } catch {
     return undefined;
   }
 }
 
 /**
- * Main function to generate completion data
+ * Parse CLI args for this script.
+ * Supported flags:
+ *   --dry-run       Parse and print stats without writing the JSON file
+ *   --skip-nested   Skip recursive pm subcommand discovery (faster)
+ *   -o <path>       Custom output path (default: completions/bun-cli.json)
  */
-async function generateCompletions(): Promise<void> {
-  setupTempEnv();
+interface CliArgs {
+  dryRun: boolean;
+  skipNested: boolean;
+  outputPath: string;
+}
 
-  // Ensure cleanup on SIGINT/SIGTERM as well as normal exit
-  const cleanup = () => {
-    cleanupTempEnv();
-    process.exit(130);
+function parseCliArgs(argv: string[]): CliArgs {
+  const args: CliArgs = {
+    dryRun: false,
+    skipNested: false,
+    outputPath: join(process.cwd(), "completions", "bun-cli.json"),
   };
-  process.once("SIGINT", cleanup);
-  process.once("SIGTERM", cleanup);
 
-  try {
-    console.log("🔍 Discovering Bun commands...");
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--dry-run" || arg === "--dryrun" || arg === "-n") {
+      args.dryRun = true;
+    } else if (arg === "--skip-nested") {
+      args.skipNested = true;
+    } else if (arg === "-o" || arg === "--output") {
+      const next = argv[i + 1];
+      if (next) {
+        args.outputPath = next;
+        i++;
+      }
+    } else if (arg === "--help" || arg === "-h") {
+      console.log(`Usage: bun run scripts/generate-cli-completions.ts [options]
 
-    // Get Bun version for the JSON output
-    const bunVersion = await getBunVersion();
-    if (bunVersion) {
-      console.log(`📌 Bun version: ${bunVersion}`);
+Options:
+  --dry-run, -n    Parse and print stats without writing the JSON file
+  --skip-nested    Skip recursive pm subcommand discovery (faster)
+  -o <path>        Custom output path (default: completions/bun-cli.json)
+  -h, --help       Show this help message
+`);
+      process.exit(0);
     }
+  }
 
-    // Get main help and extract commands
-    const mainHelpText = await getHelpOutput([]);
-    const mainCommands = await getMainCommands();
-    const globalFlags = parseGlobalFlags(mainHelpText);
+  return args;
+}
 
-    console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
+/**
+ * Main function to generate completion data.
+ * Uses `using` for automatic temp dir cleanup (Symbol.dispose).
+ */
+function generateCompletions(cliArgs: CliArgs): void {
+  using tempDir = createTempPackageDir();
+  const cwd = String(tempDir);
 
-    // Probe getcompletes in parallel with version
-    const [bunGetCompletes] = await Promise.all([
-      checkGetCompletes(),
-    ]);
+  if (cliArgs.dryRun) {
+    console.log("🔍 Discovering Bun commands (dry-run, no file will be written)...");
+  } else {
+    console.log("🔍 Discovering Bun commands...");
+  }
 
-    const completionData: CompletionData = {
-      version: "1.1.0",
-      bunVersion,
-      commands: {},
-      globalFlags,
-      specialHandling: {
-        bareCommand: {
-          description: "Run JavaScript/TypeScript files directly or access package scripts and binaries",
-          canRunFiles: true,
-          dynamicCompletions: {
-            scripts: true,
-            files: true,
-            binaries: true,
-          },
+  // Get Bun version for the JSON output
+  const bunVersion = getBunVersion(cwd);
+  if (bunVersion) {
+    console.log(`📌 Bun version: ${bunVersion}`);
+  }
+
+  // Get main help and extract commands
+  const mainHelpText = getHelpOutput([], cwd);
+  const mainCommands = getMainCommands(cwd);
+  const globalFlags = parseGlobalFlags(mainHelpText);
+
+  console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
+
+  // Probe getcompletes
+  const bunGetCompletes = checkGetCompletes(cwd);
+
+  const completionData: CompletionData = {
+    version: "1.1.0",
+    bunVersion,
+    commands: {},
+    globalFlags,
+    specialHandling: {
+      bareCommand: {
+        description: "Run JavaScript/TypeScript files directly or access package scripts and binaries",
+        canRunFiles: true,
+        dynamicCompletions: {
+          scripts: true,
+          files: true,
+          binaries: true,
         },
       },
-      bunGetCompletes,
-    };
+    },
+    bunGetCompletes,
+  };
 
-    // Parse each command — fetch all help texts in parallel
-    console.log(`📖 Fetching help for ${mainCommands.length} commands in parallel...`);
-    const helpResults = await Promise.all(
-      mainCommands.map(async (name) => ({
-        name,
-        helpText: await getHelpOutput([name]),
-      }))
-    );
+  // Parse each command — spawnSync is fast enough to run sequentially
+  console.log(`📖 Fetching help for ${mainCommands.length} commands...`);
+  for (const commandName of mainCommands) {
+    const helpText = getHelpOutput([commandName], cwd);
+    if (helpText.trim()) {
+      const commandInfo = parseHelpOutput(helpText, commandName);
+      completionData.commands[commandName] = commandInfo;
+    } else {
+      console.warn(`⚠️  No help output for "${commandName}" — skipping (command may be internal or undocumented).`);
+    }
+  }
 
-    for (const { name, helpText } of helpResults) {
-      if (helpText.trim()) {
-        const commandInfo = parseHelpOutput(helpText, name);
-        completionData.commands[name] = commandInfo;
-      } else {
-        console.warn(`⚠️  No help output for "${name}" — skipping (command may be internal or undocumented).`);
+  // Add fallback aliases (only for commands without a parsed "Alias:" line)
+  addCommandAliases(completionData.commands);
+
+  // Also check some common subcommands that might have their own help
+  const additionalCommands = ["pm"];
+  for (const commandName of additionalCommands) {
+    if (!completionData.commands[commandName]) {
+      console.log(`📖 Parsing help for additional command: ${commandName}`);
+
+      const helpText = getHelpOutput([commandName], cwd);
+      if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
+        const commandInfo = parseHelpOutput(helpText, commandName);
+        completionData.commands[commandName] = commandInfo;
+      } else if (!helpText.trim()) {
+        console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
       }
     }
+  }
 
-    // Add fallback aliases (only for commands without a parsed "Alias:" line)
-    addCommandAliases(completionData.commands);
+  // Recursively discover nested pm subcommands (skippable for speed)
+  if (completionData.commands["pm"]?.subcommands && !cliArgs.skipNested) {
+    console.log(`📖 Discovering nested pm subcommands...`);
+    discoverNestedSubcommands(["pm"], completionData.commands["pm"].subcommands, cwd);
+  } else if (cliArgs.skipNested && completionData.commands["pm"]?.subcommands) {
+    console.log(`⏭️  Skipping nested pm subcommand discovery (--skip-nested)`);
+  }
 
-    // Also check some common subcommands that might have their own help
-    const additionalCommands = ["pm"];
-    for (const commandName of additionalCommands) {
-      if (!completionData.commands[commandName]) {
-        console.log(`📖 Parsing help for additional command: ${commandName}`);
-
-        try {
-          const helpText = await getHelpOutput([commandName]);
-          if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
-            const commandInfo = parseHelpOutput(helpText, commandName);
-            completionData.commands[commandName] = commandInfo;
-          } else if (!helpText.trim()) {
-            console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
-          }
-        } catch (error) {
-          console.error(`❌ Failed to parse ${commandName}:`, error);
-        }
-      }
-    }
-
-    // Recursively discover nested pm subcommands
-    if (completionData.commands["pm"]?.subcommands) {
-      console.log(`📖 Discovering nested pm subcommands...`);
-      await discoverNestedSubcommands(["pm"], completionData.commands["pm"].subcommands);
-    }
-
-    // Ensure completions directory exists
-    const completionsDir = join(process.cwd(), "completions");
+  // Write the JSON file (unless --dry-run)
+  if (!cliArgs.dryRun) {
+    const outputDir = join(cliArgs.outputPath, "..");
     try {
-      mkdirSync(completionsDir, { recursive: true });
+      mkdirSync(outputDir, { recursive: true });
     } catch {
       // Directory might already exist
     }
 
-    // Write the JSON file
-    const outputPath = join(completionsDir, "bun-cli.json");
     const jsonData = JSON.stringify(completionData, null, 2);
-
-    writeFileSync(outputPath, jsonData, "utf8");
-
-    console.log(`✅ Generated CLI completion data at: ${outputPath}`);
-    console.log(`📊 Statistics:`);
-    console.log(`   - Commands: ${Object.keys(completionData.commands).length}`);
-    console.log(`   - Global flags: ${completionData.globalFlags.length}`);
-    if (bunVersion) {
-      console.log(`   - Bun version: ${bunVersion}`);
-    }
-
-    let totalFlags = 0;
-    let totalExamples = 0;
-    let totalSubcommands = 0;
-    for (const [name, cmd] of Object.entries(completionData.commands)) {
-      totalFlags += cmd.flags.length;
-      totalExamples += cmd.examples.length;
-      const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
-      totalSubcommands += subcommandCount;
-
-      const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
-      const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
-      const dynamicInfo = cmd.dynamicCompletions ? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]` : "";
-
-      console.log(
-        `   - ${name}${aliasInfo}: ${cmd.flags.length} flags, ${cmd.positionalArgs.length} positional args, ${cmd.examples.length} examples${subcommandInfo}${dynamicInfo}`,
-      );
-    }
-
-    console.log(`   - Total command flags: ${totalFlags}`);
-    console.log(`   - Total examples: ${totalExamples}`);
-    console.log(`   - Total subcommands: ${totalSubcommands}`);
-  } finally {
-    cleanupTempEnv();
-    process.removeListener("SIGINT", cleanup);
-    process.removeListener("SIGTERM", cleanup);
+    writeFileSync(cliArgs.outputPath, jsonData, "utf8");
+    console.log(`✅ Generated CLI completion data at: ${cliArgs.outputPath}`);
+  } else {
+    console.log(`⏭️  Dry-run — skipping file write`);
   }
+  console.log(`📊 Statistics:`);
+  console.log(`   - Commands: ${Object.keys(completionData.commands).length}`);
+  console.log(`   - Global flags: ${completionData.globalFlags.length}`);
+  if (bunVersion) {
+    console.log(`   - Bun version: ${bunVersion}`);
+  }
+
+  let totalFlags = 0;
+  let totalExamples = 0;
+  let totalSubcommands = 0;
+  for (const [name, cmd] of Object.entries(completionData.commands)) {
+    totalFlags += cmd.flags.length;
+    totalExamples += cmd.examples.length;
+    const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
+    totalSubcommands += subcommandCount;
+
+    const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
+    const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
+    const dynamicInfo = cmd.dynamicCompletions ? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]` : "";
+
+    console.log(
+      `   - ${name}${aliasInfo}: ${cmd.flags.length} flags, ${cmd.positionalArgs.length} positional args, ${cmd.examples.length} examples${subcommandInfo}${dynamicInfo}`,
+    );
+  }
+
+  console.log(`   - Total command flags: ${totalFlags}`);
+  console.log(`   - Total examples: ${totalExamples}`);
+  console.log(`   - Total subcommands: ${totalSubcommands}`);
+  // tempDir auto-cleans here via Symbol.dispose
 }
 
 // Run the script
 if (import.meta.main) {
-  generateCompletions().catch((error) => {
+  const cliArgs = parseCliArgs(process.argv.slice(2));
+  try {
+    generateCompletions(cliArgs);
+  } catch (error) {
     console.error("Fatal error:", error);
-    cleanupTempEnv();
     process.exit(1);
-  });
+  }
 }
