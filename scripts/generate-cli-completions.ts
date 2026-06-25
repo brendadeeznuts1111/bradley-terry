@@ -555,19 +555,20 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
               examples: [],
             };
           }
+          const parent = subcommands[parentName]!;
 
           // If nestedName looks like a positional arg ([arg], <arg>, or name[arg]),
           // store it as a positionalArg instead of a subcommand
           if (nestedName.startsWith("[") || nestedName.startsWith("<") || nestedName.includes("[")) {
-            subcommands[parentName].positionalArgs.push({
+            parent.positionalArgs.push({
               name: nestedName.replace(/[\[\]<>]/g, ""),
               description: nestedDesc.trim(),
               required: nestedName.startsWith("<"),
               multiple: false,
             });
           } else {
-            subcommands[parentName].subcommands = subcommands[parentName].subcommands || {};
-            subcommands[parentName].subcommands[nestedName] = {
+            parent.subcommands = parent.subcommands || {};
+            parent.subcommands[nestedName] = {
               name: nestedName,
               description: nestedDesc.trim(),
               flags: [],
@@ -576,7 +577,7 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
               examples: [],
             };
           }
-          currentSub = subcommands[parentName];
+          currentSub = parent;
         }
         continue;
       }
@@ -942,13 +943,13 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
       { name: "production", shortName: "p", description: "Audit only production dependencies (excludes devDependencies)", hasValue: false },
     ],
     "init": [
-      { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
+      { name: "cwd", shortName: "C", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
     "run": [
       { name: "bunfile", description: "Specify a bunfile to run", hasValue: true },
     ],
     "test": [
-      { name: "bunfile", description: "Specify a bunfile to run", hasValue: true },
+      { name: "bunfile", shortName: "f", description: "Specify a bunfile to run", hasValue: true },
     ],
     "create": [
       { name: "template", description: "Specify a template to use", hasValue: true },
