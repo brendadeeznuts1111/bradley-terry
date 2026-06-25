@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
-import { fc } from "fast-check";
-import { Effect } from "effect";
+import fc from "fast-check";
+import { Effect, Cause } from "effect";
 import { BradleyTerry, BradleyTerryLive } from "../../bradley-terry";
 import { SelfMatchError, InsufficientDataError } from "../../schema";
 import type { EntityId } from "../../schema";
@@ -26,7 +26,11 @@ test("self-matches always produce SelfMatchError", async () => {
         expect(exit._tag).toBe("Failure");
 
         if (exit._tag === "Failure") {
-          expect(exit.cause).toBeInstanceOf(SelfMatchError);
+          const failure = Cause.failureOption(exit.cause);
+          expect(failure._tag).toBe("Some");
+          if (failure._tag === "Some") {
+            expect(failure.value).toBeInstanceOf(SelfMatchError);
+          }
         }
       }
     ),
@@ -47,6 +51,10 @@ test("empty match list produces InsufficientDataError", async () => {
   expect(exit._tag).toBe("Failure");
 
   if (exit._tag === "Failure") {
-    expect(exit.cause).toBeInstanceOf(InsufficientDataError);
+    const failure = Cause.failureOption(exit.cause);
+    expect(failure._tag).toBe("Some");
+    if (failure._tag === "Some") {
+      expect(failure.value).toBeInstanceOf(InsufficientDataError);
+    }
   }
 });

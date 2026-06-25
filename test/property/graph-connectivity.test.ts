@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { fc } from "fast-check";
+import fc from "fast-check";
 import { Effect } from "effect";
 import { BradleyTerry, BradleyTerryLive } from "../../bradley-terry";
 import type { Match, EntityId } from "../../schema";

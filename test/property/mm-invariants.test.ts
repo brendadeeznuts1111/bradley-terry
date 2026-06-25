@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { fc } from "fast-check";
+import fc from "fast-check";
 import { Effect } from "effect";
 import { BradleyTerry, BradleyTerryLive } from "../../bradley-terry";
 import type { Match, EntityId } from "../../schema";
@@ -22,7 +22,7 @@ const matchArb = fc
         max: new Date("2026-12-31"),
       })
     ),
-    weight: fc.option(fc.float({ min: 0.1, max: 8 })),
+    weight: fc.option(fc.float({ min: Math.fround(0.1), max: Math.fround(8) })),
   })
   .filter((m) => m.winner !== m.loser);
 
