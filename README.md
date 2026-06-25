@@ -1,1 +1,3 @@
-All references fixed. Import examples updated. Code is consistent.
+# @bradley-terry v0.3.0
+
+![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen) ![Effect](https://img.shields.io/badge/Effect-powered-blue) ![Tests](https://img.shields.io/badge/Tests-passing-brightgreen) ![BT Core](https://img.shields.io/badge/BT_Core-v0.3.0-success) ![Cascade](https://img.shields.io/badge/Cascade-Integrated-success) ![Massey](https://img.shields.io/badge/Massey-Imported-success)

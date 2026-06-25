@@ -1,0 +1,1 @@
+v0.3.0 tagged with referencing fixes + badges + full features.
