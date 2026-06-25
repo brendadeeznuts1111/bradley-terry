@@ -91,7 +91,7 @@ interface CompletionData {
   };
   bunGetCompletes: {
     available: boolean;
-    commands: {
+    commands?: {
       scripts: string; // "bun getcompletes s" or "bun getcompletes z"
       binaries: string; // "bun getcompletes b"
       packages: string; // "bun getcompletes a <prefix>"
@@ -283,26 +283,129 @@ process.once("beforeExit", () => {
 });
 
 /**
- * Execute bun command and get help output
+ * Execute bun command and get help output.
+ * Retries once on empty output and logs a warning if still empty.
  */
 async function getHelpOutput(command: string[]): Promise<string> {
+  const label = command.length === 0 ? "bun" : `bun ${command.join(" ")}`;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const proc = spawn({
+        cmd: [BUN_EXECUTABLE, ...command, "--help"],
+        stdout: "pipe",
+        stderr: "pipe",
+        cwd: temppackagejson,
+      });
+
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+
+      await proc.exited;
+
+      const output = stdout || stderr || "";
+      if (output.trim()) {
+        return output;
+      }
+
+      // Empty output — retry once before giving up
+      if (attempt === 1) {
+        console.warn(`⚠️  Empty help output for "${label}", retrying...`);
+        continue;
+      }
+    } catch (error) {
+      // Bun spawn throws on ENOENT — log a concise warning without the full stack
+      const msg = error instanceof Error ? error.message : String(error);
+      if (attempt === 1) {
+        console.warn(`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`);
+        continue;
+      }
+      console.warn(`⚠️  Spawn failed for "${label}" (attempt 2): ${msg}`);
+    }
+
+    console.warn(`⚠️  No help output for "${label}" after retry — skipping.`);
+    return "";
+  }
+
+  return "";
+}
+
+/**
+ * Check whether `bun getcompletes` is available and which subcommands work.
+ * Probes --help and each of the known subcommands (s, b, j, a).
+ * Returns the bunGetCompletes section for CompletionData, with
+ * available=false and no commands map if the feature is absent.
+ */
+async function checkGetCompletes(): Promise<CompletionData["bunGetCompletes"]> {
+  const subcommands: Record<string, string> = {
+    scripts: "bun getcompletes s",
+    binaries: "bun getcompletes b",
+    packages: "bun getcompletes a",
+    files: "bun getcompletes j",
+  };
+
+  // First probe: does `bun getcompletes --help` exist at all?
   try {
     const proc = spawn({
-      cmd: [BUN_EXECUTABLE, ...command, "--help"],
+      cmd: [BUN_EXECUTABLE, "getcompletes", "--help"],
       stdout: "pipe",
       stderr: "pipe",
       cwd: temppackagejson,
     });
-
-    const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-
+    const [stdout, stderr] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
     await proc.exited;
 
-    return stdout || stderr || "";
+    const output = (stdout || stderr || "").trim();
+    if (!output) {
+      console.warn("⚠️  `bun getcompletes` returned no output — marking as unavailable.");
+      return { available: false };
+    }
+
+    // Some Bun versions print "Usage: bun getcompletes" or "error:" if unknown
+    if (output.toLowerCase().includes("error") && !output.toLowerCase().includes("usage")) {
+      console.warn("⚠️  `bun getcompletes` reported an error — marking as unavailable.");
+      return { available: false };
+    }
   } catch (error) {
-    console.error(`Failed to get help for command: ${command.join(" ")}`, error);
-    return "";
+    console.warn("⚠️  `bun getcompletes` could not be spawned — marking as unavailable:", error);
+    return { available: false };
   }
+
+  // Probe each subcommand to confirm it works
+  const working: string[] = [];
+  for (const [key, label] of Object.entries(subcommands)) {
+    try {
+      const proc = spawn({
+        cmd: [BUN_EXECUTABLE, "getcompletes", key === "packages" ? "a" : key[0]],
+        stdout: "pipe",
+        stderr: "pipe",
+        cwd: temppackagejson,
+      });
+      await proc.exited;
+      working.push(key);
+    } catch {
+      console.warn(`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`);
+    }
+  }
+
+  if (working.length === 0) {
+    console.warn("⚠️  No `bun getcompletes` subcommands responded — marking as unavailable.");
+    return { available: false };
+  }
+
+  // Only include subcommands that actually worked
+  const commands: Record<string, string> = {};
+  for (const key of working) {
+    commands[key] = subcommands[key];
+  }
+
+  console.log(`✅ \`bun getcompletes\` available (${working.length}/${Object.keys(subcommands).length} subcommands: ${working.join(", ")})`);
+  return { available: true, commands: commands as CompletionData["bunGetCompletes"]["commands"] };
 }
 
 /**
@@ -629,15 +732,7 @@ async function generateCompletions(): Promise<void> {
         },
       },
     },
-    bunGetCompletes: {
-      available: true,
-      commands: {
-        scripts: "bun getcompletes s", // or "bun getcompletes z" for scripts with descriptions
-        binaries: "bun getcompletes b",
-        packages: "bun getcompletes a", // takes prefix as argument
-        files: "bun getcompletes j", // JavaScript/TypeScript files
-      },
-    },
+    bunGetCompletes: await checkGetCompletes(),
   };
 
   // Parse each command
@@ -649,6 +744,8 @@ async function generateCompletions(): Promise<void> {
       if (helpText.trim()) {
         const commandInfo = parseHelpOutput(helpText, commandName);
         completionData.commands[commandName] = commandInfo;
+      } else {
+        console.warn(`⚠️  No help output for "${commandName}" — skipping (command may be internal or undocumented).`);
       }
     } catch (error) {
       console.error(`❌ Failed to parse ${commandName}:`, error);
@@ -669,6 +766,8 @@ async function generateCompletions(): Promise<void> {
         if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
           const commandInfo = parseHelpOutput(helpText, commandName);
           completionData.commands[commandName] = commandInfo;
+        } else if (!helpText.trim()) {
+          console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
         }
       } catch (error) {
         console.error(`❌ Failed to parse ${commandName}:`, error);
