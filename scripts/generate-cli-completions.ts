@@ -944,6 +944,29 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     "init": [
       { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
+    "run": [
+      { name: "bunfile", description: "Specify a bunfile to run", hasValue: true },
+    ],
+    "test": [
+      { name: "bunfile", description: "Specify a bunfile to run", hasValue: true },
+    ],
+    "create": [
+      { name: "template", description: "Specify a template to use", hasValue: true },
+      { name: "name", description: "Specify a name for the project", hasValue: true },
+      { name: "force", description: "Overwrite existing files", hasValue: false },
+      { name: "no-install", description: "Skip installing node_modules & tasks", hasValue: false },
+      { name: "no-git", description: "Don't initialize a git repository", hasValue: false },
+      { name: "open", description: "Start & open in-browser after finish", hasValue: false },
+    ],
+    "install": [
+      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
+    ],
+    "add": [
+      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
+    ],
+    "remove": [
+      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
+    ],
   };
 
   for (const [cmd, flags] of Object.entries(documentedFlags)) {
