@@ -955,9 +955,6 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     "init": [
       { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
-    "add": [
-      { name: "filter", shortName: "F", description: "Add dependencies for the matching workspaces", hasValue: true },
-    ],
     "create": [
       { name: "force", description: "Overwrite existing files", hasValue: false },
       { name: "no-install", description: "Skip installing node_modules & tasks", hasValue: false },
