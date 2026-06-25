@@ -193,7 +193,9 @@ bradley-terry/
 ├── benchmark-loader.ts          # runBench() timing utility
 ├── bradley-terry.ts             # Root re-export for test imports
 ├── getGitCommitHash.ts          # Bun macro: embed HEAD hash at build time
-└── git-commit.ts                # Bun macro: GIT_COMMIT constant
+├── git-commit.ts                # Bun macro: GIT_COMMIT constant
+└── scripts/
+    └── generate-cli-completions.ts  # Bun CLI flag parser → completions/bun-cli.json
 ```
 
 ## References

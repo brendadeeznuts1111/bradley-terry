@@ -7,7 +7,9 @@
     "start": "bun run examples/usage-complete.ts",
     "dev": "bun --watch examples/usage-complete.ts",
     "test": "bun test",
-    "lint": "bunx @biomejs/biome check ."
+    "lint": "bunx @biomejs/biome check .",
+    "bench": "bun run src/bench/bt-fit.bench.ts",
+    "completions": "bun run scripts/generate-cli-completions.ts"
   },
   "dependencies": {
     "effect": "3.21.4"
