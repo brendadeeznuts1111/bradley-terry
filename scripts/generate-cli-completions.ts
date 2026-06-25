@@ -25,6 +25,7 @@ import os from "node:os";
 interface FlagInfo {
   name: string;
   shortName?: string;
+  aliases?: string[];
   description: string;
   hasValue: boolean;
   valueType?: string;
@@ -303,6 +304,28 @@ function buildFlagInfo(
       .split(/[,\s]+/)
       .map(s => s.replace(/[",]/g, "").trim())
       .filter(Boolean);
+  }
+
+  // Look for "Possible values: a, b, c" pattern (used by --backend)
+  if (!choices) {
+    const possibleMatch = description.match(/Possible values:\s*(.+?)(?:\.|$)/);
+    if (possibleMatch) {
+      choices = possibleMatch[1]
+        .split(/[,\s]+/)
+        .map(s => s.replace(/["'()]/g, "").trim())
+        .filter(s => s && !s.startsWith("default"));
+    }
+  }
+
+  // Look for quoted enum values in description like "browser", "bun" or "node"
+  if (!choices) {
+    const quotedMatch = description.match(/"(\w+)"(?:,\s*"(\w+)")*(?:\s+or\s+"(\w+)")?/);
+    if (quotedMatch) {
+      const all = description.match(/"(\w+)"/g);
+      if (all && all.length >= 2) {
+        choices = all.map(s => s.replace(/"/g, ""));
+      }
+    }
   }
 
   return {
@@ -1040,6 +1063,46 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     }
   }
 
+  // Apply documented extra aliases (beyond shortName) to existing flags.
+  // These are aliases mentioned in docs prose Notes but not in --help or
+  // ParamField alias fields. e.g. --dev has --development and -D in addition
+  // to -d.
+  const documentedExtraAliases: Record<string, Record<string, string[]>> = {
+    "add": { "dev": ["development", "D"] },
+  };
+  for (const [cmd, flagAliases] of Object.entries(documentedExtraAliases)) {
+    if (!commands[cmd]) continue;
+    for (const flag of commands[cmd].flags) {
+      if (flagAliases[flag.name] && !flag.aliases) {
+        flag.aliases = flagAliases[flag.name];
+      }
+    }
+  }
+
+  // Apply documented choices to flags that have enum-like values.
+  // These are flags where --help description doesn't auto-detect choices
+  // but the docs explicitly list valid values.
+  const documentedChoices: Record<string, Record<string, string[]>> = {
+    "install": { "omit": ["dev", "optional", "peer"] },
+    "add": { "omit": ["dev", "optional", "peer"] },
+    "remove": { "omit": ["dev", "optional", "peer"] },
+    "update": { "omit": ["dev", "optional", "peer"] },
+    "link": { "omit": ["dev", "optional", "peer"] },
+    "unlink": { "omit": ["dev", "optional", "peer"] },
+    "patch": { "omit": ["dev", "optional", "peer"] },
+    "publish": { "omit": ["dev", "optional", "peer"] },
+    "outdated": { "omit": ["dev", "optional", "peer"] },
+    "info": { "omit": ["dev", "optional", "peer"] },
+  };
+  for (const [cmd, flagChoices] of Object.entries(documentedChoices)) {
+    if (!commands[cmd]) continue;
+    for (const flag of commands[cmd].flags) {
+      if (flagChoices[flag.name] && !flag.choices) {
+        flag.choices = flagChoices[flag.name];
+      }
+    }
+  }
+
   // Add documented positional args not in --help usage line.
   // bun info --help shows "bun info [flags] [@]" but the docs show a third
   // positional arg for property paths (e.g. "bun info react version").
@@ -1056,6 +1119,61 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
       if (!existingNames.has(arg.name)) {
         commands[cmd].positionalArgs.push(arg);
         console.log(`📝 Adding documented positional arg: ${cmd} <${arg.name}>`);
+      }
+    }
+  }
+
+  // Apply completion types to positional args based on command + arg name.
+  // This enables shell completions to suggest the right kind of values.
+  const completionTypeMap: Record<string, Record<string, string>> = {
+    "add": { "flags": "package" },
+    "remove": { "flags": "package" },
+    "update": { "flags": "package" },
+    "link": { "flags": "path" },
+    "unlink": { "flags": "package" },
+    "info": { "@": "package", "property": "none" },
+    "outdated": { "filter": "package" },
+    "why": { "package@version": "package", "property": "none" },
+    "x": { "package@version": "package" },
+    "publish": { "dist": "file" },
+    "init": { "folder": "directory" },
+    "patch": { "flags": "package" },
+    "install": { "flags": "none" },
+    "audit": { "flags": "none" },
+  };
+  for (const [cmd, argTypes] of Object.entries(completionTypeMap)) {
+    if (!commands[cmd]) continue;
+    for (const arg of commands[cmd].positionalArgs) {
+      if (argTypes[arg.name] && (!arg.completionType || arg.completionType === "none")) {
+        arg.completionType = argTypes[arg.name];
+      }
+    }
+  }
+
+  // Add positional args to pm pkg subcommands.
+  // From --help: "get [key ...]", "set key=value ...", "delete key ..."
+  const pmPkg = commands["pm"]?.subcommands?.["pkg"];
+  if (pmPkg?.subcommands) {
+    const pkgArgs: Record<string, Array<{ name: string; description: string; required: boolean; multiple: boolean; type?: string; completionType?: string }>> = {
+      "get": [{ name: "key", description: "Package.json key(s) to get", required: false, multiple: true, type: "string", completionType: "none" }],
+      "set": [{ name: "key=value", description: "Package.json key=value pair(s) to set", required: true, multiple: true, type: "string", completionType: "none" }],
+      "delete": [{ name: "key", description: "Package.json key(s) to delete", required: true, multiple: true, type: "string", completionType: "none" }],
+    };
+    for (const [sub, args] of Object.entries(pkgArgs)) {
+      if (pmPkg.subcommands[sub] && pmPkg.subcommands[sub].positionalArgs.length === 0) {
+        pmPkg.subcommands[sub].positionalArgs = args;
+      }
+    }
+  }
+
+  // Add choices to pm version increment arg.
+  // From --help: "patch, minor, major, prepatch, preminor, premajor, prerelease, from-git, or a specific version"
+  const pmVersion = commands["pm"]?.subcommands?.["version"];
+  if (pmVersion) {
+    for (const arg of pmVersion.positionalArgs) {
+      if (arg.name === "increment" && !arg.choices) {
+        arg.choices = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease", "from-git"];
+        arg.completionType = "none";
       }
     }
   }
