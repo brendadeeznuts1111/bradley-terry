@@ -1,0 +1,16 @@
+# CODEOWNERS for bradley-terry
+
+# Default owners for everything in the repo
+*       @ashschaeffer1
+
+# Core service and critical files
+/bradley-terry.ts     @ashschaeffer1
+/schema.ts            @ashschaeffer1
+
+# Data loading layer
+/sqlite-loader.ts     @ashschaeffer1
+/massey-loader.ts     @ashschaeffer1
+/match-adapter.ts     @ashschaeffer1
+
+# Testing & Benchmarking
+/test/                @ashschaeffer1
