@@ -11,7 +11,7 @@ decay, multiple output scales, and a streaming Massey CSV loader.
                 ┌──────────────────────────────────────────┐
                 │              Consumer (Cascade)           │
                 └────────────────────┬─────────────────────┘
-                                     │ predictWinProbability / ratings
+                                     │ fit / predict / ratings
                 ┌────────────────────▼─────────────────────┐
                 │           BradleyTerry Service            │
                 │  (Context tag + BradleyTerryLive layer)   │
@@ -27,13 +27,13 @@ decay, multiple output scales, and a streaming Massey CSV loader.
                 │      ▼                                   │
                 │  ┌────────────┐  ┌──────────────┐        │
                 │  │ Union-Find │  │  Time decay  │        │
-                │  │ (graph)    │  │  (exponential)│       │
+                │  │ (graph)    │  │ (exponential)│        │
                 │  └────────────┘  └──────────────┘        │
                 └────────────────────┬─────────────────────┘
                                      │
                 ┌────────────────────▼─────────────────────┐
-                │              Schema (SSOT)                │
-                │  EntityId, Match, FitResult,             │
+                │              Schema (SSOT)               │
+                │  EntityId, Match, FitResult,            │
                 │  BradleyTerryConfig, BradleyTerryError   │
                 └────────────────────┬─────────────────────┘
                                      │

@@ -1,3 +1,5 @@
+# Changelog
+
 ## v0.3.2
 
 - **Core engine implemented** — `src/bradley-terry/index.ts` MM fitter with

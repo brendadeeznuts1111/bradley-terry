@@ -3,9 +3,9 @@
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
 [![Tests](https://img.shields.io/badge/Tests-6%20pass-brightgreen)](#testing)
-[![BT Core](https://img.shields.io/badge/BT_Core-v0.3.2-success)](#bradley--terry-fitter)
-[![Cascade](https://img.shields.io/badge/Cascade-Integrated-success)](#cascade-integration)
-[![Massey](https://img.shields.io/badge/Massey-Imported-success)](#massey-loader)
+[![BT Core](https://img.shields.io/badge/BT_Core-v0.3.2-success)](#api)
+[![Cascade](https://img.shields.io/badge/Cascade-Integrated-success)](docs/ARCHITECTURE.md)
+[![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
 
 A Bun-native, Effect-powered Bradley-Terry rating engine for sports intelligence.
