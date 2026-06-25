@@ -961,6 +961,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
       { name: "no-git", description: "Don't initialize a git repository", hasValue: false },
       { name: "open", description: "Start & open in-browser after finish", hasValue: false },
     ],
+    "upgrade": [
+      { name: "canary", description: "Upgrade to the latest canary build", hasValue: false },
+      { name: "stable", description: "Switch from canary back to the latest stable release", hasValue: false },
+    ],
   };
 
   // Documented defaults not always present in --help text
