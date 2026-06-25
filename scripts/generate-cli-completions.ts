@@ -279,7 +279,15 @@ function buildFlagInfo(
   let choices: string[] | undefined;
 
   if (valueSpec) {
-    valueType = valueSpec.replace(/[<>]/g, "");
+    // Normalize value type: <val> -> string, <NUM> -> number, <path> -> string
+    const rawType = valueSpec.replace(/[<>]/g, "");
+    if (rawType === "val" || rawType === "path" || rawType === "file" || rawType === "dir") {
+      valueType = "string";
+    } else if (rawType === "NUM" || rawType === "num" || rawType === "number" || rawType === "N") {
+      valueType = "number";
+    } else {
+      valueType = rawType;
+    }
   }
 
   // Look for default values in description
@@ -939,36 +947,36 @@ function addCommandAliases(commands: Record<string, CommandInfo>): void {
  * Source: https://bun.com/docs/pm/cli/<command>.md
  */
 function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
+  // Flags documented on bun.com/docs but not in --help output
   const documentedFlags: Record<string, Array<{ name: string; shortName?: string; description: string; hasValue?: boolean }>> = {
     "audit": [
       { name: "production", shortName: "p", description: "Audit only production dependencies (excludes devDependencies)", hasValue: false },
     ],
     "init": [
-      { name: "cwd", shortName: "C", description: "Run bun init as if started in a different working directory", hasValue: true },
-    ],
-    "run": [
-      { name: "bunfile", shortName: "f", hasValue: true, description: "Specify a bunfile to run" },
-    ],
-    "test": [
-      { name: "bunfile", shortName: "f", hasValue: true, description: "Specify a bunfile to run" },
+      { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
     "create": [
-      { name: "template", description: "Specify a template to use", hasValue: true },
-      { name: "name", description: "Specify a name for the project", hasValue: true },
       { name: "force", description: "Overwrite existing files", hasValue: false },
       { name: "no-install", description: "Skip installing node_modules & tasks", hasValue: false },
       { name: "no-git", description: "Don't initialize a git repository", hasValue: false },
       { name: "open", description: "Start & open in-browser after finish", hasValue: false },
     ],
-    "install": [
-      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
-    ],
-    "add": [
-      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
-    ],
-    "remove": [
-      { name: "frozen-lockfile", description: "Fail if lockfile is out of sync", hasValue: false },
-    ],
+  };
+
+  // Documented defaults not always present in --help text
+  const documentedDefaults: Record<string, Record<string, string>> = {
+    "install": {
+      "backend": "clonefile",
+      "concurrent-scripts": "5",
+      "network-concurrency": "48",
+      "save": "true",
+    },
+    "add": {
+      "backend": "clonefile",
+      "concurrent-scripts": "5",
+      "network-concurrency": "48",
+      "save": "true",
+    },
   };
 
   for (const [cmd, flags] of Object.entries(documentedFlags)) {
@@ -984,6 +992,19 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
           valueType: flag.hasValue ? "string" : undefined,
         });
         console.log(`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`);
+      }
+    }
+  }
+
+  // Apply documented defaults to existing flags.
+  // Documented defaults from bun.com/docs override --help defaults since
+  // --help sometimes shows dynamic values (e.g. "2x cpu count") instead of
+  // the static default.
+  for (const [cmd, defaults] of Object.entries(documentedDefaults)) {
+    if (!commands[cmd]) continue;
+    for (const flag of commands[cmd].flags) {
+      if (defaults[flag.name]) {
+        flag.defaultValue = defaults[flag.name];
       }
     }
   }
