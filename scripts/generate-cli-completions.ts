@@ -993,9 +993,13 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
   // Documented defaults not always present in --help text.
   // These are the standard defaults shared across all pm commands.
   // Source: https://bun.com/docs/pm/cli/<command>.md ParamField entries
+  // Note: --help reports concurrent-scripts default as "2x CPU cores", which
+  // matches the install docs prose ("two times the reported cpu count or
+  // GOMAXPROCS"). The ParamField default="5" appears to be inconsistent with
+  // both --help and the prose, so we use the --help value.
   const pmDefaults: Record<string, string> = {
     "backend": "clonefile",
-    "concurrent-scripts": "5",
+    "concurrent-scripts": "2x CPU cores",
     "network-concurrency": "48",
     "save": "true",
   };
