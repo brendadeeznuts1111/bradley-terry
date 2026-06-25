@@ -160,6 +160,16 @@ bun test
 | `test/integration/cli-completions.test.ts` | 5 | CLI completions generator integration tests |
 | `test/benchmark/bradley-terry.bench.ts` | 2 | 50k-match performance target |
 
+## Updating snapshots
+
+Generated artifact snapshots live in `test/completions/__snapshots__/`. They lock structure while ignoring dynamic values (hashes, timestamps, versions) via property matchers.
+
+```bash
+bun run test:snapshots:update   # regenerate all snapshots
+```
+
+Regenerate when the completion matrix schema, header format, or markdown table output intentionally changes, then commit the updated `.snap` file.
+
 ## Benchmarks
 
 ```bash

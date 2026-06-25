@@ -10,6 +10,7 @@
 		"test": "bun test",
 		"test:watch": "bun test --watch",
 		"test:matrix": "bun test test/completion-matrix.unit.test.ts",
+		"test:snapshots:update": "bun test --update-snapshots",
 		"lint": "bunx @biomejs/biome check .",
 		"lint:fix": "bunx @biomejs/biome check --write .",
 		"bench": "bun run src/bench/bt-fit.bench.ts",
