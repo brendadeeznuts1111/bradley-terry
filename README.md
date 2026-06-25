@@ -1,1 +1,1 @@
-Added Massey FIFA Data Integration (v0.2.7) • CSV export support + backtesting pipeline • Ties to BT fit for hybrid ratings
+Updated comprehensive documentation: full feature list, all increments v0.2.1-v0.2.7, Massey integration section, usage examples, directory map, contribution guide.
