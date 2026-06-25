@@ -498,13 +498,29 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 
 /**
  * Parse PM subcommands from help output.
- * Recursively discovers nested subcommands by running their --help too.
+ *
+ * The `bun pm --help` output uses a tree format with ├/└ characters to
+ * show nested subcommands and flags inline:
+ *
+ *   bun pm pack                 create a tarball of the current workspace
+ *   ├ --dry-run                 do everything except for writing the tarball to disk
+ *   └ --quiet                   only output the tarball filename
+ *   bun pm pkg                  manage data in package.json
+ *   ├ get [key ...]
+ *   ├ set key=value ...
+ *   ├ delete key ...
+ *
+ * This function parses both the top-level subcommands and their inline
+ * nested subcommands/flags in a single pass — no recursive --help calls
+ * needed.
  */
 function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
   const lines = helpText.split("\n");
   const subcommands: Record<string, SubcommandInfo> = {};
 
   let inCommands = false;
+  let currentSub: SubcommandInfo | null = null;
+
   for (const line of lines) {
     const trimmed = line.trim();
 
@@ -517,43 +533,147 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
       break;
     }
 
-    if (inCommands && line.match(/^\s+bun pm \w+/)) {
-      // Parse lines like: "bun pm pack                 create a tarball of the current workspace"
-      const match = line.match(/^\s+bun pm (\S+)(?:\s+(.+))?$/);
-      if (match) {
-        const [, name, description = ""] = match;
-        subcommands[name] = {
-          name,
-          description: description.trim(),
+    if (!inCommands) continue;
+
+    // Top-level subcommand: "  bun pm pack                 create a tarball..."
+    // Also handles "  bun list                  list the dependency tree..."
+    // Also handles nested-as-top-level: "  bun pm cache rm             clear the cache"
+    if (!line.includes("├") && !line.includes("└")) {
+      // Try to match "bun pm <sub> <nested>  <desc>" (2+ spaces before desc)
+      const nestedTopMatch = line.match(/^\s+bun pm (\S+)\s+(\S+)\s{2,}(.+)$/);
+      if (nestedTopMatch) {
+        const [, parentName, nestedName, nestedDesc] = nestedTopMatch;
+        if (!parentName.startsWith("-") && parentName !== "pm") {
+          // Ensure parent exists
+          if (!subcommands[parentName]) {
+            subcommands[parentName] = {
+              name: parentName,
+              description: "",
+              flags: [],
+              positionalArgs: [],
+              subcommands: {},
+              examples: [],
+            };
+          }
+
+          // If nestedName looks like a positional arg ([arg], <arg>, or name[arg]),
+          // store it as a positionalArg instead of a subcommand
+          if (nestedName.startsWith("[") || nestedName.startsWith("<") || nestedName.includes("[")) {
+            subcommands[parentName].positionalArgs.push({
+              name: nestedName.replace(/[\[\]<>]/g, ""),
+              description: nestedDesc.trim(),
+              required: nestedName.startsWith("<"),
+              multiple: false,
+            });
+          } else {
+            subcommands[parentName].subcommands = subcommands[parentName].subcommands || {};
+            subcommands[parentName].subcommands[nestedName] = {
+              name: nestedName,
+              description: nestedDesc.trim(),
+              flags: [],
+              positionalArgs: [],
+              subcommands: {},
+              examples: [],
+            };
+          }
+          currentSub = subcommands[parentName];
+        }
+        continue;
+      }
+
+      const topMatch = line.match(/^\s+bun (?:pm )?(\S+)(?:\s+(.+))?$/);
+      if (topMatch) {
+        const [, name, description = ""] = topMatch;
+        if (name.startsWith("-") || name === "pm") continue;
+
+        // Don't overwrite if already created by a nested-top-level match
+        if (!subcommands[name]) {
+          subcommands[name] = {
+            name,
+            description: description.trim(),
+            flags: [],
+            positionalArgs: [],
+            subcommands: {},
+            examples: [],
+          };
+        }
+        currentSub = subcommands[name];
+      }
+      continue;
+    }
+
+    // Nested subcommand or flag: "  ├ --dry-run                 do everything..."
+    // or "  ├ get [key ...]"
+    // or "  └ -g                        print the global path to bin folder"
+    const nestedMatch = line.match(/^\s*[├└]\s+(.+)$/);
+    if (nestedMatch && currentSub) {
+      const nestedContent = nestedMatch[1];
+      // Split on 2+ spaces to separate name from description
+      const parts = nestedContent.split(/\s{2,}/);
+      const namePart = parts[0].trim();
+      const descPart = parts.slice(1).join("  ").trim();
+
+      if (namePart.startsWith("--")) {
+        // Long flag
+        const flagName = namePart.replace(/^--/, "").split("=")[0];
+        currentSub.flags = currentSub.flags || [];
+        currentSub.flags.push({
+          name: flagName,
+          description: descPart,
+          hasValue: namePart.includes("="),
+        });
+      } else if (namePart.startsWith("-")) {
+        // Short flag
+        const flagName = namePart.replace(/^-/, "");
+        currentSub.flags = currentSub.flags || [];
+        currentSub.flags.push({
+          name: flagName,
+          shortName: flagName,
+          description: descPart,
+          hasValue: false,
+        });
+      } else {
+        // Nested subcommand (e.g., "get [key ...]")
+        const nestedName = namePart.split(/\s/)[0];
+
+        // Skip if this is a duplicate of an existing positional arg
+        // (e.g., "increment" appears as both [increment] positional and ├ increment)
+        const existingArgs = currentSub.positionalArgs || [];
+        if (existingArgs.some(a => a.name === nestedName)) {
+          continue;
+        }
+
+        currentSub.subcommands = currentSub.subcommands || {};
+        currentSub.subcommands[nestedName] = {
+          name: nestedName,
+          description: descPart || namePart,
           flags: [],
           positionalArgs: [],
+          subcommands: {},
+          examples: [],
         };
       }
     }
   }
 
-  return subcommands;
-}
-
-/**
- * Recursively discover nested subcommands by running --help on each.
- * E.g., `bun pm pkg --help` reveals get/set/delete/fix.
- */
-function discoverNestedSubcommands(
-  parentPath: string[],
-  subcommands: Record<string, SubcommandInfo>,
-  cwd: string
-): void {
-  for (const [name, sub] of Object.entries(subcommands)) {
-    const helpText = getHelpOutput([...parentPath, name], cwd);
-    if (helpText.trim()) {
-      const nested = parsePmSubcommands(helpText);
-      if (Object.keys(nested).length > 0) {
-        sub.subcommands = nested;
-        discoverNestedSubcommands([...parentPath, name], nested, cwd);
-      }
-    }
+  // Standardize "list" -> "ls" (bun list is the alias, bun pm ls is canonical)
+  if (!subcommands["ls"] && subcommands["list"]) {
+    subcommands["ls"] = subcommands["list"];
+    subcommands["ls"].name = "ls";
+    subcommands["ls"].description += " (alias: bun list)";
+    delete subcommands["list"];
+  } else if (!subcommands["ls"]) {
+    subcommands["ls"] = {
+      name: "ls",
+      description: "List installed dependencies and their versions (alias: bun list)",
+      flags: [],
+      positionalArgs: [],
+      subcommands: {},
+      examples: [],
+    };
   }
+
+  return subcommands;
 }
 
 /**
@@ -566,6 +686,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
     description: "",
     flags: [],
     positionalArgs: [],
+    subcommands: {},
     examples: [],
   };
 
@@ -603,17 +724,22 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 
     // Extract usage and positional args
     if (trimmed.startsWith("Usage:")) {
+      console.log(`📝 Parsing usage for command: ${commandName}`);
       command.usage = trimmed;
+      console.log(`✅ Parsed usage: ${command.usage}`);
       command.positionalArgs = parseUsage(trimmed);
+      console.log(`✅ Parsed positional args: ${JSON.stringify(command.positionalArgs)}`);
       continue;
     }
 
     // Track sections
     if (trimmed === "Flags:") {
+      console.log(`📝 Parsing flags section for command: ${commandName}`);
       inFlags = true;
       currentSection = "flags";
       continue;
     } else if (trimmed === "Examples:") {
+      console.log(`📝 Parsing examples section for command: ${commandName}`);
       inExamples = true;
       inFlags = false;
       currentSection = "examples";
@@ -947,13 +1073,8 @@ function generateCompletions(cliArgs: CliArgs): void {
     }
   }
 
-  // Recursively discover nested pm subcommands (skippable for speed)
-  if (completionData.commands["pm"]?.subcommands && !cliArgs.skipNested) {
-    console.log(`📖 Discovering nested pm subcommands...`);
-    discoverNestedSubcommands(["pm"], completionData.commands["pm"].subcommands, cwd);
-  } else if (cliArgs.skipNested && completionData.commands["pm"]?.subcommands) {
-    console.log(`⏭️  Skipping nested pm subcommand discovery (--skip-nested)`);
-  }
+  // pm subcommands and their nested subcommands/flags are parsed inline
+  // from the ├/└ tree format in `bun pm --help` — no recursive discovery needed.
 
   // Write the JSON file (unless --dry-run)
   if (!cliArgs.dryRun) {
