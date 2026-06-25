@@ -1,0 +1,1 @@
+{"name":"@bradley-terry","version":"0.2.1","type":"module","scripts":{"dev":"bun run examples/usage-complete.ts","test":"bun test"},"dependencies":{"effect":"^3.0.0"},"devDependencies":{"bun-types":"latest"}}
