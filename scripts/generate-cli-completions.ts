@@ -1012,6 +1012,26 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
       }
     }
   }
+
+  // Add documented positional args not in --help usage line.
+  // bun info --help shows "bun info [flags] [@]" but the docs show a third
+  // positional arg for property paths (e.g. "bun info react version").
+  const documentedPositionalArgs: Record<string, Array<{ name: string; description: string; required: boolean; multiple: boolean; type?: string }>> = {
+    "info": [
+      { name: "property", description: "Specific property to display (e.g. version, dependencies, repository.url)", required: false, multiple: false, type: "string" },
+    ],
+  };
+
+  for (const [cmd, args] of Object.entries(documentedPositionalArgs)) {
+    if (!commands[cmd]) continue;
+    const existingNames = new Set(commands[cmd].positionalArgs.map(a => a.name));
+    for (const arg of args) {
+      if (!existingNames.has(arg.name)) {
+        commands[cmd].positionalArgs.push(arg);
+        console.log(`📝 Adding documented positional arg: ${cmd} <${arg.name}>`);
+      }
+    }
+  }
 }
 
 /**
