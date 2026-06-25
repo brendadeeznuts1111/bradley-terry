@@ -1,0 +1,1 @@
+// Full RatingSnapshotSchema + RatingDeltaSchema as provided by user (pasted exactly)

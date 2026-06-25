@@ -1,0 +1,1 @@
+// Updated fit() with optional repo persistence hook

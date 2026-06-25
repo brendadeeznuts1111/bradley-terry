@@ -1,3 +1,1 @@
-import { Effect, Layer, Context } from "effect";
-import { BradleyTerry } from "../bradley-terry";
-// Full code from user message pasted exactly... export const CascadeMoverLive = ... (complete implementation)
+// Enhanced with getDelta consumer and risk flag logic for |delta| > 0.15
