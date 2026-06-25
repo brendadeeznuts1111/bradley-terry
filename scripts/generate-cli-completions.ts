@@ -967,21 +967,32 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     ],
   };
 
-  // Documented defaults not always present in --help text
-  const documentedDefaults: Record<string, Record<string, string>> = {
-    "install": {
-      "backend": "clonefile",
-      "concurrent-scripts": "5",
-      "network-concurrency": "48",
-      "save": "true",
-    },
-    "add": {
-      "backend": "clonefile",
-      "concurrent-scripts": "5",
-      "network-concurrency": "48",
-      "save": "true",
-    },
+  // Documented defaults not always present in --help text.
+  // These are the standard defaults shared across all pm commands.
+  // Source: https://bun.com/docs/pm/cli/<command>.md ParamField entries
+  const pmDefaults: Record<string, string> = {
+    "backend": "clonefile",
+    "concurrent-scripts": "5",
+    "network-concurrency": "48",
+    "save": "true",
   };
+  const pmDefaultCommands = [
+    "install", "add", "remove", "update", "link", "unlink",
+    "patch", "publish", "outdated", "info",
+  ];
+  const documentedDefaults: Record<string, Record<string, string>> = {};
+  for (const cmd of pmDefaultCommands) {
+    // publish doesn't have --save in docs
+    documentedDefaults[cmd] = cmd === "publish"
+      ? { ...pmDefaults, save: undefined as unknown as string }
+      : { ...pmDefaults };
+  }
+  // Remove undefined entries
+  for (const cmd of Object.keys(documentedDefaults)) {
+    for (const key of Object.keys(documentedDefaults[cmd])) {
+      if (!documentedDefaults[cmd][key]) delete documentedDefaults[cmd][key];
+    }
+  }
 
   for (const [cmd, flags] of Object.entries(documentedFlags)) {
     if (!commands[cmd]) continue;

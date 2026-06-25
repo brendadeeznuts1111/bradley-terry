@@ -1,0 +1,4 @@
+[install]
+# Override machine defaults to allow lockfile generation
+frozenLockfile = false
+saveTextLockfile = true
