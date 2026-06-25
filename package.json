@@ -1,1 +1,18 @@
-{"name":"@bradley-terry","version":"0.2.1","type":"module","scripts":{"dev":"bun run examples/usage-complete.ts","test":"bun test"},"dependencies":{"effect":"^3.0.0"},"devDependencies":{"bun-types":"latest"}}
+{
+  "name": "@platform/bradley-terry",
+  "private": true,
+  "version": "0.2.1",
+  "type": "module",
+  "scripts": {
+    "start": "bun run examples/usage-complete.ts",
+    "dev": "bun --watch examples/usage-complete.ts",
+    "test": "bun test",
+    "lint": "bunx @biomejs/biome check ."
+  },
+  "dependencies": {
+    "effect": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
