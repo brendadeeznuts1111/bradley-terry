@@ -12,10 +12,14 @@
     "completions": "bun run scripts/generate-cli-completions.ts"
   },
   "dependencies": {
-    "effect": "3.21.4"
+    "effect": "3.21.4",
+    "preact": "^10.29.2",
+    "react": "19.2.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.17",
     "fast-check": "4.8.0"
   }
 }

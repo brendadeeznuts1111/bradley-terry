@@ -955,6 +955,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     "init": [
       { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
     ],
+    "add": [
+      { name: "filter", shortName: "F", description: "Add dependencies for the matching workspaces", hasValue: true },
+    ],
     "create": [
       { name: "force", description: "Overwrite existing files", hasValue: false },
       { name: "no-install", description: "Skip installing node_modules & tasks", hasValue: false },
@@ -1020,6 +1023,22 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
     for (const flag of commands[cmd].flags) {
       if (defaults[flag.name]) {
         flag.defaultValue = defaults[flag.name];
+      }
+    }
+  }
+
+  // Apply documented aliases to existing flags.
+  // Some flags are in --help but missing their short alias (e.g. install
+  // --filter is in --help without -F, but docs show -F).
+  const documentedAliases: Record<string, Record<string, string>> = {
+    "install": { "filter": "F" },
+  };
+  for (const [cmd, aliases] of Object.entries(documentedAliases)) {
+    if (!commands[cmd]) continue;
+    for (const flag of commands[cmd].flags) {
+      if (aliases[flag.name] && !flag.shortName) {
+        flag.shortName = aliases[flag.name];
+        console.log(`📝 Adding documented alias: ${cmd} --${flag.name} (-${aliases[flag.name]})`);
       }
     }
   }
