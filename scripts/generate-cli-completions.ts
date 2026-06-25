@@ -733,8 +733,8 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
     }
 
     // Track sections
-    if (trimmed === "Flags:") {
-      console.log(`📝 Parsing flags section for command: ${commandName}`);
+    if (trimmed === "Flags:" || trimmed === "Options:") {
+      console.log(`📝 Parsing ${trimmed} section for command: ${commandName}`);
       inFlags = true;
       currentSection = "flags";
       continue;
@@ -928,6 +928,43 @@ function addCommandAliases(commands: Record<string, CommandInfo>): void {
 }
 
 /**
+ * Add documented flags that don't appear in --help output.
+ *
+ * Some flags are documented on bun.com/docs but not yet exposed in the
+ * command's --help output. We add them here as a fallback so the
+ * completion JSON is at parity with the documentation.
+ *
+ * Source: https://bun.com/docs/pm/cli/<command>.md
+ */
+function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
+  const documentedFlags: Record<string, Array<{ name: string; shortName?: string; description: string; hasValue?: boolean }>> = {
+    "audit": [
+      { name: "production", shortName: "p", description: "Audit only production dependencies (excludes devDependencies)", hasValue: false },
+    ],
+    "init": [
+      { name: "cwd", description: "Run bun init as if started in a different working directory", hasValue: true },
+    ],
+  };
+
+  for (const [cmd, flags] of Object.entries(documentedFlags)) {
+    if (!commands[cmd]) continue;
+    const existingNames = new Set(commands[cmd].flags.map(f => f.name));
+    for (const flag of flags) {
+      if (!existingNames.has(flag.name)) {
+        commands[cmd].flags.push({
+          name: flag.name,
+          shortName: flag.shortName,
+          description: flag.description,
+          hasValue: flag.hasValue ?? false,
+          valueType: flag.hasValue ? "string" : undefined,
+        });
+        console.log(`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`);
+      }
+    }
+  }
+}
+
+/**
  * Get the Bun version string for embedding in the JSON output.
  */
 function getBunVersion(cwd: string): string | undefined {
@@ -1075,6 +1112,10 @@ function generateCompletions(cliArgs: CliArgs): void {
 
   // pm subcommands and their nested subcommands/flags are parsed inline
   // from the ├/└ tree format in `bun pm --help` — no recursive discovery needed.
+
+  // Add documented flags that don't appear in --help output.
+  // These are flags documented on bun.com/docs but not yet in the CLI --help.
+  addDocumentedFlags(completionData.commands);
 
   // Write the JSON file (unless --dry-run)
   if (!cliArgs.dryRun) {
