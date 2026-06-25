@@ -9,6 +9,7 @@
 		"dev": "bun --watch examples/usage-complete.ts",
 		"test": "bun test",
 		"test:watch": "bun test --watch",
+		"test:matrix": "bun test test/completion-matrix.unit.test.ts",
 		"lint": "bunx @biomejs/biome check .",
 		"lint:fix": "bunx @biomejs/biome check --write .",
 		"bench": "bun run src/bench/bt-fit.bench.ts",

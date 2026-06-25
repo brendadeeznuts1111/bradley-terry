@@ -148,20 +148,16 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-49 tests across 13 files:
+49 tests across 5 files:
 
-| Directory | Count | Purpose |
+| File | Count | Purpose |
 | --- | --- | --- |
-| `test/property/` | 9 | fast-check invariants: MM invariants, graph connectivity, error handling |
-| `test/integration/` | 5 | CLI completions generator integration tests |
-| `test/completions/` | 33 | Completion matrix helpers, flag taxonomy, Bun native APIs, SQLite |
-| `test/benchmark/` | 2 | 50k-match performance target |
-
-| Property test | Invariant |
-| --- | --- |
-| `test/property/mm-invariants.test.ts` | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
-| `test/property/graph-connectivity.test.ts` | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
-| `test/property/error-handling.test.ts` | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError` |
+| `test/completion-matrix.unit.test.ts` | 33 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
+| `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
+| `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
+| `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
+| `test/integration/cli-completions.test.ts` | 5 | CLI completions generator integration tests |
+| `test/benchmark/bradley-terry.bench.ts` | 2 | 50k-match performance target |
 
 ## Benchmarks
 
