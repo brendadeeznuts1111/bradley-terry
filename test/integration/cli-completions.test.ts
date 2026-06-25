@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "bun";
 import { existsSync, mkdtempSync, rmSync, writeFileSync, readFileSync, realpathSync } from "fs";
 import { join } from "path";
@@ -161,7 +161,7 @@ describe("cli-completions generator", () => {
   });
 
   // Cleanup all temp dirs after all tests
-  it.cleanup = () => {
+  afterAll(() => {
     for (const dir of tempDirs) {
       try {
         rmSync(dir, { recursive: true, force: true });
@@ -169,5 +169,5 @@ describe("cli-completions generator", () => {
         // already gone
       }
     }
-  };
+  });
 });
