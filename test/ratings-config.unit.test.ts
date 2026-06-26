@@ -1,10 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect, Layer } from "effect";
-import {
-	NAMESPACE,
-	RatingsConfig,
-	RatingsConfigLive,
-} from "../src/ratings/config";
+import { NAMESPACE, RatingsConfig, RatingsConfigLive } from "../src/ratings/config";
 import { SecretClient, SecretError } from "../src/secrets";
 
 // Test double that returns predictable secrets for each service/name pair.
@@ -57,10 +53,7 @@ describe("RatingsConfig Layer", () => {
 
 		const program = Effect.gen(function* () {
 			return yield* RatingsConfig;
-		}).pipe(
-			Effect.provide(RatingsConfigLive),
-			Effect.provide(EmptySecretsLive),
-		);
+		}).pipe(Effect.provide(RatingsConfigLive), Effect.provide(EmptySecretsLive));
 
 		await expect(Effect.runPromise(program)).rejects.toBeInstanceOf(Error);
 	});

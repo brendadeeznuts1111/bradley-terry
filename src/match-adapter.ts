@@ -1,8 +1,5 @@
 import { Effect, Schema } from "effect";
-import {
-	type GetMatchesOptions,
-	SqliteLoader,
-} from "./repository/sqlite-loader";
+import { type GetMatchesOptions, SqliteLoader } from "./repository/sqlite-loader";
 import {
 	type BradleyTerryError,
 	type EntityId,
@@ -57,10 +54,7 @@ export const MatchAdapter = {
 			return yield* Schema.decodeUnknown(MatchSchema)(candidate).pipe(
 				Effect.mapError(() => {
 					// Should never happen for well-formed rows; surface as diagnostic
-					console.warn(
-						"MatchAdapter: decode failed for row",
-						row.match_id ?? row.home_team,
-					);
+					console.warn("MatchAdapter: decode failed for row", row.match_id ?? row.home_team);
 					return candidate as Match; // fallback (unsafe cast)
 				}),
 			);

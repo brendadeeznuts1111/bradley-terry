@@ -4,13 +4,10 @@ import fc from "fast-check";
 import { BradleyTerry, BradleyTerryLive } from "../../bradley-terry";
 import { matchArb } from "../support/property";
 
-const largeMatchSetArb = fc.array(
-	matchArb({ withDate: true, withWeight: true }),
-	{
-		minLength: 40_000,
-		maxLength: 60_000,
-	},
-);
+const largeMatchSetArb = fc.array(matchArb({ withDate: true, withWeight: true }), {
+	minLength: 40_000,
+	maxLength: 60_000,
+});
 
 test("fit 50k matches under 1.5 seconds", async () => {
 	const matches = await fc.sample(largeMatchSetArb, 1)[0];

@@ -31,10 +31,7 @@ export class SecretStore extends Context.Tag("SecretStore")<
 			name: string,
 			entry: SecretEntry,
 		) => Effect.Effect<void, SecretStoreError>;
-		readonly delete: (
-			domain: string,
-			name: string,
-		) => Effect.Effect<void, SecretStoreError>;
+		readonly delete: (domain: string, name: string) => Effect.Effect<void, SecretStoreError>;
 	}
 >() {}
 
@@ -92,10 +89,7 @@ export function getSecret(
 	});
 }
 
-export function deleteSecret(
-	domain: string,
-	name: string,
-): Effect.Effect<void, SecretStoreError> {
+export function deleteSecret(domain: string, name: string): Effect.Effect<void, SecretStoreError> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		yield* store.delete(domain, name);

@@ -176,12 +176,7 @@ describe("alias sanitizer (wave 5)", () => {
 	});
 
 	test("preserves valid aliases", () => {
-		expect(cleanAliases(["i", "install", "add", "a"])).toEqual([
-			"i",
-			"install",
-			"add",
-			"a",
-		]);
+		expect(cleanAliases(["i", "install", "add", "a"])).toEqual(["i", "install", "add", "a"]);
 	});
 
 	test("returns an empty array for undefined input", () => {
@@ -342,9 +337,7 @@ describe("end-to-end generation", () => {
 			Flag: c.name,
 			Categories: c.categories.join(", ") || "—",
 		}));
-		expect(makeTable(sampleRows)).toContain(
-			"| Flag             | Categories    |",
-		);
+		expect(makeTable(sampleRows)).toContain("| Flag             | Categories    |");
 	});
 });
 
@@ -364,9 +357,7 @@ describe("drift detection contract", () => {
 	test("DYNAMIC_SOURCES.json serializes the matching JSON hash", async () => {
 		const rawJson = await Bun.file(JSON_PATH).text();
 		const jsonHash = computeJsonHash(rawJson);
-		const dynamicSources = JSON.parse(
-			await Bun.file(DYNAMIC_SOURCES_PATH).text(),
-		);
+		const dynamicSources = JSON.parse(await Bun.file(DYNAMIC_SOURCES_PATH).text());
 
 		expect(dynamicSources.jsonHash).toBe(jsonHash);
 	});
@@ -409,14 +400,16 @@ describe("SQLite history", () => {
 		// UUIDv7 IDs are time-ordered: id1 < id2 lexicographically
 		expect(id1 < id2).toBe(true);
 
-		db.run(
-			"INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)",
-			[id1, "2026-06-25T12:00:00Z", "abc123"],
-		);
-		db.run(
-			"INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)",
-			[id2, "2026-06-25T13:00:00Z", "def456"],
-		);
+		db.run("INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)", [
+			id1,
+			"2026-06-25T12:00:00Z",
+			"abc123",
+		]);
+		db.run("INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)", [
+			id2,
+			"2026-06-25T13:00:00Z",
+			"def456",
+		]);
 
 		const rows = db.query("SELECT * FROM completion_history ORDER BY id").all();
 
@@ -433,8 +426,7 @@ describe("SQLite history", () => {
 		});
 
 		// Verify UUIDv7 format: 8-4-4-4-12 hex with version 7 nibble
-		const uuidv7Re =
-			/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		const uuidv7Re = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 		expect(id1).toMatch(uuidv7Re);
 		expect(id2).toMatch(uuidv7Re);
 	});
@@ -462,8 +454,7 @@ describe("SQLite history", () => {
 			db.run("CREATE TABLE counters (k TEXT PRIMARY KEY, v INTEGER)");
 
 			const insertMany = db.transaction((items: [string, number][]) => {
-				for (const [k, v] of items)
-					db.run("INSERT INTO counters VALUES (?, ?)", [k, v]);
+				for (const [k, v] of items) db.run("INSERT INTO counters VALUES (?, ?)", [k, v]);
 				return items.length;
 			});
 
@@ -500,9 +491,7 @@ describe("Bun native API verification", () => {
 		const input = "verify me";
 		const digest = new Bun.CryptoHasher("sha256").update(input).digest("hex");
 
-		expect(digest).toBe(
-			new Bun.CryptoHasher("sha256").update(input).digest("hex"),
-		);
+		expect(digest).toBe(new Bun.CryptoHasher("sha256").update(input).digest("hex"));
 		expect(digest).toMatch(/^[0-9a-f]{64}$/);
 	});
 
@@ -510,9 +499,7 @@ describe("Bun native API verification", () => {
 		const key = "secret-key";
 		const a = new Bun.CryptoHasher("sha256", key).update("hello").digest("hex");
 		const b = new Bun.CryptoHasher("sha256", key).update("hello").digest("hex");
-		const c = new Bun.CryptoHasher("sha256", "other-key")
-			.update("hello")
-			.digest("hex");
+		const c = new Bun.CryptoHasher("sha256", "other-key").update("hello").digest("hex");
 
 		expect(a).toBe(b); // same key, same input → same digest
 		expect(a).not.toBe(c); // different key → different digest
@@ -646,9 +633,7 @@ describe("Bun native API verification", () => {
 	});
 
 	test("TOML.parse reads bunfig.toml install settings", async () => {
-		const content = await Bun.file(
-			join(import.meta.dir, "../bunfig.toml"),
-		).text();
+		const content = await Bun.file(join(import.meta.dir, "../bunfig.toml")).text();
 		const config = Bun.TOML.parse(content) as {
 			install: { frozenLockfile: boolean; saveTextLockfile: boolean };
 		};
@@ -738,25 +723,19 @@ describe("Bun native API verification", () => {
 		setSystemTime(new Date("2024-01-01T00:00:00Z"));
 
 		await Effect.runPromise(
-			setSecret("test", "temp-key", "s3cret", 3600).pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			setSecret("test", "temp-key", "s3cret", 3600).pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 
 		// Still valid within TTL
 		const fresh = await Effect.runPromise(
-			getSecret("test", "temp-key").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			getSecret("test", "temp-key").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 		expect(fresh).toBe("s3cret");
 
 		// Fast-forward 2 hours
 		setSystemTime(new Date("2024-01-01T02:00:00Z"));
 		const expired = await Effect.runPromise(
-			getSecret("test", "temp-key").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			getSecret("test", "temp-key").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 		expect(expired).toBeNull();
 
@@ -765,9 +744,7 @@ describe("Bun native API verification", () => {
 
 	test("setSecret without TTL never expires", async () => {
 		await Effect.runPromise(
-			setSecret("perm", "key", "forever").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			setSecret("perm", "key", "forever").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 
 		const value = await Effect.runPromise(
@@ -778,21 +755,15 @@ describe("Bun native API verification", () => {
 
 	test("deleteSecret removes a secret", async () => {
 		await Effect.runPromise(
-			setSecret("tmp", "to-delete", "x").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			setSecret("tmp", "to-delete", "x").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 
 		await Effect.runPromise(
-			deleteSecret("tmp", "to-delete").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			deleteSecret("tmp", "to-delete").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 
 		const result = await Effect.runPromise(
-			getSecret("tmp", "to-delete").pipe(
-				Effect.provide(InMemorySecretStoreLive),
-			),
+			getSecret("tmp", "to-delete").pipe(Effect.provide(InMemorySecretStoreLive)),
 		);
 		expect(result).toBeNull();
 	});

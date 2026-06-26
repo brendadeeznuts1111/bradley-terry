@@ -101,23 +101,15 @@ describe("Shell completion generator", () => {
 	test("fish completions expose choice values for enum-like flags", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
 		expect(fish).toContain("-l target -a 'browser bun node'");
-		expect(fish).toContain(
-			"-l backend -a 'clonefile hardlink symlink copyfile'",
-		);
+		expect(fish).toContain("-l backend -a 'clonefile hardlink symlink copyfile'");
 		expect(fish).toContain("-l linker -a 'isolated hoisted'");
 	});
 
 	test("fish completions add dynamic bun getcompletes for run, test, and build", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from run' -a '(bun getcompletes scripts)'",
-		);
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from test' -a '(bun getcompletes files)'",
-		);
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from build' -a '(bun getcompletes files)'",
-		);
+		expect(fish).toContain("__fish_seen_subcommand_from run' -a '(bun getcompletes scripts)'");
+		expect(fish).toContain("__fish_seen_subcommand_from test' -a '(bun getcompletes files)'");
+		expect(fish).toContain("__fish_seen_subcommand_from build' -a '(bun getcompletes files)'");
 	});
 
 	test("fish completions mark value flags with -r", async () => {

@@ -146,9 +146,9 @@ describe("Snapshot contracts", () => {
 		});
 
 		test("parseMatrixHeader throws on malformed headers", () => {
-			expect(() =>
-				parseMatrixHeader("bad header"),
-			).toThrowErrorMatchingInlineSnapshot(`"Unable to parse matrix header: "`);
+			expect(() => parseMatrixHeader("bad header")).toThrowErrorMatchingInlineSnapshot(
+				`"Unable to parse matrix header: "`,
+			);
 		});
 	});
 
@@ -292,9 +292,9 @@ describe("Snapshot contracts", () => {
 			expect(header.hash).toBe(dynamicSources.jsonHash);
 
 			// Every matrix row embeds the same drift hash
-			const rowHashes = [
-				...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm),
-			].map((m) => m[1]);
+			const rowHashes = [...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm)].map(
+				(m) => m[1],
+			);
 			const uniqueRowHashes = new Set(rowHashes);
 			expect(rowHashes.length).toBeGreaterThan(0);
 			expect(uniqueRowHashes.size).toBe(1);
@@ -316,9 +316,7 @@ describe("Snapshot contracts", () => {
 			const dynamicSources = JSON.parse(raw);
 
 			// semver.order throws on invalid versions, validating the format
-			expect(
-				Bun.semver.order(Bun.version, dynamicSources.bunVersion),
-			).toBeGreaterThanOrEqual(0);
+			expect(Bun.semver.order(Bun.version, dynamicSources.bunVersion)).toBeGreaterThanOrEqual(0);
 		});
 	});
 

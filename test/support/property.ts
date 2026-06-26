@@ -23,9 +23,7 @@ export function matchArb(options: MatchArbOptions = {}): fc.Arbitrary<Match> {
 		baseRecord.date = fc.option(fc.date());
 	}
 	if (options.withWeight) {
-		baseRecord.weight = fc.option(
-			fc.float({ min: Math.fround(0.1), max: Math.fround(8) }),
-		);
+		baseRecord.weight = fc.option(fc.float({ min: Math.fround(0.1), max: Math.fround(8) }));
 	}
 
 	return fc

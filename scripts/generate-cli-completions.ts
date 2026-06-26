@@ -18,13 +18,7 @@
  * shell completions (fish, bash, zsh).
  */
 
-import {
-	mkdirSync,
-	mkdtempSync,
-	realpathSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "bun";
@@ -137,8 +131,7 @@ for (const key of Object.keys(bunEnv)) {
  * Modeled after the Bun repo's `bunExe()` from test/harness.ts.
  */
 function bunExe(): string {
-	if (process.platform === "win32")
-		return process.execPath.replaceAll("\\", "/");
+	if (process.platform === "win32") return process.execPath.replaceAll("\\", "/");
 	return BUN_EXECUTABLE;
 }
 
@@ -260,10 +253,7 @@ function parseFlag(line: string): FlagInfo | null {
 /**
  * Extract FlagInfo from a regex match array.
  */
-function extractFlagFromMatch(
-	match: RegExpMatchArray,
-	_line: string,
-): FlagInfo | null {
+function extractFlagFromMatch(match: RegExpMatchArray, _line: string): FlagInfo | null {
 	let shortName: string | undefined;
 	let longName: string;
 	let valueSpec: string | undefined;
@@ -314,19 +304,9 @@ function buildFlagInfo(
 	if (valueSpec) {
 		// Normalize value type: <val> -> string, <NUM> -> number, <path> -> string
 		const rawType = valueSpec.replace(/[<>]/g, "");
-		if (
-			rawType === "val" ||
-			rawType === "path" ||
-			rawType === "file" ||
-			rawType === "dir"
-		) {
+		if (rawType === "val" || rawType === "path" || rawType === "file" || rawType === "dir") {
 			valueType = "string";
-		} else if (
-			rawType === "NUM" ||
-			rawType === "num" ||
-			rawType === "number" ||
-			rawType === "N"
-		) {
+		} else if (rawType === "NUM" || rawType === "num" || rawType === "number" || rawType === "N") {
 			valueType = "number";
 		} else {
 			valueType = rawType;
@@ -334,9 +314,7 @@ function buildFlagInfo(
 	}
 
 	// Look for default values in description
-	const defaultMatch = description.match(
-		/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/,
-	);
+	const defaultMatch = description.match(/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/);
 	if (defaultMatch) {
 		defaultValue = cleanDefaultValue(defaultMatch[1]);
 	}
@@ -365,9 +343,7 @@ function buildFlagInfo(
 
 	// Look for quoted enum values in description like "browser", "bun" or "node"
 	if (!choices) {
-		const quotedMatch = description.match(
-			/"(\w+)"(?:,\s*"(\w+)")*(?:\s+or\s+"(\w+)")?/,
-		);
+		const quotedMatch = description.match(/"(\w+)"(?:,\s*"(\w+)")*(?:\s+or\s+"(\w+)")?/);
 		if (quotedMatch) {
 			const all = description.match(/"(\w+)"/g);
 			if (all && all.length >= 2) {
@@ -385,9 +361,7 @@ function buildFlagInfo(
 		defaultValue,
 		choices,
 		required: false,
-		multiple:
-			description.toLowerCase().includes("multiple") ||
-			description.includes("[]"),
+		multiple: description.toLowerCase().includes("multiple") || description.includes("[]"),
 	};
 }
 
@@ -491,9 +465,7 @@ function getHelpOutput(command: string[], cwd: string): string {
 		} catch (error) {
 			const msg = error instanceof Error ? error.message : String(error);
 			if (attempt === 1) {
-				console.warn(
-					`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`,
-				);
+				console.warn(`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`);
 				continue;
 			}
 			console.warn(`⚠️  Spawn failed for "${label}" (attempt 2): ${msg}`);
@@ -530,30 +502,18 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 			env: bunEnv,
 		});
 
-		const output = (
-			(result.stdout?.toString() ?? "") + (result.stderr?.toString() ?? "")
-		).trim();
+		const output = ((result.stdout?.toString() ?? "") + (result.stderr?.toString() ?? "")).trim();
 		if (!output) {
-			console.warn(
-				"⚠️  `bun getcompletes` returned no output — marking as unavailable.",
-			);
+			console.warn("⚠️  `bun getcompletes` returned no output — marking as unavailable.");
 			return { available: false };
 		}
 
-		if (
-			output.toLowerCase().includes("error") &&
-			!output.toLowerCase().includes("usage")
-		) {
-			console.warn(
-				"⚠️  `bun getcompletes` reported an error — marking as unavailable.",
-			);
+		if (output.toLowerCase().includes("error") && !output.toLowerCase().includes("usage")) {
+			console.warn("⚠️  `bun getcompletes` reported an error — marking as unavailable.");
 			return { available: false };
 		}
 	} catch (error) {
-		console.warn(
-			"⚠️  `bun getcompletes` could not be spawned — marking as unavailable:",
-			error,
-		);
+		console.warn("⚠️  `bun getcompletes` could not be spawned — marking as unavailable:", error);
 		return { available: false };
 	}
 
@@ -568,23 +528,16 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 				cwd,
 				env: bunEnv,
 			});
-			if (
-				result.exitCode === 0 ||
-				(result.stdout?.toString() ?? "").length > 0
-			) {
+			if (result.exitCode === 0 || (result.stdout?.toString() ?? "").length > 0) {
 				working.push(key);
 			}
 		} catch {
-			console.warn(
-				`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`,
-			);
+			console.warn(`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`);
 		}
 	}
 
 	if (working.length === 0) {
-		console.warn(
-			"⚠️  No `bun getcompletes` subcommands responded — marking as unavailable.",
-		);
+		console.warn("⚠️  No `bun getcompletes` subcommands responded — marking as unavailable.");
 		return { available: false };
 	}
 
@@ -779,8 +732,7 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 	} else if (!subcommands.ls) {
 		subcommands.ls = {
 			name: "ls",
-			description:
-				"List installed dependencies and their versions (alias: bun list)",
+			description: "List installed dependencies and their versions (alias: bun list)",
 			flags: [],
 			positionalArgs: [],
 			subcommands: {},
@@ -844,9 +796,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 			command.usage = trimmed;
 			console.log(`✅ Parsed usage: ${command.usage}`);
 			command.positionalArgs = parseUsage(trimmed);
-			console.log(
-				`✅ Parsed positional args: ${JSON.stringify(command.positionalArgs)}`,
-			);
+			console.log(`✅ Parsed positional args: ${JSON.stringify(command.positionalArgs)}`);
 			continue;
 		}
 
@@ -883,19 +833,13 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 				command.flags.push(flag);
 			} else {
 				// Flag-looking line that didn't match any parser pattern
-				console.warn(
-					`⚠️  Unparsed flag line in "${commandName}": ${line.trim()}`,
-				);
+				console.warn(`⚠️  Unparsed flag line in "${commandName}": ${line.trim()}`);
 			}
 		}
 
 		// Parse examples
 		if (inExamples && trimmed && !trimmed.startsWith("Full documentation")) {
-			if (
-				trimmed.startsWith("bun ") ||
-				trimmed.startsWith("./") ||
-				trimmed.startsWith("Bundle")
-			) {
+			if (trimmed.startsWith("bun ") || trimmed.startsWith("./") || trimmed.startsWith("Bundle")) {
 				command.examples.push(trimmed);
 			}
 		}
@@ -1075,16 +1019,14 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			{
 				name: "production",
 				shortName: "p",
-				description:
-					"Audit only production dependencies (excludes devDependencies)",
+				description: "Audit only production dependencies (excludes devDependencies)",
 				hasValue: false,
 			},
 		],
 		init: [
 			{
 				name: "cwd",
-				description:
-					"Run bun init as if started in a different working directory",
+				description: "Run bun init as if started in a different working directory",
 				hasValue: true,
 			},
 		],
@@ -1176,9 +1118,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 					hasValue: flag.hasValue ?? false,
 					valueType: flag.hasValue ? "string" : undefined,
 				});
-				console.log(
-					`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`,
-				);
+				console.log(`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`);
 			}
 		}
 	}
@@ -1207,9 +1147,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		for (const flag of commands[cmd].flags) {
 			if (aliases[flag.name] && !flag.shortName) {
 				flag.shortName = aliases[flag.name];
-				console.log(
-					`📝 Adding documented alias: ${cmd} --${flag.name} (-${aliases[flag.name]})`,
-				);
+				console.log(`📝 Adding documented alias: ${cmd} --${flag.name} (-${aliases[flag.name]})`);
 			}
 		}
 	}
@@ -1310,8 +1248,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		info: [
 			{
 				name: "property",
-				description:
-					"Specific property to display (e.g. version, dependencies, repository.url)",
+				description: "Specific property to display (e.g. version, dependencies, repository.url)",
 				required: false,
 				multiple: false,
 				type: "string",
@@ -1321,15 +1258,11 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	for (const [cmd, args] of Object.entries(documentedPositionalArgs)) {
 		if (!commands[cmd]) continue;
-		const existingNames = new Set(
-			commands[cmd].positionalArgs.map((a) => a.name),
-		);
+		const existingNames = new Set(commands[cmd].positionalArgs.map((a) => a.name));
 		for (const arg of args) {
 			if (!existingNames.has(arg.name)) {
 				commands[cmd].positionalArgs.push(arg);
-				console.log(
-					`📝 Adding documented positional arg: ${cmd} <${arg.name}>`,
-				);
+				console.log(`📝 Adding documented positional arg: ${cmd} <${arg.name}>`);
 			}
 		}
 	}
@@ -1355,10 +1288,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, argTypes] of Object.entries(completionTypeMap)) {
 		if (!commands[cmd]) continue;
 		for (const arg of commands[cmd].positionalArgs) {
-			if (
-				argTypes[arg.name] &&
-				(!arg.completionType || arg.completionType === "none")
-			) {
+			if (argTypes[arg.name] && (!arg.completionType || arg.completionType === "none")) {
 				arg.completionType = argTypes[arg.name];
 			}
 		}
@@ -1384,12 +1314,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun add --global cowsay",
 		],
 		remove: ["bun remove ts-node"],
-		update: [
-			"bun update",
-			"bun update zod",
-			"bun update --interactive",
-			"bun update --latest",
-		],
+		update: ["bun update", "bun update zod", "bun update --interactive", "bun update --latest"],
 		run: [
 			"bun run index.js",
 			"bun run index.ts",
@@ -1537,10 +1462,7 @@ interface CliArgs {
  * Strip matching surrounding quotes from all default values across commands
  * and global flags.
  */
-function cleanAllDefaults(
-	commands: Record<string, CommandInfo>,
-	globalFlags: FlagInfo[],
-): void {
+function cleanAllDefaults(commands: Record<string, CommandInfo>, globalFlags: FlagInfo[]): void {
 	for (const command of Object.values(commands)) {
 		for (const flag of command.flags) {
 			flag.defaultValue = cleanDefaultValue(flag.defaultValue);
@@ -1595,9 +1517,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 	const cwd = String(tempDir);
 
 	if (cliArgs.dryRun) {
-		console.log(
-			"🔍 Discovering Bun commands (dry-run, no file will be written)...",
-		);
+		console.log("🔍 Discovering Bun commands (dry-run, no file will be written)...");
 	} else {
 		console.log("🔍 Discovering Bun commands...");
 	}
@@ -1613,9 +1533,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 	const mainCommands = getMainCommands(cwd);
 	const globalFlags = parseGlobalFlags(mainHelpText);
 
-	console.log(
-		`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`,
-	);
+	console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
 
 	// Probe getcompletes
 	const bunGetCompletes = checkGetCompletes(cwd);
@@ -1664,17 +1582,11 @@ function generateCompletions(cliArgs: CliArgs): void {
 			console.log(`📖 Parsing help for additional command: ${commandName}`);
 
 			const helpText = getHelpOutput([commandName], cwd);
-			if (
-				helpText.trim() &&
-				!helpText.includes("error:") &&
-				!helpText.includes("Error:")
-			) {
+			if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
 				const commandInfo = parseHelpOutput(helpText, commandName);
 				completionData.commands[commandName] = commandInfo;
 			} else if (!helpText.trim()) {
-				console.warn(
-					`⚠️  No help output for additional command "${commandName}" — skipping.`,
-				);
+				console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
 			}
 		}
 	}
@@ -1717,16 +1629,11 @@ function generateCompletions(cliArgs: CliArgs): void {
 	for (const [name, cmd] of Object.entries(completionData.commands)) {
 		totalFlags += cmd.flags.length;
 		totalExamples += cmd.examples.length;
-		const subcommandCount = cmd.subcommands
-			? Object.keys(cmd.subcommands).length
-			: 0;
+		const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
 		totalSubcommands += subcommandCount;
 
-		const aliasInfo = cmd.aliases
-			? ` (aliases: ${cmd.aliases.join(", ")})`
-			: "";
-		const subcommandInfo =
-			subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
+		const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
+		const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
 		const dynamicInfo = cmd.dynamicCompletions
 			? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]`
 			: "";

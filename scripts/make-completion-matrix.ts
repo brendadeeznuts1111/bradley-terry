@@ -124,9 +124,7 @@ try {
 }
 
 if (flags.verbose) {
-	console.log(
-		`📦 Bun ${liveBunVersion} (${liveBunRevision}) — probe took ${toc("version")}`,
-	);
+	console.log(`📦 Bun ${liveBunVersion} (${liveBunRevision}) — probe took ${toc("version")}`);
 }
 
 // ── Streaming JSON read ─────────────────────────────────────────
@@ -138,9 +136,7 @@ const rawJson = await Bun.readableStreamToText(rawJsonStream);
 tic("hash");
 const sha256 = new Bun.CryptoHasher("sha256").update(rawJson).digest("hex");
 const sha512 = new Bun.CryptoHasher("sha512").update(rawJson).digest("hex");
-const blake2b256 = new Bun.CryptoHasher("blake2b256")
-	.update(rawJson)
-	.digest("hex");
+const blake2b256 = new Bun.CryptoHasher("blake2b256").update(rawJson).digest("hex");
 const jsonHash = sha256.slice(0, 12);
 
 if (flags.verbose) {
@@ -181,9 +177,7 @@ function totalSurface(cmd: CommandEntry): number {
 
 function criticalInheritedFlags(cmdName: string): string {
 	const globalFlagNames = new Set(typedData.globalFlags.map((f) => f.name));
-	const ownFlagNames = new Set(
-		(typedData.commands[cmdName]?.flags || []).map((f) => f.name),
-	);
+	const ownFlagNames = new Set((typedData.commands[cmdName]?.flags || []).map((f) => f.name));
 
 	const critical = [
 		"watch",
@@ -248,9 +242,7 @@ const topLevelRows = Object.entries(typedData.commands)
 // ── Build PM rows ───────────────────────────────────────────────
 const pmRows = collectPmRows(typedData.commands.pm).map((row) => {
 	const target = resolvePmPath(row.path);
-	const reqPos = (target?.positionalArgs || []).filter(
-		(a) => a.required,
-	).length;
+	const reqPos = (target?.positionalArgs || []).filter((a) => a.required).length;
 	const optPos = (target?.positionalArgs || []).length - reqPos;
 	return {
 		Path: row.path,
@@ -403,21 +395,15 @@ const manifest = {
 	bunVersion: liveBunVersion,
 	revision: liveBunRevision,
 	generatedAt: new Date().toISOString(),
-	files: [MATRIX_PATH, DYNAMIC_SOURCES_PATH, CSV_PATH, HTML_PATH].filter(
-		Boolean,
-	),
+	files: [MATRIX_PATH, DYNAMIC_SOURCES_PATH, CSV_PATH, HTML_PATH].filter(Boolean),
 };
 const manifestString = JSON.stringify(manifest);
-const hmac = new Bun.CryptoHasher("sha256", hmacKey)
-	.update(manifestString)
-	.digest("hex");
+const hmac = new Bun.CryptoHasher("sha256", hmacKey).update(manifestString).digest("hex");
 
 // ── Check mode ────────────────────────────────────────────────────
 if (flags.check) {
 	const matrixContent = await Bun.file(MATRIX_PATH).text();
-	const dynamicSources = JSON.parse(
-		await Bun.file(DYNAMIC_SOURCES_PATH).text(),
-	);
+	const dynamicSources = JSON.parse(await Bun.file(DYNAMIC_SOURCES_PATH).text());
 	let ok = true;
 	if (!matrixContent.includes(jsonHash)) {
 		console.error("❌ Matrix hash mismatch");
@@ -463,10 +449,7 @@ if (flags.csv) {
 
 // ── Write HTML ──────────────────────────────────────────────────
 if (flags.html) {
-	await Bun.write(
-		HTML_PATH,
-		makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash),
-	);
+	await Bun.write(HTML_PATH, makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash));
 	console.log(`✅ Wrote ${HTML_PATH}`);
 }
 
@@ -520,10 +503,7 @@ const dynamicSources = {
 	},
 };
 
-await Bun.write(
-	DYNAMIC_SOURCES_PATH,
-	`${JSON.stringify(dynamicSources, null, 2)}\n`,
-);
+await Bun.write(DYNAMIC_SOURCES_PATH, `${JSON.stringify(dynamicSources, null, 2)}\n`);
 console.log(`✅ Wrote ${DYNAMIC_SOURCES_PATH}`);
 
 // ── Optional gzip backup ────────────────────────────────────────
@@ -531,9 +511,7 @@ if (flags.backup || Bun.env.BUN_COMPLETION_BACKUP === "1") {
 	const backupPath = `${JSON_PATH}.gz`;
 	const compressed = Bun.gzipSync(new TextEncoder().encode(rawJson));
 	await Bun.write(backupPath, compressed);
-	console.log(
-		`📦 Compressed backup: ${backupPath} (${compressed.length} bytes)`,
-	);
+	console.log(`📦 Compressed backup: ${backupPath} (${compressed.length} bytes)`);
 }
 
 // ── Validation ──────────────────────────────────────────────────
@@ -643,10 +621,7 @@ if (flags.serve) {
 			const stat = await Bun.file(JSON_PATH).stat();
 			if (stat.mtime && stat.mtime.getTime() !== lastMtime) {
 				lastMtime = stat.mtime.getTime();
-				server.publish(
-					"matrix-updates",
-					JSON.stringify({ event: "changed", hash: jsonHash }),
-				);
+				server.publish("matrix-updates", JSON.stringify({ event: "changed", hash: jsonHash }));
 				console.log("📡 Published matrix change to WebSocket clients");
 			}
 		}, 2000);

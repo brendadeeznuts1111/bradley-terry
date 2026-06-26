@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (HTTP service — PR #4 integrated with v0.3.32)
+
+- Effect HTTP service: MasseyClient, RatingsDB, BTCompute, 4 routes
+- `src/secrets/` — SecretClient with Bun/env/vault backends, TTL entries
+- `bt_ratings_history` snapshots, ManagedRuntime for handlers
+- `AGENTS.md`, `docs/MERGE.md`, `docs/ARCHITECTURE.md` (6-layer matrix)
+- Enhanced `/health` with DB stats; CORS + 405 handling; auto-refresh scheduler
+- `docs/API.md`, `.env.example`
+- BTCompute wired to production `BradleyTerry` MM fitter from v0.3.32
+- OpenAPI 3.1 at `GET /openapi.json` and `GET /openapi.yaml` (`docs/openapi.yaml`)
+- 29 tests in `tests/` (143 total with core suite)
+
 ## v0.3.32
 
 - **Core engine implemented** — `src/bradley-terry/index.ts` MM fitter with

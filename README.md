@@ -2,8 +2,9 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-114%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-141%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
+[![HTTP](https://img.shields.io/badge/HTTP-Service-blue)](#http-service)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
 
@@ -12,30 +13,8 @@ Fits maximum-likelihood strength ratings from win/loss match data using the
 Hunter (2004) MM algorithm, with graph-connectivity awareness, time decay,
 multiple output scales, and a streaming Massey CSV loader.
 
-## Features
-
-- **MM algorithm fitter** — Hunter (2004) minorization-maximization for exact
-  maximum-likelihood Bradley-Terry ratings. Converges in ~150 iterations for
-  typical datasets.
-- **Effect-TS service** — `BradleyTerry` Context tag + `BradleyTerryLive` layer.
-  Compose with other Effect services, layers, and streams.
-- **Graph connectivity** — Union-Find detects disconnected match graphs, fits
-  the largest connected component, and reports `largestComponentSize` plus a
-  warning. Isolated entities are excluded from the fit.
-- **Time decay** — Optional `timeDecayHalfLifeDays` weights recent matches more
-  heavily using exponential decay with the specified half-life.
-- **Output scales** — `arithmetic` (mean = 1), `geometric` (geometric mean = 1),
-  or `elo400` (Elo scale centered at 1500 with 400-divisor).
-- **Typed errors** — `SelfMatchError`, `InsufficientDataError`,
-  `ConvergenceError`, `DisconnectedGraphError`, `EntityNotFoundError` as
-  `Data.TaggedError` variants on the `BradleyTerryError` union.
-- **Streaming Massey loader** — Effect `Stream`-based CSV ingestion with
-  backpressure-friendly line parsing and `MatchRow` schema validation.
-- **Property tests** — fast-check invariants for win-probability symmetry,
-  monotonicity under added wins, graph-connectivity reporting, and error
-  handling.
-- **Benchmarks** — 50k matches fit in ~87ms (target: <1.5s). 5k in ~3ms,
-  25k in ~8ms.
+The integrated HTTP service ingests Massey JSON, computes BT ratings via the
+production MM fitter, and persists snapshots in SQLite.
 
 ## Install
 
@@ -43,7 +22,48 @@ multiple output scales, and a streaming Massey CSV loader.
 bun install
 ```
 
-## Quick start
+## HTTP service
+
+```bash
+bun test
+bun run start          # http://localhost:3000
+```
+
+### API routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Service health, DB stats, secrets backend |
+| `GET` | `/openapi.json` | OpenAPI 3.1 document (JSON) |
+| `GET` | `/openapi.yaml` | OpenAPI 3.1 document (YAML) |
+| `GET` | `/api/ratings/bt` | Current BT ratings (`?sport=&season=`) |
+| `GET` | `/api/ratings/history` | Historical snapshots with `snapshotAt` |
+| `POST` | `/api/ratings/refresh` | Fetch Massey → compute BT → store |
+
+Full reference with curl examples: [docs/API.md](docs/API.md). Copy [`.env.example`](.env.example) for local config.
+
+### Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3000` | HTTP listen port |
+| `DB_PATH` | `./data/ratings.db` | SQLite file path |
+| `MASSEY_URL` | Massey JSON endpoint | Upstream data source |
+| `MASSEY_API_TOKEN` | — | Bearer token (env secret backend) |
+| `SECRETS_BACKEND` | `auto` | `auto` \| `env` \| `bun` \| `vault` |
+| `REFRESH_INTERVAL` | `3600` | Auto-refresh seconds (`0` = off) |
+| `CORS_ORIGIN` | `*` | CORS allow-origin header |
+
+See [`.env.example`](.env.example) for all variables. Secrets use reverse-domain namespaces (`com.bradley-terry.massey/api-token`). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [AGENTS.md](AGENTS.md), and [docs/MERGE.md](docs/MERGE.md) for architecture, agent conventions, and merge order.
+
+### Secret CLI
+
+```bash
+bun run secret set com.bradley-terry.massey api-token "token" --ttl 3600
+bun run secret get com.bradley-terry.massey api-token
+```
+
+## Library quick start
 
 ```ts
 import { Effect } from "effect";
@@ -71,7 +91,6 @@ const program = Effect.gen(function* () {
     console.log(`  ${entity}: ${strength.toFixed(1)}`);
   }
 
-  // Predict win probability
   const pLakersOverWarriors = yield* bt.predictWinProbability(
     result.ratings,
     "lakers" as any,
@@ -84,6 +103,33 @@ const program = Effect.gen(function* () {
 
 await Effect.runPromise(Effect.provide(program, BradleyTerryLive));
 ```
+
+## Features
+
+- **MM algorithm fitter** — Hunter (2004) minorization-maximization for exact
+  maximum-likelihood Bradley-Terry ratings. Converges in ~150 iterations for
+  typical datasets.
+- **Effect-TS service** — `BradleyTerry` Context tag + `BradleyTerryLive` layer.
+  Compose with other Effect services, layers, and streams.
+- **HTTP ratings service** — `MasseyClient`, `RatingsDB`, `BTCompute` layers with
+  auto-refresh scheduler, CORS, enhanced `/health`, and historical snapshots.
+- **Graph connectivity** — Union-Find detects disconnected match graphs, fits
+  the largest connected component, and reports `largestComponentSize` plus a
+  warning. Isolated entities are excluded from the fit.
+- **Time decay** — Optional `timeDecayHalfLifeDays` weights recent matches more
+  heavily using exponential decay with the specified half-life.
+- **Output scales** — `arithmetic` (mean = 1), `geometric` (geometric mean = 1),
+  or `elo400` (Elo scale centered at 1500 with 400-divisor).
+- **Typed errors** — `SelfMatchError`, `InsufficientDataError`,
+  `ConvergenceError`, `DisconnectedGraphError`, `EntityNotFoundError` as
+  `Data.TaggedError` variants on the `BradleyTerryError` union.
+- **Streaming Massey loader** — Effect `Stream`-based CSV ingestion with
+  backpressure-friendly line parsing and `MatchRow` schema validation.
+- **Property tests** — fast-check invariants for win-probability symmetry,
+  monotonicity under added wins, graph-connectivity reporting, and error
+  handling.
+- **Benchmarks** — 50k matches fit in ~87ms (target: <1.5s). 5k in ~3ms,
+  25k in ~8ms.
 
 ## API
 
@@ -147,18 +193,19 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-114 tests across 8 files:
+141 tests across 16 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
-| `test/completion-matrix.unit.test.ts` | 61 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
+| `test/completion-matrix.unit.test.ts` | 61 | Completion matrix helpers |
 | `test/completions/shell-completions.unit.test.ts` | 12 | Generated bash/zsh/fish shell completion scripts |
-| `test/completions/snapshot.unit.test.ts` | 21 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
+| `test/completions/snapshot.unit.test.ts` | 21 | Snapshot contracts for completion artifacts |
 | `test/integration/cli-completions.test.ts` | 7 | CLI completions generator integration tests |
-| `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
-| `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
-| `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
-| `test/ratings-config.unit.test.ts` | 2 |  |
+| `test/property/error-handling.test.ts` | 7 | Tagged error invariants |
+| `test/property/graph-connectivity.test.ts` | 2 | Connected-component reporting |
+| `test/property/mm-invariants.test.ts` | 2 | Win-probability symmetry and monotonicity |
+| `test/ratings-config.unit.test.ts` | 2 | Ratings config |
+| `tests/*.test.ts` | 27 | HTTP service, secrets TTL, refresh integration |
 
 ## Updating snapshots
 
@@ -218,20 +265,23 @@ bradley-terry/
 ├── src/
 │   ├── bradley-terry/index.ts   # Core MM fitter + Effect service
 │   ├── schema.ts                # EntityId, Match, FitResult, errors (SSOT)
+│   ├── secrets/                 # SecretClient + Bun/env/vault backends
+│   ├── service/                 # MasseyClient, RatingsDB, BTCompute layers
+│   ├── server/                  # Bun.serve HTTP handlers + shared runtime
 │   ├── repository/              # sqlite-loader (SQLite persistence layer)
 │   ├── data/massey-loader.ts    # Streaming Massey CSV → MatchRow
 │   ├── match-adapter.ts         # SQLite MatchRow → BT Match pipeline
 │   ├── bench/                   # Benchmark utilities and scripts
-│   │   ├── bt-fit.bench.ts      # 5k + 25k benchmark script
-│   │   └── benchmark-loader.ts  # runBench() timing utility
 │   ├── utils/                   # Bun macros and helpers
-│   │   └── git-commit.ts        # Bun macros for embedding HEAD hash
 │   └── index.ts                 # Barrel export
+├── tests/                       # HTTP service + secrets integration tests
 ├── test/
 │   ├── property/                # fast-check invariants (3 files)
 │   └── benchmark/               # 50k-match perf test
 ├── docs/
-│   ├── ARCHITECTURE.md          # Design, data flow, Bun API inventory
+│   ├── ARCHITECTURE.md          # 6-layer service architecture matrix
+│   ├── API.md                   # HTTP route reference
+│   ├── MERGE.md                 # PR merge playbook
 │   └── releases/                # Historical release notes and assets
 ├── completions/
 │   ├── bun-cli.json             # Parsed Bun CLI flag/completion data
@@ -240,10 +290,10 @@ bradley-terry/
 │   └── shell/                   # Generated bash/zsh/fish completions
 ├── bradley-terry.ts             # Root re-export for test imports
 └── scripts/
-    ├── generate-cli-completions.ts  # Bun CLI flag parser → completions/bun-cli.json
-    ├── make-completion-matrix.ts    # Generate COMPLETION_MATRIX.md artifacts
-    ├── check-completion-drift.ts    # Verify generated artifacts are aligned
-    └── generate-shell-completions.ts # Generate completions/shell/* from bun-cli.json
+    ├── generate-cli-completions.ts
+    ├── make-completion-matrix.ts
+    ├── check-completion-drift.ts
+    └── generate-shell-completions.ts
 ```
 
 ## References

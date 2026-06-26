@@ -13,10 +13,7 @@
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type {
-	CompletionData,
-	FlagEntry,
-} from "../src/completions/completion-matrix";
+import type { CompletionData, FlagEntry } from "../src/completions/completion-matrix";
 
 const ROOT = join(import.meta.dirname, "..");
 const JSON_PATH = join(ROOT, "completions/bun-cli.json");
@@ -54,9 +51,7 @@ function zshFlagSpec(flag: FlagEntry, name: string): string {
 		spec += `:${flag.name}:(${flag.choices.map(escapeShell).join(" ")})'`;
 	} else if (flag.hasValue) {
 		spec = spec.slice(0, -1); // remove closing quote
-		const defaultHint = flag.defaultValue
-			? ` [default: ${escapeShell(flag.defaultValue)}]`
-			: "";
+		const defaultHint = flag.defaultValue ? ` [default: ${escapeShell(flag.defaultValue)}]` : "";
 		spec += `:${flag.name}${defaultHint}:'`;
 	}
 	return spec;
@@ -245,9 +240,7 @@ complete -c bun -f
 			if (arg.completionType) {
 				const dynamic = fishDynamicCompletion(arg.completionType);
 				if (dynamic && !addedDynamic.has(dynamic)) {
-					const argDesc = escapeShell(
-						arg.description?.split("\n")[0] ?? arg.name,
-					);
+					const argDesc = escapeShell(arg.description?.split("\n")[0] ?? arg.name);
 					script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '${dynamic}' -d '${argDesc}'\n`;
 					addedDynamic.add(dynamic);
 				}
@@ -256,31 +249,19 @@ complete -c bun -f
 
 		// Command-level dynamic completions from bun getcompletes.
 		if (cmd.dynamicCompletions) {
-			if (
-				cmd.dynamicCompletions.scripts &&
-				!addedDynamic.has("(bun getcompletes scripts)")
-			) {
+			if (cmd.dynamicCompletions.scripts && !addedDynamic.has("(bun getcompletes scripts)")) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes scripts)' -d 'Script'\n`;
 				addedDynamic.add("(bun getcompletes scripts)");
 			}
-			if (
-				cmd.dynamicCompletions.files &&
-				!addedDynamic.has("(bun getcompletes files)")
-			) {
+			if (cmd.dynamicCompletions.files && !addedDynamic.has("(bun getcompletes files)")) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes files)' -d 'File'\n`;
 				addedDynamic.add("(bun getcompletes files)");
 			}
-			if (
-				cmd.dynamicCompletions.binaries &&
-				!addedDynamic.has("(bun getcompletes binaries)")
-			) {
+			if (cmd.dynamicCompletions.binaries && !addedDynamic.has("(bun getcompletes binaries)")) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes binaries)' -d 'Binary'\n`;
 				addedDynamic.add("(bun getcompletes binaries)");
 			}
-			if (
-				cmd.dynamicCompletions.packages &&
-				!addedDynamic.has("(bun getcompletes packages)")
-			) {
+			if (cmd.dynamicCompletions.packages && !addedDynamic.has("(bun getcompletes packages)")) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes packages)' -d 'Package'\n`;
 				addedDynamic.add("(bun getcompletes packages)");
 			}

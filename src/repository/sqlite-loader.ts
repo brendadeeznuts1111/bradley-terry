@@ -24,6 +24,5 @@ export class SqliteLoaderError extends Error {
  * the project compiling while the repository layer is finalized.
  */
 export const SqliteLoader = {
-	getMatches: (_dbPath: string, _opts?: GetMatchesOptions) =>
-		Effect.succeed([] as MatchRow[]),
+	getMatches: (_dbPath: string, _opts?: GetMatchesOptions) => Effect.succeed([] as MatchRow[]),
 };

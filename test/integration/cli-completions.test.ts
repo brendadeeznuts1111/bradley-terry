@@ -26,29 +26,19 @@ for (const key of Object.keys(bunEnv)) {
 }
 
 function bunExe(): string {
-	return process.platform === "win32"
-		? process.execPath.replaceAll("\\", "/")
-		: "bun";
+	return process.platform === "win32" ? process.execPath.replaceAll("\\", "/") : "bun";
 }
 
 function createTempPackageDir(): string {
-	const base = mkdtempSync(
-		join(realpathSync(os.tmpdir()), "bt-completions-test-"),
-	);
-	writeFileSync(
-		join(base, "package.json"),
-		JSON.stringify({ name: "test", version: "1.0.0" }),
-	);
+	const base = mkdtempSync(join(realpathSync(os.tmpdir()), "bt-completions-test-"));
+	writeFileSync(join(base, "package.json"), JSON.stringify({ name: "test", version: "1.0.0" }));
 	return base;
 }
 
 interface CompletionData {
 	version: string;
 	bunVersion?: string;
-	commands: Record<
-		string,
-		{ flags: unknown[]; positionalArgs: unknown[]; examples: unknown[] }
-	>;
+	commands: Record<string, { flags: unknown[]; positionalArgs: unknown[]; examples: unknown[] }>;
 	globalFlags: unknown[];
 	bunGetCompletes: { available: boolean; commands?: Record<string, string> };
 }
@@ -71,9 +61,7 @@ function runScript(cwd: string, outputDir: string): CompletionData {
 	});
 
 	if (result.exitCode !== 0) {
-		throw new Error(
-			`Script failed (exit ${result.exitCode}): ${result.stderr?.toString()}`,
-		);
+		throw new Error(`Script failed (exit ${result.exitCode}): ${result.stderr?.toString()}`);
 	}
 
 	if (!existsSync(outputPath)) {
@@ -211,12 +199,8 @@ describe("cli-completions generator", () => {
 		expect(data.commands.run.examples).toContain("bun run --bun vite");
 		expect(data.commands.test.examples).toContain("bun test --timeout 20");
 		expect(data.commands.test.examples).toContain("bun test --dots");
-		expect(data.commands.test.examples).toContain(
-			"bun test --preload ./test-setup.ts",
-		);
-		expect(data.commands.build.examples).toContain(
-			"bun build ./index.tsx --outdir ./out",
-		);
+		expect(data.commands.test.examples).toContain("bun test --preload ./test-setup.ts");
+		expect(data.commands.build.examples).toContain("bun build ./index.tsx --outdir ./out");
 	});
 
 	it("default values are stored without surrounding quotes", () => {
@@ -232,9 +216,7 @@ describe("cli-completions generator", () => {
 			defaultValue?: string;
 		}>;
 		const coverageDir = testFlags.find((f) => f.name === "coverage-dir");
-		const coverageReporter = testFlags.find(
-			(f) => f.name === "coverage-reporter",
-		);
+		const coverageReporter = testFlags.find((f) => f.name === "coverage-reporter");
 		expect(coverageDir?.defaultValue).toBe("coverage");
 		expect(coverageReporter?.defaultValue).toBe("text");
 	});
