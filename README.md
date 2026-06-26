@@ -203,6 +203,9 @@ bradley-terry/
 ├── test/
 │   ├── property/                # fast-check invariants (3 files)
 │   └── benchmark/               # 50k-match perf test
+├── docs/
+│   ├── ARCHITECTURE.md          # Design, data flow, Bun API inventory
+│   └── releases/                # Historical release notes and assets
 ├── bradley-terry.ts             # Root re-export for test imports
 └── scripts/
     ├── generate-cli-completions.ts  # Bun CLI flag parser → completions/bun-cli.json
