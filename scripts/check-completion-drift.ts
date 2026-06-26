@@ -91,6 +91,29 @@ for (const [cmdName, cmd] of Object.entries(jsonData.commands) as [
 	}
 }
 
+// Check 6: All matrix rows share the same drift hash as the JSON
+const matrixDriftHashes = [
+	...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm),
+].map((m) => m[1]);
+const uniqueDriftHashes = new Set(matrixDriftHashes);
+
+if (matrixDriftHashes.length === 0) {
+	console.error(`❌ Drift hash drift: no drift hashes found in matrix rows`);
+	failed = true;
+} else if (uniqueDriftHashes.size !== 1) {
+	console.error(
+		`❌ Drift hash drift: matrix rows contain multiple drift hashes (${[
+			...uniqueDriftHashes,
+		].join(", ")})`,
+	);
+	failed = true;
+} else if (matrixDriftHashes[0] !== jsonHash) {
+	console.error(
+		`❌ Drift hash drift: matrix drift hash (${matrixDriftHashes[0]}) does not match ${JSON_PATH} hash (${jsonHash})`,
+	);
+	failed = true;
+}
+
 if (failed) {
 	process.exit(1);
 }

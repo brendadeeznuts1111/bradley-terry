@@ -273,6 +273,15 @@ describe("Snapshot contracts", () => {
 
 			// All artifacts reference the same hash
 			expect(header.hash).toBe(dynamicSources.jsonHash);
+
+			// Every matrix row embeds the same drift hash
+			const rowHashes = [
+				...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm),
+			].map((m) => m[1]);
+			const uniqueRowHashes = new Set(rowHashes);
+			expect(rowHashes.length).toBeGreaterThan(0);
+			expect(uniqueRowHashes.size).toBe(1);
+			expect([...uniqueRowHashes][0]).toBe(dynamicSources.jsonHash);
 		});
 
 		test("schema version is consistent across all artifacts", async () => {
