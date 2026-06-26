@@ -53,7 +53,7 @@ function isDocFlagSatisfied(name: string, jsonFlags: Set<string>): boolean {
 function extractDocFlags(markdown: string): Set<string> {
 	const names = new Set<string>();
 	for (const match of markdown.matchAll(/--([a-z][a-z0-9-]*)/g)) {
-		names.add(match[1]!);
+		if (match[1]) names.add(match[1]);
 	}
 	return names;
 }
@@ -61,7 +61,9 @@ function extractDocFlags(markdown: string): Set<string> {
 function extractDocRunExamples(markdown: string): string[] {
 	const examples: string[] = [];
 	for (const block of markdown.matchAll(/```bash\n([\s\S]*?)```/g)) {
-		for (const line of block[1]!.split("\n")) {
+		const body = block[1];
+		if (!body) continue;
+		for (const line of body.split("\n")) {
 			const trimmed = line.trim();
 			if (trimmed.startsWith("bun ") && !trimmed.startsWith("#")) {
 				examples.push(trimmed);
