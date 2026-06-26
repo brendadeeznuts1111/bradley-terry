@@ -41,8 +41,10 @@ function parseGlobalFlagsFromHelp(helpText: string): Set<string> {
 
 		const long = line.match(/--([\w-]+)/);
 		if (long) names.add(long[1]!);
-		const short = line.match(/(?:^|\s)-([a-zA-Z]),/);
-		if (short) names.add(short[1]!);
+		const shortWithComma = line.match(/(?:^|\s)-([a-zA-Z]),/);
+		if (shortWithComma) names.add(shortWithComma[1]!);
+		const shortStandalone = line.match(/^\s+-([a-zA-Z])\s+/);
+		if (shortStandalone) names.add(shortStandalone[1]!);
 	}
 	return names;
 }

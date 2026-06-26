@@ -1906,7 +1906,7 @@
     },
     "outdated": {
       "name": "outdated",
-      "description": "bun outdated v1.4.0-canary.1 (44c0cc4a6)",
+      "description": "bun outdated v1.4.0-canary.1 (05895486d)",
       "flags": [
         {
           "name": "config",
@@ -2878,7 +2878,7 @@
     },
     "publish": {
       "name": "publish",
-      "description": "bun publish v1.4.0-canary.1 (44c0cc4a6)",
+      "description": "bun publish v1.4.0-canary.1 (05895486d)",
       "flags": [
         {
           "name": "config",
