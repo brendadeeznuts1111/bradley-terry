@@ -8,10 +8,10 @@
  * ┌─────────────────────────────────────────────────────────────────┐
  * │  LAYER 0: CONFIGURATION (RatingsConfig)                          │
  * │  ┌─────────────────────────────────────────────────────────┐    │
- * │  │  SecretClient.get(service, name)                         │    │
+ * │  │  SecretClient.get(namespace, name)                         │    │
  * │  │  ─────────────────────────────────────────────────────  │    │
  * │  │  Channel: OS IPC / HTTPS / env                         │    │
- * │  │  Isolation: Data namespace (service + name)            │    │
+ * │  │  Isolation: Data namespace (namespace + name)            │    │
  * │  └─────────────────────────────────────────────────────────┘    │
  * │         ↓ SecretClient returns plaintext to Effect.gen           │
  * └─────────────────────────────────────────────────────────────────┘

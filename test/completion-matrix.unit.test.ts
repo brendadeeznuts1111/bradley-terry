@@ -711,7 +711,7 @@ describe("Bun native API verification", () => {
 			),
 		);
 		expect(result).toBeInstanceOf(SecretError);
-		expect((result as SecretError).service).toBe("nonexistent");
+		expect((result as SecretError).namespace).toBe("nonexistent");
 	});
 
 	test("SecretClient VaultSecretsLive is a stub that fails", async () => {
