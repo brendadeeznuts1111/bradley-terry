@@ -58,7 +58,7 @@
       "key": "console.depth",
       "section": "console",
       "type": "number",
-      "description": "Default depth for console.log object inspection",
+      "description": "Default depth for console.log object inspection (0 = unlimited). CLI --console-depth overrides bunfig.",
       "default": 2,
       "cliEquivalent": "--console-depth"
     },
@@ -93,6 +93,24 @@
       "section": "test",
       "type": "boolean",
       "description": "Enable test coverage collection"
+    },
+    {
+      "key": "test.randomize",
+      "section": "test",
+      "type": "boolean",
+      "description": "Randomize test execution order (`bun test`)"
+    },
+    {
+      "key": "test.seed",
+      "section": "test",
+      "type": "number",
+      "description": "PRNG seed for test randomization (requires test.randomize = true)"
+    },
+    {
+      "key": "test.rerunEach",
+      "section": "test",
+      "type": "number",
+      "description": "Re-run each test file N times (`bun test`)"
     },
     {
       "key": "install.optional",

@@ -1,7 +1,7 @@
 # Bun CLI Completion Behavior Matrix
 
 Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, revision 1.4.0-canary.1+44c0cc4a6, hash `8d58a475e340`).
-- **bunfig-json:** `108d91545fa6`
+- **bunfig-json:** `7b62d44a00b0`
 
 ## Top-level commands
 
@@ -88,7 +88,7 @@ Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, revision 1.
 
 ## Bunfig settings (non-CLI)
 
-Canonical `bunfig.toml` keys live in `completions/bunfig-settings.json` (18 settings).
+Canonical `bunfig.toml` keys live in `completions/bunfig-settings.json` (21 settings).
 
 Examples that are **not** duplicated as global CLI flags:
 - `jsx` — JSX transform mode (also in tsconfig compilerOptions)

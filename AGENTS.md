@@ -28,10 +28,11 @@ Global CLI flags come from **`bun --help`** (parsed by `scripts/generate-cli-com
 | Audit | `bun run completions:audit` | Fails if `--help` has flags missing from JSON or build flags leak into globals |
 | Regenerate | `bun run completions:regen` | **Use Bun 1.4.0+** (`packageManager` pin); 1.3.x drifts snapshots |
 | Bunfig only | `bun run completions:bunfig` | Writes `completions/bunfig-settings.json` for TOML-only settings |
+| Upstream parity | `bun run completions:audit:upstream` | Cross-check vs [oven-sh/bun test/cli](https://github.com/oven-sh/bun/tree/82688896d7c0e5078d44d64b93d1dfdcf2e0152c/test/cli) |
 | Matrix + drift | `bun run matrix && bun run check:completions` | Updates `COMPLETION_MATRIX.md` hashes (cli + bunfig) |
 | Shell scripts | `bun run completions:shell` | bash/zsh/fish from JSON |
 
-`--console-depth` is a **CLI flag**; `[console] depth` in `bunfig.toml` is the config equivalent. Bundler flags (`--jsx-factory`, `--loader`, etc.) belong on `bun build`, not `globalFlags` — `reconcileBuildFlags()` moves parser leaks during regen.
+`--console-depth` is a **CLI flag**; `[console] depth` in `bunfig.toml` is the config equivalent (CLI wins on conflict — see `test/integration/console-depth.test.ts`, mirrored from upstream `test/cli/console-depth.test.ts`).
 
 Do **not** batch-add ~40 flags from `llms.txt` manually — run audit first; proposed flags are already in `completions/bun-cli.json` (84 global + per-command).
 

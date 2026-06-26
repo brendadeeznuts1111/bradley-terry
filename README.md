@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-160%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-164%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![HTTP](https://img.shields.io/badge/HTTP-Service-blue)](#http-service)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
@@ -198,7 +198,7 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-160 tests across 20 files:
+164 tests across 21 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
@@ -206,6 +206,7 @@ bun test
 | `test/completions/shell-completions.unit.test.ts` | 12 | Generated bash/zsh/fish shell completion scripts |
 | `test/completions/snapshot.unit.test.ts` | 21 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
 | `test/integration/cli-completions.test.ts` | 7 | CLI completions generator integration tests |
+| `test/integration/console-depth.test.ts` | 4 |  |
 | `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
 | `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
 | `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |

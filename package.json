@@ -21,6 +21,7 @@
     "completions:bunfig": "bun run scripts/generate-bunfig-completions.ts",
     "completions:audit": "bun run scripts/audit-cli-flags.ts",
     "completions:audit:docs": "bun run scripts/audit-run-docs.ts",
+    "completions:audit:upstream": "bun run scripts/audit-upstream-cli.ts",
     "completions:regen": "bun run completions && bun run completions:bunfig && bun run matrix && bun run completions:shell",
     "completions:shell": "bun run scripts/generate-shell-completions.ts",
     "matrix": "bun run scripts/make-completion-matrix.ts",

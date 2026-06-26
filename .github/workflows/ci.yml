@@ -12,4 +12,5 @@ jobs:
       - run: bun ci
       - run: bun run completions:audit
       - run: bun run completions:audit:docs
+      - run: bun run completions:audit:upstream
       - run: bun run check:full
