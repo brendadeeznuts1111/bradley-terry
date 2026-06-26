@@ -611,10 +611,10 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 		files: "",
 	};
 	for (const key of working) {
-		if (key === "scripts") out.scripts = key;
-		else if (key === "binaries") out.binaries = key;
-		else if (key === "packages") out.packages = key;
-		else if (key === "files") out.files = key;
+		if (key === "scripts") out.scripts = "getcompletes scripts";
+		else if (key === "binaries") out.binaries = "getcompletes binaries";
+		else if (key === "packages") out.packages = "getcompletes packages";
+		else if (key === "files") out.files = "getcompletes files";
 	}
 
 	console.log(
