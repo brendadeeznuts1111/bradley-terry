@@ -10,12 +10,6 @@
  */
 import { Context, Data, Effect, Layer } from "effect";
 
-interface BunSecretsAPI {
-	secrets?: {
-		get: (opts: { service: string; name: string }) => Promise<string>;
-	};
-}
-
 // ── Error type ────────────────────────────────────────────────────
 export class SecretError extends Data.TaggedError("SecretError")<{
 	readonly service: string;
@@ -40,7 +34,7 @@ export const BunSecretsLive = Layer.succeed(SecretClient, {
 		Effect.tryPromise({
 			try: () =>
 				// Bun.secrets returns Promise<string>, throws on missing key
-				(Bun as unknown as BunSecretsAPI).secrets?.get({ service, name }) ??
+				Bun.secrets?.get({ service, name }) ??
 				Promise.reject(new Error("Bun.secrets unavailable")),
 			catch: (cause) => new SecretError({ service, name, cause }),
 		}),
