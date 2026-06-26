@@ -4,14 +4,17 @@ Guide for landing stacked PRs onto `main`.
 
 ## Final status (2026-06-26)
 
+All open PRs closed. `main` at latest merge includes Buckeye fixture, completions pipeline, and SqliteLoader.
+
 | PR | Branch | Status |
 |----|--------|--------|
+| **#3** | `cursor/setup-dev-environment-fae3` | Merged → `main` (superseded; original dev-env notes absorbed) |
 | **#10** | `cursor/completions-bunfig-regen-d821` | Merged → `main` (Bun 1.4.0 completions regen, bunfig settings) |
 | **#11** | `cursor/completions-llms-batch-d821` | Merged → `main` (docs/upstream audits, console-depth tests) |
-| **#13** | `cursor/preserving-work-backlog-884c` | Merged → `main` (SqliteLoader, doc drift guard, ARCHITECTURE sync) |
 | **#12** | `cursor/bradley-terry-docs-canvas-884c` | Merged (canvas lives in IDE `canvases/` path, not repo) |
+| **#13** | `cursor/preserving-work-backlog-884c` | Merged → `main` (SqliteLoader, doc drift guard, ARCHITECTURE sync) |
+| **#14** | `cursor/completions-llms-batch-d821` | Merged → `main` (completions audit pipeline + upstream test/cli parity) |
 | **#15** | `cursor/bun-stable-upgrade-docs-884c` | Merged → `main` (canary ↔ stable upgrade docs) |
-| **#3** | `cursor/setup-dev-environment-fae3` | **Close manually on GitHub** — branch deleted; superseded by `AGENTS.md` on `main` |
 
 ### Post-merge fixes on `main`
 
@@ -19,8 +22,18 @@ Guide for landing stacked PRs onto `main`.
 |--------|-------------|
 | `9b49635` | Completions gap: parse standalone `-i`, regen on Bun 1.4.0 |
 | `af44666` | Bun upgrade docs (`--canary` / `--stable`) in AGENTS.md + BUN_RUNTIME.md |
+| `6305eb9` | Buckeye SQL fixture, MatchAdapter error typing, 174 tests |
+| `50aa23f` | Merge superseded PR #3 |
 
-Current `main` includes: production BT fitter, Effect HTTP service, Bun 1.4.0 completions pipeline, SqliteLoader library path, doc drift tests, and Bun version upgrade guidance.
+### Stale remote branch (do not merge as-is)
+
+| Branch | Status |
+|--------|--------|
+| `feature/v0.3.2-testing` | **15 commits ahead, 47 behind `main`** — strict TS flags, api-docs generator, pre-commit gate. Heavy merge conflicts; cherry-pick or rebase if still wanted. |
+
+Merged `cursor/*` branches deleted from origin after cleanup.
+
+Current `main` includes: production BT fitter, Effect HTTP service, Bun 1.4.0 completions pipeline, SqliteLoader library path, Buckeye SQL fixture, doc drift tests, and Bun version upgrade guidance.
 
 ### Historical (prior stack)
 
