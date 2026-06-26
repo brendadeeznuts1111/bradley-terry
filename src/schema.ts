@@ -43,9 +43,9 @@ export const BradleyTerryConfigSchema = Schema.Struct({
 	normalize: Schema.Boolean.pipe(Schema.optionalWith({ default: () => true })),
 	timeDecayHalfLifeDays: Schema.optional(Schema.Number.pipe(Schema.positive())),
 	homeAdvantage: Schema.optional(Schema.Boolean),
-	outputScale: Schema.optional(
-		Schema.Literal("geometric", "arithmetic", "elo400"),
-	).pipe(Schema.optionalWith({ default: () => "arithmetic" as const })),
+	outputScale: Schema.Literal("geometric", "arithmetic", "elo400").pipe(
+		Schema.optionalWith({ default: () => "arithmetic" as const }),
+	),
 });
 
 export type BradleyTerryConfig = Schema.Schema.Type<

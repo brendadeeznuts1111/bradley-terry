@@ -3,7 +3,7 @@
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
 [![Tests](https://img.shields.io/badge/Tests-71%20pass-brightgreen)](#testing)
-[![BT Core](https://img.shields.io/badge/BT_Core-v0.3.2-success)](#api)
+[![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
 

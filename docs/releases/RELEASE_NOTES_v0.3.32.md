@@ -1,6 +1,6 @@
-# Release Notes — v0.3.2
+# Release Notes — v0.3.32
 
-**Tag:** `v0.3.2`
+**Tag:** `v0.3.32`
 **Branch:** `feature/v0.3.2-testing` → `main` (PR #2)
 **Theme:** Core engine implementation, property tests, benchmarks, repo hygiene
 
@@ -62,7 +62,7 @@ tests, a 50k-match benchmark, and repo hygiene files.
   testing, benchmarks, project layout, references
 - `docs/ARCHITECTURE.md` — full rewrite: layer diagram, data flow, per-layer
   description, testing strategy, performance notes
-- `RELEASE_NOTES_v0.3.2.md` — this file
+- `RELEASE_NOTES_v0.3.32.md` — this file
 
 ## Fixed
 

@@ -2,22 +2,23 @@ import { Context, Effect, Layer } from "effect";
 import type {
 	BradleyTerryConfig,
 	BradleyTerryError,
-	ConvergenceError,
-	DisconnectedGraphError,
 	EntityId,
-	EntityNotFoundError,
 	FitResult,
-	InsufficientDataError,
 	Match,
-	SelfMatchError,
 } from "../schema";
 import {
-	ConvergenceError as ConvergenceErrorCtor,
-	DisconnectedGraphError as DisconnectedGraphErrorCtor,
 	EntityNotFoundError as EntityNotFoundErrorCtor,
 	InsufficientDataError as InsufficientDataErrorCtor,
 	SelfMatchError as SelfMatchErrorCtor,
 } from "../schema";
+
+function getOrThrow<K, V>(map: Map<K, V>, key: K): V {
+	const value = map.get(key);
+	if (value === undefined) {
+		throw new Error(`Expected map entry for key ${key}`);
+	}
+	return value;
+}
 
 // ============================================
 // Service Definition
@@ -57,12 +58,12 @@ class UnionFind {
 	find(entity: string): string {
 		let root = entity;
 		while (this.parent.get(root) !== root) {
-			root = this.parent.get(root)!;
+			root = getOrThrow(this.parent, root);
 		}
 		// path compression
 		let current = entity;
 		while (this.parent.get(current) !== root) {
-			const next = this.parent.get(current)!;
+			const next = getOrThrow(this.parent, current);
 			this.parent.set(current, root);
 			current = next;
 		}
@@ -74,8 +75,8 @@ class UnionFind {
 		const rootB = this.find(b);
 		if (rootA === rootB) return;
 
-		const rankA = this.rank.get(rootA)!;
-		const rankB = this.rank.get(rootB)!;
+		const rankA = getOrThrow(this.rank, rootA);
+		const rankB = getOrThrow(this.rank, rootB);
 		if (rankA < rankB) {
 			this.parent.set(rootA, rootB);
 		} else if (rankA > rankB) {
@@ -113,7 +114,7 @@ class UnionFind {
 			const root = this.find(e);
 			componentSizes.set(root, (componentSizes.get(root) ?? 0) + 1);
 		}
-		return entities.filter((e) => componentSizes.get(this.find(e))! === 1);
+		return entities.filter((e) => componentSizes.get(this.find(e)) === 1);
 	}
 }
 
@@ -151,7 +152,7 @@ function fitMM(
 } {
 	const n = entities.length;
 	const entityIndex = new Map<string, number>();
-	entities.forEach((e, i) => entityIndex.set(e, i));
+	for (const [i, e] of entities.entries()) entityIndex.set(e, i);
 
 	// Build win counts and matchup counts
 	const wins = new Float64Array(n);
@@ -163,12 +164,12 @@ function fitMM(
 	for (let i = 0; i < n; i++) opponents.set(i, new Map());
 
 	for (const m of matches) {
-		const wi = entityIndex.get(m.winner)!;
-		const li = entityIndex.get(m.loser)!;
+		const wi = getOrThrow(entityIndex, m.winner);
+		const li = getOrThrow(entityIndex, m.loser);
 		wins[wi] += m.weight;
-		const oppMap = opponents.get(wi)!;
+		const oppMap = getOrThrow(opponents, wi);
 		oppMap.set(li, (oppMap.get(li) ?? 0) + m.weight);
-		const oppMapL = opponents.get(li)!;
+		const oppMapL = getOrThrow(opponents, li);
 		oppMapL.set(wi, (oppMapL.get(wi) ?? 0) + m.weight);
 	}
 
@@ -182,7 +183,7 @@ function fitMM(
 		const newStrengths = new Float64Array(n);
 
 		for (let i = 0; i < n; i++) {
-			const oppMap = opponents.get(i)!;
+			const oppMap = getOrThrow(opponents, i);
 			let denominator = 0;
 			for (const [j, n_ij] of oppMap) {
 				denominator += n_ij / (strengths[i] + strengths[j]);
@@ -202,7 +203,7 @@ function fitMM(
 			if (delta > maxDelta) maxDelta = delta;
 		}
 
-		newStrengths.forEach((v, i) => (strengths[i] = v));
+		for (let i = 0; i < n; i++) strengths[i] = newStrengths[i];
 		lastDelta = maxDelta;
 
 		if (maxDelta < config.tolerance) {
@@ -214,8 +215,8 @@ function fitMM(
 	// Compute log-likelihood
 	let logLikelihood = 0;
 	for (const m of matches) {
-		const wi = entityIndex.get(m.winner)!;
-		const li = entityIndex.get(m.loser)!;
+		const wi = getOrThrow(entityIndex, m.winner);
+		const li = getOrThrow(entityIndex, m.loser);
 		const sW = strengths[wi];
 		const sL = strengths[li];
 		if (sW > 0 && sL > 0) {
@@ -332,7 +333,7 @@ export const BradleyTerryLive = Layer.succeed(
 
 				// Build graph and check connectivity
 				const uf = new UnionFind();
-				entities.forEach((e) => uf.add(e));
+				for (const e of entities) uf.add(e);
 				for (const m of matches) {
 					uf.union(m.winner, m.loser);
 				}
@@ -429,7 +430,7 @@ export const BradleyTerryLive = Layer.succeed(
 
 				// Build FitResult
 				const fitResult: FitResult = {
-					ratings: finalRatings,
+					ratings: finalRatings as Map<EntityId, number>,
 					iterations: result.iterations,
 					logLikelihood: result.logLikelihood,
 					entityCount: entities.length,

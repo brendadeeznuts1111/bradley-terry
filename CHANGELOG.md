@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.2
+## v0.3.32
 
 - **Core engine implemented** — `src/bradley-terry/index.ts` MM fitter with
   `BradleyTerry` service + `BradleyTerryLive` layer (was a 0-LOC placeholder)
