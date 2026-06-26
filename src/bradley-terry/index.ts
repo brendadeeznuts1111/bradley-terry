@@ -73,8 +73,8 @@ export function fit(
       entityList.map((e) => [e, 1])
     );
 
-    const maxIterations = config.maxIterations ?? 150;
-    const tolerance = config.tolerance ?? 1e-8;
+    const maxIterations = config.maxIterations ?? defaultConfig.maxIterations;
+    const tolerance = config.tolerance ?? defaultConfig.tolerance;
     let iterations = 0;
     let convergenceDelta = Number.POSITIVE_INFINITY;
 

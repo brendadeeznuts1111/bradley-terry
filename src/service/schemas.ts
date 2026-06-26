@@ -52,5 +52,28 @@ export const HealthResponseSchema = Schema.Struct({
 
 export type HealthResponse = Schema.Schema.Type<typeof HealthResponseSchema>;
 
+export const BTRatingHistorySchema = Schema.extend(
+  BTRatingSchema,
+  Schema.Struct({ snapshotAt: Schema.String })
+);
+
+export type BTRatingHistory = Schema.Schema.Type<typeof BTRatingHistorySchema>;
+
+export const BTRatingsSchema = Schema.Array(BTRatingSchema);
+export const BTRatingHistoryListSchema = Schema.Array(BTRatingHistorySchema);
+
+export const RefreshSummarySchema = Schema.Struct({
+  stored: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  sport: Schema.String,
+  season: Schema.String,
+});
+
+export type RefreshSummary = Schema.Schema.Type<typeof RefreshSummarySchema>;
+
+export const ErrorResponseSchema = Schema.Struct({
+  error: Schema.String,
+  message: Schema.String,
+});
+
 export const encodeJson = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A) =>
   Schema.encode(schema)(value);

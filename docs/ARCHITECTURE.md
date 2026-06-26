@@ -51,7 +51,8 @@ Flow: `Bun.fetch` → `Schema.decode` → `Headers`
 | Sub-box | Detail |
 |---------|--------|
 | `bun:sqlite` | `new Database(path)` |
-| `CRUD Operations` | `storeMassey`, `storeBT`, `getBT` |
+| `CRUD Operations` | `storeMassey`, `storeBT`, `getBT`, `getHistory` |
+| `History` | `bt_ratings_history` — snapshot per `storeBT` |
 | `Transactions` | `db.transaction()` — atomic |
 
 ### BTCompute (badge **C**, Compute `0xFFFF00`)
@@ -121,14 +122,14 @@ Tagged, typed, catchable. Zigzag overlays connect services → errors → `catch
 
 ## Layer 4: HTTP Server
 
-`Bun.serve` + `Effect.runPromise`
+`Bun.serve` + shared `ManagedRuntime` (AppLive built once, not per request)
 
 | Route | Handler chain | Response |
 |-------|---------------|----------|
 | `GET /api/ratings/bt` | `Effect.gen` → `RatingsDB.getBT` → `Schema.encode` → Response | `BTRating[]` |
 | `POST /api/ratings/refresh` | `MasseyClient.fetch` → `BTCompute.compute` → `RatingsDB.storeBT` → Response | 202 / summary |
 | `GET /health` | `Bun.version`, `Date.now()` | `status \| version \| timestamp` |
-| `GET /api/ratings/history` | `RatingsDB.getHistory` → `Schema.encode` | `BTRating[]` |
+| `GET /api/ratings/history` | `RatingsDB.getHistory` → `Schema.encode` | `BTRatingHistory[]` (`snapshotAt`) |
 
 **Arrow to schema:** solid `encode`
 

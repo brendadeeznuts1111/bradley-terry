@@ -11,14 +11,13 @@ export interface BTComputeApi {
 export class BTCompute extends Context.Tag("BTCompute")<BTCompute, BTComputeApi>() {}
 
 function masseyToMatches(data: MasseyData): Match[] {
-  const teamNames = new Map(data.teams.map((t) => [t.teamId, t.teamName]));
   const matches: Match[] = [];
 
   for (const r of data.results) {
+    if (r.homeScore === r.awayScore) continue;
     const homeWins = r.homeScore > r.awayScore;
     const winner = (homeWins ? r.homeTeamId : r.awayTeamId) as EntityId;
     const loser = (homeWins ? r.awayTeamId : r.homeTeamId) as EntityId;
-    if (winner === loser) continue;
     matches.push({
       winner,
       loser,
@@ -26,7 +25,6 @@ function masseyToMatches(data: MasseyData): Match[] {
       sport: data.sport,
       league: data.season,
     });
-    void teamNames;
   }
 
   return matches;

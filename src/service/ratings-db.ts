@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { Context, Effect, Layer } from "effect";
 import { RatingsConfigTag } from "./config.js";
 import { DBError } from "./errors.js";
-import type { BTRating, MasseyData } from "./schemas.js";
+import type { BTRating, BTRatingHistory, MasseyData } from "./schemas.js";
 
 export interface RatingsDBApi {
   readonly storeMassey: (data: MasseyData) => Effect.Effect<void, DBError>;
@@ -16,7 +16,7 @@ export interface RatingsDBApi {
     sport?: string,
     season?: string,
     limit?: number
-  ) => Effect.Effect<readonly BTRating[], DBError>;
+  ) => Effect.Effect<readonly BTRatingHistory[], DBError>;
 }
 
 export class RatingsDB extends Context.Tag("RatingsDB")<RatingsDB, RatingsDBApi>() {}
@@ -41,6 +41,21 @@ CREATE TABLE IF NOT EXISTS bt_ratings (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (team_id, sport, season)
 );
+
+CREATE TABLE IF NOT EXISTS bt_ratings_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id TEXT NOT NULL,
+  team_name TEXT NOT NULL,
+  rating REAL NOT NULL,
+  confidence REAL NOT NULL,
+  rank INTEGER NOT NULL,
+  sport TEXT NOT NULL,
+  season TEXT NOT NULL,
+  snapshot_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bt_history_lookup
+  ON bt_ratings_history (sport, season, snapshot_at DESC);
 `;
 
 import { mkdirSync } from "node:fs";
@@ -89,7 +104,7 @@ export const RatingsDBLive = Layer.scoped(
     const storeBT: RatingsDBApi["storeBT"] = (ratings, sport = "default", season = "default") =>
       Effect.try({
         try: () => {
-          const stmt = db.prepare(
+          const upsert = db.prepare(
             `INSERT INTO bt_ratings (team_id, team_name, rating, confidence, rank, sport, season, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(team_id, sport, season) DO UPDATE SET
@@ -99,9 +114,24 @@ export const RatingsDBLive = Layer.scoped(
                rank = excluded.rank,
                updated_at = excluded.updated_at`
           );
+          const history = db.prepare(
+            `INSERT INTO bt_ratings_history
+               (team_id, team_name, rating, confidence, rank, sport, season, snapshot_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          );
           const updatedAt = new Date().toISOString();
           for (const r of ratings) {
-            stmt.run(
+            upsert.run(
+              r.teamID,
+              r.teamName,
+              r.rating,
+              r.confidence,
+              r.rank,
+              sport,
+              season,
+              updatedAt
+            );
+            history.run(
               r.teamID,
               r.teamName,
               r.rating,
@@ -149,8 +179,41 @@ export const RatingsDBLive = Layer.scoped(
     const getHistory: RatingsDBApi["getHistory"] = (
       sport = "default",
       season = "default",
-      limit = 100
-    ) => getBT(sport, season).pipe(Effect.map((rows) => rows.slice(0, limit)));
+      limit = 500
+    ) =>
+      Effect.try({
+        try: () => {
+          const rows = db
+            .query(
+              `SELECT team_id, team_name, rating, confidence, rank, sport, season, snapshot_at
+               FROM bt_ratings_history
+               WHERE sport = ? AND season = ?
+               ORDER BY snapshot_at DESC, rank ASC
+               LIMIT ?`
+            )
+            .all(sport, season, limit) as Array<{
+            team_id: string;
+            team_name: string;
+            rating: number;
+            confidence: number;
+            rank: number;
+            sport: string;
+            season: string;
+            snapshot_at: string;
+          }>;
+          return rows.map((r) => ({
+            teamID: r.team_id,
+            teamName: r.team_name,
+            rating: r.rating,
+            confidence: r.confidence,
+            rank: r.rank,
+            sport: r.sport,
+            season: r.season,
+            snapshotAt: r.snapshot_at,
+          }));
+        },
+        catch: (cause) => new DBError({ cause, operation: "getHistory" }),
+      });
 
     return { storeMassey, storeBT, getBT, getHistory } satisfies RatingsDBApi;
   })
