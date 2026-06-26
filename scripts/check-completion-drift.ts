@@ -1,13 +1,21 @@
 #!/usr/bin/env bun
-// Bun-native file I/O and hashing via Bun.file() / Bun.CryptoHasher
+// Bun-native file I/O, hashing, and path resolution via Bun.file() / Bun.CryptoHasher / Bun.pathToFileURL
 // https://bun.com/docs/runtime/file-io
 // https://bun.com/docs/runtime/hashing
 
-export {};
+import { join } from "node:path";
 
-const JSON_PATH = "completions/bun-cli.json";
-const MATRIX_PATH = "completions/COMPLETION_MATRIX.md";
-const DYNAMIC_SOURCES_PATH = "completions/DYNAMIC_SOURCES.json";
+const ROOT = join(import.meta.dirname, "..");
+
+const JSON_PATH = Bun.pathToFileURL(
+	join(ROOT, "completions/bun-cli.json"),
+).pathname;
+const MATRIX_PATH = Bun.pathToFileURL(
+	join(ROOT, "completions/COMPLETION_MATRIX.md"),
+).pathname;
+const DYNAMIC_SOURCES_PATH = Bun.pathToFileURL(
+	join(ROOT, "completions/DYNAMIC_SOURCES.json"),
+).pathname;
 
 const rawJson = await Bun.file(JSON_PATH).text();
 const jsonHash = new Bun.CryptoHasher("sha256")
