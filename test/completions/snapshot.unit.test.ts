@@ -261,6 +261,16 @@ describe("Snapshot contracts", () => {
 				expect(h).not.toMatch(headerPattern);
 			});
 		});
+
+		test("matrix is valid Markdown with at least one GFM table", async () => {
+			const matrixContent = await Bun.file(MATRIX_PATH).text();
+
+			// Bun.markdown is an unstable native API; this test guards the
+			// matrix structure without affecting the committed markdown output.
+			const html = Bun.markdown.html(matrixContent, { tables: true });
+			expect(html).toContain("<table");
+			expect(html).toContain("<h1");
+		});
 	});
 
 	// ── 5. Cross-cutting integration snapshot ─────────────────────
