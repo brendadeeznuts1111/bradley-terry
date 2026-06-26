@@ -37,8 +37,8 @@ decay, multiple output scales, and a streaming Massey CSV loader.
         │                            │                            │
 ┌───────▼─────────┐       ┌──────────▼─────────┐         ┌────────▼─────────┐
 │  Massey Loader  │       │   Match Adapter    │         │   Repository     │
-│  (Effect Stream │       │  (SQLite MatchRow  │         │  (SQLite persist │
-│   CSV → Match)  │       │   → BT Match)      │         │   ratings/delta) │
+│  (Effect Stream │       │  (SQLite MatchRow  │         │  (sqlite-loader  │
+│   CSV → Match)  │       │   → BT Match)      │         │   placeholder)   │
 └─────────────────┘       └────────────────────┘         └──────────────────┘
 ```
 
@@ -50,7 +50,8 @@ The single source of truth for all domain types, built on Effect `Schema` and
 `Brand`:
 
 - `EntityId` — branded string (`string & Brand<"EntityId">`)
-- `MatchSchema` — `{ winner, loser, date?, weight?, sport?, league? }`
+- `MatchRowSchema` — raw ingestion row (`{ home_team, away_team, winner_idx, loser_idx, date, sport?, league?, y?, match_id? }`)
+- `MatchSchema` — canonical BT match (`{ winner, loser, date?, weight?, sport?, league? }`)
 - `BradleyTerryConfigSchema` — fitter options with defaults
 - `RatingEntrySchema`, `FitResultSchema` — output types
 - Error types: `SelfMatchError`, `InsufficientDataError`,
@@ -160,7 +161,7 @@ leverages Bun's performance-optimized primitives.
 | API | Usage |
 |-----|-------|
 | `Bun.CryptoHasher("sha256"/"sha512")` | JSON drift hashing, content integrity |
-| `Bun.hash(content)` | Fast content-addressable hashing |
+
 
 ### Compression
 | API | Usage |
@@ -198,7 +199,6 @@ leverages Bun's performance-optimized primitives.
 |-----|-------|
 | `Bun.fileURLToPath(url)` | Convert file:// URLs to OS paths |
 | `Bun.pathToFileURL(path)` | Cross-platform path → file:// URL conversion |
-| `Bun.resolveSync(specifier, from)` | Module specifier resolution |
 
 ### Glob & process
 | API | Usage |

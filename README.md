@@ -2,9 +2,8 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-52%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-71%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.2-success)](#api)
-[![Cascade](https://img.shields.io/badge/Cascade-Integrated-success)](docs/ARCHITECTURE.md)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
 
@@ -148,17 +147,16 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-52 tests across 6 files:
+71 tests across 6 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
-| `test/completion-matrix.unit.test.ts` | 33 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
-| `test/completions/snapshot.unit.test.ts` | 3 | Snapshot contracts for `makeTable`, `DYNAMIC_SOURCES.json`, and `COMPLETION_MATRIX.md` header |
+| `test/completion-matrix.unit.test.ts` | 35 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
+| `test/completions/snapshot.unit.test.ts` | 20 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
 | `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
 | `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
 | `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
 | `test/integration/cli-completions.test.ts` | 5 | CLI completions generator integration tests |
-| `test/benchmark/bradley-terry.bench.ts` | 2 | 50k-match performance target |
 
 ## Updating snapshots
 
