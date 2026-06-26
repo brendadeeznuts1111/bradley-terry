@@ -672,6 +672,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -680,6 +688,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1029,6 +1047,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1037,6 +1063,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1387,6 +1423,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1395,6 +1439,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1691,6 +1745,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -1699,6 +1761,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2076,6 +2148,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2084,6 +2164,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2404,6 +2494,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2412,6 +2510,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2704,6 +2812,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -2712,6 +2828,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -3002,6 +3128,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -3010,6 +3144,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -3360,6 +3504,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -3368,6 +3520,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -3993,6 +4155,14 @@
           "description": "Override CPU architecture for optional dependencies (e.g., x64, arm64, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "arm64",
+            "x64",
+            "ia32",
+            "ppc64",
+            "s390x",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
@@ -4001,6 +4171,16 @@
           "description": "Override operating system for optional dependencies (e.g., linux, darwin, * for all)",
           "hasValue": true,
           "valueType": "string",
+          "choices": [
+            "linux",
+            "darwin",
+            "win32",
+            "freebsd",
+            "openbsd",
+            "sunos",
+            "aix",
+            "*"
+          ],
           "required": false,
           "multiple": false
         },
