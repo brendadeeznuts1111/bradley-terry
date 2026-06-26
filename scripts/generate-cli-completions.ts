@@ -1127,7 +1127,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	// GOMAXPROCS"). The ParamField default="5" appears to be inconsistent with
 	// both --help and the prose, so we use the --help value.
 	const pmDefaults: Record<string, string> = {
-		backend: "clonefile",
+		backend: "hardlink",
 		"concurrent-scripts": "2x CPU cores",
 		"network-concurrency": "48",
 		save: "true",
@@ -1375,6 +1375,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun run --bun vite",
 			"bun --watch run index.tsx",
 			"bun run -",
+			"bun --smol run index.tsx",
+			"bun --console-depth 5 run index.tsx",
+			"bun run - < script.ts",
+			"bun --inspect-brk run index.ts",
 		],
 		test: [
 			"bun test",

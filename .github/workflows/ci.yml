@@ -11,4 +11,5 @@ jobs:
       - run: bun install
       - run: bun ci
       - run: bun run completions:audit
+      - run: bun run completions:audit:docs
       - run: bun run check:full

@@ -31,7 +31,11 @@
         "bun run index.ts",
         "bun run --bun vite",
         "bun --watch run index.tsx",
-        "bun run -"
+        "bun run -",
+        "bun --smol run index.tsx",
+        "bun --console-depth 5 run index.tsx",
+        "bun run - < script.ts",
+        "bun --inspect-brk run index.ts"
       ],
       "usage": "Usage: bun run [flags] <file or script>",
       "documentationUrl": "https://bun.com/docs/cli/run",
@@ -596,7 +600,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -973,7 +977,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -1353,7 +1357,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -1672,7 +1676,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -2074,7 +2078,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -2417,7 +2421,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -2732,7 +2736,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -3045,7 +3049,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -3418,7 +3422,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",
@@ -4066,7 +4070,7 @@
           "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "clonefile",
+          "defaultValue": "hardlink",
           "choices": [
             "hardlink",
             "symlink",

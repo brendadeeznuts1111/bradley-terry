@@ -13,6 +13,7 @@ bun run dev                 # watch mode
 bun run secret set <ns> <name> <value> [--ttl N]
 bun run lint                # biome
 bun run completions:audit   # compare bun --help vs bun-cli.json (before regen)
+bun run completions:audit:docs  # run docs examples + key flags vs JSON
 bun run completions:regen   # full regen: CLI + bunfig + matrix + shell (Bun 1.4.0+)
 bun run completions:bunfig  # bunfig.toml settings (console.depth, etc.)
 bun run check:completions   # drift hash + matrix + bunfig alignment
