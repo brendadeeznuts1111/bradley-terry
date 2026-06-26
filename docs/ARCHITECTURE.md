@@ -412,14 +412,15 @@ flowchart BT
 For embedded use without the HTTP server:
 
 ```
-BT Core → Loader (SQLite + Massey) → Repository → Cascade Integration
+BT Core → Loader (SQLite + Massey) → MatchAdapter → BradleyTerry.fit()
 ```
 
 | Module | Role |
 |--------|------|
-| `schema.ts` | Branded `EntityId`, `Match`, `FitResult` |
-| `massey-loader.ts` | Streaming Massey CSV ingestion |
-| `match-adapter.ts` | SQLite `MatchRow` → validated `Match` |
+| `src/schema.ts` | Branded `EntityId`, `Match`, `FitResult` |
+| `src/data/massey-loader.ts` | Streaming Massey CSV ingestion |
+| `src/repository/sqlite-loader.ts` | Historical match DB (`matches` table) → `MatchRow` |
+| `src/match-adapter.ts` | SQLite `MatchRow` → validated `Match` |
 | `src/bradley-terry/` | `fit()` core algorithm |
-| `src/repository/` | Snapshot persistence |
-| `src/integrations/cascade-mover.ts` | Win prob + delta consumer |
+
+**External integration (not in this repo):** [Cascade Mover](https://github.com/search?q=cascade-mover) consumes win probabilities and rating deltas via the public library API (`BradleyTerry.predictWinProbability`, `FitResult.ratings`). Wire integration in the downstream repository.
