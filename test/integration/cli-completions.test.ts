@@ -197,6 +197,24 @@ describe("cli-completions generator", () => {
 		expect(installCmd.aliases?.length).toBeGreaterThan(0);
 	});
 
+	it("add, run, test, and build commands include documented examples", () => {
+		const scriptCwd = createTempPackageDir();
+		tempDirs.push(scriptCwd);
+		const outputDir = createTempPackageDir();
+		tempDirs.push(outputDir);
+
+		const data = runScript(scriptCwd, outputDir);
+
+		expect(data.commands.add.examples).toContain("bun add preact");
+		expect(data.commands.add.examples).toContain("bun add --dev @types/react");
+		expect(data.commands.run.examples).toContain("bun run index.js");
+		expect(data.commands.run.examples).toContain("bun run --bun vite");
+		expect(data.commands.test.examples).toContain("bun test --timeout 20");
+		expect(data.commands.build.examples).toContain(
+			"bun build ./index.tsx --outdir ./out",
+		);
+	});
+
 	// Cleanup all temp dirs after all tests
 	afterAll(() => {
 		for (const dir of tempDirs) {

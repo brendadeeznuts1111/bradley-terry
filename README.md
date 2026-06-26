@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-93%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-94%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
@@ -147,7 +147,7 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-93 tests across 7 files:
+94 tests across 7 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
@@ -157,7 +157,7 @@ bun test
 | `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
 | `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
 | `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
-| `test/integration/cli-completions.test.ts` | 5 | CLI completions generator integration tests |
+| `test/integration/cli-completions.test.ts` | 6 | CLI completions generator integration tests |
 
 ## Updating snapshots
 
@@ -201,6 +201,14 @@ This writes:
 
 Source them manually or install them into your shell's completion directory
 (`/etc/bash_completion.d/`, `~/.zsh/completions/`, `~/.config/fish/completions/`).
+
+Generated completions cover all 23 top-level Bun commands, including:
+
+- **Package management**: `install`, `add`, `remove`, `update`, `link`, `unlink`, `outdated`, `audit`, `publish`, `patch`
+- **Runtime & test**: `run`, `test`, `exec`, `repl`, `x`/`bunx`
+- **Build & tooling**: `build`, `init`, `create`, `pm`, `info`, `why`, `upgrade`, `feedback`
+
+Each completion includes contextual descriptions and, where documented, valid choice values (e.g. `--target browser|bun|node`, `--backend clonefile|hardlink|symlink|copyfile`). Fish completions also use `bun getcompletes` for dynamic suggestions such as `package.json` scripts, test files, and package names.
 
 ## Project layout
 

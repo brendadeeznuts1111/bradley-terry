@@ -26,7 +26,12 @@
         "bun run ./index.js",
         "bun run ./index.tsx",
         "bun run dev",
-        "bun run lint"
+        "bun run lint",
+        "bun run index.js",
+        "bun run index.ts",
+        "bun run --bun vite",
+        "bun --watch run index.tsx",
+        "bun run -"
       ],
       "usage": "Usage: bun run [flags] <file or script>",
       "documentationUrl": "https://bun.com/docs/cli/run",
@@ -281,7 +286,12 @@
       "examples": [
         "bun test",
         "bun test foo bar",
-        "bun test --test-name-pattern baz"
+        "bun test --test-name-pattern baz",
+        "bun test ./specific-file.test.ts",
+        "bun test --test-name-pattern addition",
+        "bun test --timeout 20",
+        "bun test --concurrent",
+        "bun test --reporter=junit --reporter-outfile=./bun.xml"
       ],
       "usage": "Usage: bun test [flags] [<patterns>]",
       "documentationUrl": "https://bun.com/docs/cli/test",
@@ -1151,7 +1161,14 @@
         "bun add zod@3.0.0",
         "bun add -d typescript",
         "bun add --optional lodash",
-        "bun add --peer esbuild"
+        "bun add --peer esbuild",
+        "bun add preact",
+        "bun add zod@3.20.0",
+        "bun add zod@latest",
+        "bun add --dev @types/react",
+        "bun add --peer @types/bun",
+        "bun add react --exact",
+        "bun add --global cowsay"
       ],
       "usage": "Usage: bun add [flags]",
       "aliases": [
@@ -1825,7 +1842,9 @@
         "bun update",
         "bun update --latest",
         "bun update -i",
-        "bun update zod jquery@3"
+        "bun update zod jquery@3",
+        "bun update zod",
+        "bun update --interactive"
       ],
       "usage": "Usage: bun update [flags] @",
       "documentationUrl": "https://bun.com/docs/cli/update.",
@@ -4733,7 +4752,10 @@
         "bun build --minify --splitting --outdir=out ./index.jsx ./lib/worker.ts",
         "Bundle code to be run in Bun (reduces server startup time)",
         "bun build --target=bun --outfile=server.js ./server.ts",
-        "bun build --compile --outfile=my-app ./cli.ts"
+        "bun build --compile --outfile=my-app ./cli.ts",
+        "bun build ./index.tsx --outdir ./out",
+        "bun build ./index.tsx --outdir ./out --watch",
+        "bun build ./index.tsx --target node"
       ],
       "usage": "Usage:",
       "documentationUrl": "https://bun.com/docs/bundler",

@@ -1356,6 +1356,44 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun install --filter './packages/pkg-a'",
 			"bun install --linker isolated",
 		],
+		add: [
+			"bun add preact",
+			"bun add zod@3.20.0",
+			"bun add zod@latest",
+			"bun add --dev @types/react",
+			"bun add --optional lodash",
+			"bun add --peer @types/bun",
+			"bun add react --exact",
+			"bun add --global cowsay",
+		],
+		remove: ["bun remove ts-node"],
+		update: [
+			"bun update",
+			"bun update zod",
+			"bun update --interactive",
+			"bun update --latest",
+		],
+		run: [
+			"bun run index.js",
+			"bun run index.ts",
+			"bun run dev",
+			"bun run --bun vite",
+			"bun --watch run index.tsx",
+			"bun run -",
+		],
+		test: [
+			"bun test",
+			"bun test ./specific-file.test.ts",
+			"bun test --test-name-pattern addition",
+			"bun test --timeout 20",
+			"bun test --concurrent",
+			"bun test --reporter=junit --reporter-outfile=./bun.xml",
+		],
+		build: [
+			"bun build ./index.tsx --outdir ./out",
+			"bun build ./index.tsx --outdir ./out --watch",
+			"bun build ./index.tsx --target node",
+		],
 	};
 	for (const [cmd, examples] of Object.entries(documentedExamples)) {
 		if (!commands[cmd]) continue;
