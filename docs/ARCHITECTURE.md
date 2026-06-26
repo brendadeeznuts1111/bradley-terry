@@ -156,6 +156,8 @@ leverages Bun's performance-optimized primitives.
 | `Bun.write(path, content)` | Write generated artifacts |
 | `Bun.file(path).text()` | Streaming text read |
 | `Bun.readableStreamToText(stream)` | Stream → text conversion |
+| `Bun.readableStreamToArrayBuffer(stream)` | Stream → ArrayBuffer conversion |
+| `Bun.readableStreamToBytes(stream)` | Stream → Uint8Array conversion |
 
 ### Hashing & cryptography
 | API | Usage |
@@ -168,25 +170,35 @@ leverages Bun's performance-optimized primitives.
 |-----|-------|
 | `Bun.gzipSync(data)` | Compress for storage/transport |
 | `Bun.gunzipSync(data)` | Decompress for processing |
+| `Bun.deflateSync(data)` | DEFLATE compression |
+| `Bun.inflateSync(data)` | DEFLATE decompression |
+| `Bun.zstdCompressSync(data)` | Zstandard compression (better ratio than gzip) |
+| `Bun.zstdDecompressSync(data)` | Zstandard decompression |
+| `Bun.zstdCompress(data)` | Async Zstandard compression |
+| `Bun.zstdDecompress(data)` | Async Zstandard decompression |
 
 ### Text & formatting
 | API | Usage |
 |-----|-------|
 | `Bun.escapeHTML(str)` | HTML artifact generation |
 | `Bun.stringWidth(str)` | CJK/emoji-aware column alignment in markdown tables |
+| `Bun.stripANSI(str)` | Strip ANSI escape codes from terminal output |
 
 ### Data utilities
 | API | Usage |
 |-----|-------|
 | `Bun.deepEquals(a, b)` | Structural equality in tests |
 | `Bun.peek(promise)` | Synchronous inspection of resolved promises |
+| `Bun.peek.status(promise)` | Read promise state without resolving |
 | `Bun.env` | Environment variable access |
 | `Bun.version` / `Bun.revision` | Runtime version introspection |
 | `Bun.main` | Entrypoint path resolution |
 | `Bun.which(cmd)` | Binary lookup |
 | `Bun.sleep(ms)` | Async delay |
+| `Bun.sleepSync(ms)` | Blocking synchronous delay |
 | `Bun.nanoseconds()` | High-precision timing |
 | `Bun.randomUUIDv7()` | Time-ordered UUID generation for history tables |
+| `Bun.openInEditor(path, opts)` | Open files in the default editor |
 
 ### Parsing & serialization
 | API | Usage |
@@ -199,6 +211,7 @@ leverages Bun's performance-optimized primitives.
 |-----|-------|
 | `Bun.fileURLToPath(url)` | Convert file:// URLs to OS paths |
 | `Bun.pathToFileURL(path)` | Cross-platform path → file:// URL conversion |
+| `Bun.resolveSync(id, opts)` | Resolve module paths synchronously |
 
 ### Glob & process
 | API | Usage |
@@ -220,6 +233,14 @@ leverages Bun's performance-optimized primitives.
 |-----|-------|
 | `Bun.inspect(obj)` | Structured object inspection |
 | `Bun.inspect.table(rows)` | Tabular console output |
+| `Bun.inspect.custom` | Custom inspect symbol for user classes |
+
+### Serialization (bun:jsc)
+| API | Usage |
+|-----|-------|
+| `serialize(value)` | Structured clone into SharedArrayBuffer |
+| `deserialize(buf)` | Restore from SharedArrayBuffer |
+| `estimateShallowMemoryUsageOf(obj)` | Best-effort memory estimate in bytes |
 
 ### Versioning
 | API | Usage |

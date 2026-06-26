@@ -1,3 +1,4 @@
+import { deserialize, estimateShallowMemoryUsageOf, serialize } from "bun:jsc";
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -467,5 +468,107 @@ describe("Bun native API verification", () => {
 
 		expect(compressed.length).toBeLessThan(encoded.length);
 		expect(new TextDecoder().decode(decompressed)).toBe(original);
+	});
+
+	test("zstdCompressSync compresses and zstdDecompressSync decompresses", () => {
+		const original = "compress this string".repeat(50);
+		const encoded = new TextEncoder().encode(original);
+		const compressed = Bun.zstdCompressSync(encoded);
+		const decompressed = Bun.zstdDecompressSync(compressed);
+
+		expect(compressed.length).toBeLessThan(encoded.length);
+		expect(new TextDecoder().decode(decompressed)).toBe(original);
+	});
+
+	test("zstdCompress and zstdDecompress roundtrip asynchronously", async () => {
+		const original = "async zstd roundtrip".repeat(40);
+		const encoded = new TextEncoder().encode(original);
+		const compressed = await Bun.zstdCompress(encoded);
+		const decompressed = await Bun.zstdDecompress(compressed);
+
+		expect(compressed.length).toBeLessThan(encoded.length);
+		expect(new TextDecoder().decode(decompressed)).toBe(original);
+	});
+
+	test("deflateSync compresses and inflateSync decompresses", () => {
+		const original = "deflate me cap'n".repeat(50);
+		const encoded = new TextEncoder().encode(original);
+		const compressed = Bun.deflateSync(encoded);
+		const decompressed = Bun.inflateSync(compressed);
+
+		expect(compressed.length).toBeLessThan(encoded.length);
+		expect(new TextDecoder().decode(decompressed)).toBe(original);
+	});
+
+	test("sleepSync blocks for at least the specified duration", () => {
+		const start = Bun.nanoseconds();
+		Bun.sleepSync(10); // 10ms
+		const elapsed = (Bun.nanoseconds() - start) / 1e6;
+		expect(elapsed).toBeGreaterThanOrEqual(5); // allow some slop
+	});
+
+	test("stripANSI removes ANSI escape codes", () => {
+		const colored = "\u001b[31mHello\u001b[0m \u001b[32mWorld\u001b[0m";
+		expect(Bun.stripANSI(colored)).toBe("Hello World");
+		expect(Bun.stripANSI("plain")).toBe("plain");
+	});
+
+	test("peek.status reports promise state without resolving", () => {
+		expect(Bun.peek.status(Promise.resolve(1))).toBe("fulfilled");
+		expect(Bun.peek.status(new Promise(() => {}))).toBe("pending");
+		const rejected = Promise.reject(new Error("test"));
+		rejected.catch(() => {}); // suppress unhandled rejection
+		expect(Bun.peek.status(rejected)).toBe("rejected");
+	});
+
+	test("bun:jsc serialize and deserialize roundtrip", () => {
+		const original = { foo: "bar", nested: [1, true, null] };
+		const buf = serialize(original);
+		expect(buf).toBeInstanceOf(SharedArrayBuffer);
+		const restored = deserialize(buf);
+		expect(restored).toEqual(original);
+	});
+
+	test("bun:jsc estimateShallowMemoryUsageOf returns a positive number", () => {
+		const obj = { a: 1, b: "hello" };
+		const usage = estimateShallowMemoryUsageOf(obj);
+		expect(usage).toBeGreaterThan(0);
+		expect(typeof usage).toBe("number");
+
+		const buffer = Buffer.alloc(1024);
+		const bufUsage = estimateShallowMemoryUsageOf(buffer);
+		expect(bufUsage).toBeGreaterThanOrEqual(1024);
+	});
+
+	test("inspect.custom symbol exists and is usable", () => {
+		expect(typeof Bun.inspect.custom).toBe("symbol");
+		class Tagged {
+			[Bun.inspect.custom]() {
+				return "tagged!";
+			}
+		}
+		expect(Bun.inspect(new Tagged())).toBe("tagged!");
+	});
+
+	test("readableStreamToArrayBuffer converts a stream", async () => {
+		const stream = new ReadableStream({
+			start(controller) {
+				controller.enqueue(new TextEncoder().encode("hello "));
+				controller.enqueue(new TextEncoder().encode("world"));
+				controller.close();
+			},
+		});
+		const buf = await Bun.readableStreamToArrayBuffer(stream);
+		expect(new TextDecoder().decode(buf)).toBe("hello world");
+	});
+
+	test("resolveSync resolves a relative module path", async () => {
+		const resolved = Bun.resolveSync("../package.json", import.meta.dir);
+		expect(resolved.endsWith("package.json")).toBe(true);
+		expect(await Bun.file(resolved).exists()).toBe(true);
+	});
+
+	test("openInEditor is a function that accepts a path", () => {
+		expect(typeof Bun.openInEditor).toBe("function");
 	});
 });
