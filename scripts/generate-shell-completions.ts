@@ -257,28 +257,28 @@ complete -c bun -f
 		// Command-level dynamic completions from bun getcompletes.
 		if (cmd.dynamicCompletions) {
 			if (
-				cmd.dynamicCompletions.scripts &&
+				cmd.dynamicCompletions["scripts"] &&
 				!addedDynamic.has("(bun getcompletes scripts)")
 			) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes scripts)' -d 'Script'\n`;
 				addedDynamic.add("(bun getcompletes scripts)");
 			}
 			if (
-				cmd.dynamicCompletions.files &&
+				cmd.dynamicCompletions["files"] &&
 				!addedDynamic.has("(bun getcompletes files)")
 			) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes files)' -d 'File'\n`;
 				addedDynamic.add("(bun getcompletes files)");
 			}
 			if (
-				cmd.dynamicCompletions.binaries &&
+				cmd.dynamicCompletions["binaries"] &&
 				!addedDynamic.has("(bun getcompletes binaries)")
 			) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes binaries)' -d 'Binary'\n`;
 				addedDynamic.add("(bun getcompletes binaries)");
 			}
 			if (
-				cmd.dynamicCompletions.packages &&
+				cmd.dynamicCompletions["packages"] &&
 				!addedDynamic.has("(bun getcompletes packages)")
 			) {
 				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes packages)' -d 'Package'\n`;

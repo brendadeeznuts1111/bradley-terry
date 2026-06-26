@@ -10,7 +10,7 @@ import { spawnSync } from "bun";
  * Usage: bun run scripts/update-readme-test-counts.ts
  */
 
-const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
+const BUN_EXECUTABLE = process.env["BUN_DEBUG_BUILD"] || "bun";
 
 function runBunTest(): { output: string; exitCode: number } {
 	const result = spawnSync({

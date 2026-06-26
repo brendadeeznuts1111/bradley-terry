@@ -150,7 +150,7 @@ describe("cli-completions generator", () => {
 		// bun getcompletes should be available on modern Bun
 		expect(data.bunGetCompletes.available).toBe(true);
 		expect(data.bunGetCompletes.commands).toBeDefined();
-		expect(data.bunGetCompletes.commands?.scripts).toContain("getcompletes");
+		expect(data.bunGetCompletes.commands?.["scripts"]).toContain("getcompletes");
 	});
 
 	it("--dry-run does not write a file", () => {
@@ -188,13 +188,13 @@ describe("cli-completions generator", () => {
 
 		const data = runScript(scriptCwd, outputDir);
 
-		const install = data.commands.install as {
+		const install = data.commands["install"] as {
 			flags: unknown[];
 			aliases?: string[];
 		};
 		expect(install.flags.length).toBeGreaterThan(0);
 		// install should have at least the "i" alias
-		const installCmd = data.commands.install as { aliases?: string[] };
+		const installCmd = data.commands["install"] as { aliases?: string[] };
 		expect(installCmd.aliases).toBeDefined();
 		expect(installCmd.aliases?.length).toBeGreaterThan(0);
 	});
@@ -207,10 +207,10 @@ describe("cli-completions generator", () => {
 
 		const data = runScript(scriptCwd, outputDir);
 
-		const add = data.commands.add;
-		const run = data.commands.run;
-		const testCmd = data.commands.test;
-		const build = data.commands.build;
+		const add = data.commands["add"];
+		const run = data.commands["run"];
+		const testCmd = data.commands["test"];
+		const build = data.commands["build"];
 		if (!add || !run || !testCmd || !build) throw new Error("missing command");
 		expect(add.examples).toContain("bun add preact");
 		expect(add.examples).toContain("bun add --dev @types/react");
@@ -234,7 +234,7 @@ describe("cli-completions generator", () => {
 
 		const data = runScript(scriptCwd, outputDir);
 
-		const testCmd2 = data.commands.test;
+		const testCmd2 = data.commands["test"];
 		if (!testCmd2) throw new Error("missing test command");
 		const testFlags = testCmd2.flags as Array<{
 			name: string;

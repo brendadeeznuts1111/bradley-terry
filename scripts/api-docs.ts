@@ -224,7 +224,7 @@ async function readPkgVersion(docsRoot: string): Promise<string> {
 }
 
 async function resolveDocsRoot(): Promise<{ root: string; version: string }> {
-	const explicit = process.env.BUN_TYPES_DOCS?.trim();
+	const explicit = process.env["BUN_TYPES_DOCS"]?.trim();
 	if (explicit) {
 		const root = normalizeDocsRoot(explicit);
 		return { root, version: await readPkgVersion(root) };

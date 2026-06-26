@@ -112,7 +112,7 @@ interface CompletionData {
 	};
 }
 
-const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
+const BUN_EXECUTABLE = process.env["BUN_DEBUG_BUILD"] || "bun";
 
 /**
  * Clean env for spawning Bun subprocesses — strips debug noise that would
@@ -799,13 +799,13 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 	}
 
 	// Standardize "list" -> "ls" (bun list is the alias, bun pm ls is canonical)
-	if (!subcommands.ls && subcommands.list) {
-		subcommands.ls = subcommands.list;
-		subcommands.ls.name = "ls";
-		subcommands.ls.description += " (alias: bun list)";
-		delete subcommands.list;
-	} else if (!subcommands.ls) {
-		subcommands.ls = {
+	if (!subcommands["ls"] && subcommands["list"]) {
+		subcommands["ls"] = subcommands["list"];
+		subcommands["ls"].name = "ls";
+		subcommands["ls"].description += " (alias: bun list)";
+		delete subcommands["list"];
+	} else if (!subcommands["ls"]) {
+		subcommands["ls"] = {
 			name: "ls",
 			description:
 				"List installed dependencies and their versions (alias: bun list)",
@@ -1467,7 +1467,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	// Add positional args to pm pkg subcommands.
 	// From --help: "get [key ...]", "set key=value ...", "delete key ..."
-	const pmPkg = commands.pm?.subcommands?.pkg;
+	const pmPkg = commands["pm"]?.subcommands?.["pkg"];
 	if (pmPkg?.subcommands) {
 		const pkgArgs: Record<
 			string,
@@ -1521,7 +1521,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	// Add choices to pm version increment arg.
 	// From --help: "patch, minor, major, prepatch, preminor, premajor, prerelease, from-git, or a specific version"
-	const pmVersion = commands.pm?.subcommands?.version;
+	const pmVersion = commands["pm"]?.subcommands?.["version"];
 	if (pmVersion) {
 		for (const arg of pmVersion.positionalArgs ?? []) {
 			if (arg.name === "increment" && !arg.choices) {

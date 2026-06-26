@@ -168,7 +168,7 @@ if (flags.verbose) {
 // ── Helpers that depend on the loaded JSON fixture ───────────────
 function resolvePmPath(path: string): CommandEntry | undefined {
 	const parts = path.split(" ");
-	let target: CommandEntry | undefined = typedData.commands.pm;
+	let target: CommandEntry | undefined = typedData.commands["pm"];
 	for (let i = 1; i < parts.length; i++) {
 		target = target?.subcommands?.[parts[i] ?? ""];
 	}
@@ -246,34 +246,36 @@ const topLevelRows = Object.entries(typedData.commands)
 	});
 
 // ── Build PM rows ───────────────────────────────────────────────
-const pmRows = collectPmRows(typedData.commands.pm as CommandEntry).map((row) => {
-	const target = resolvePmPath(row.path);
-	const reqPos = (target?.positionalArgs || []).filter(
-		(a) => a.required,
-	).length;
-	const optPos = (target?.positionalArgs || []).length - reqPos;
-	return {
-		Path: row.path,
-		Flags: target?.flags?.length || 0,
-		"Value flags": flagsWithValues(target?.flags || []),
-		"Positional args": target?.positionalArgs?.length || 0,
-		"Req pos": reqPos,
-		"Opt pos": optPos,
-		"File I/O": countCategory(target?.flags || [], "fileIO"),
-		PM: countCategory(target?.flags || [], "pm"),
-		Runtime: countCategory(target?.flags || [], "runtime"),
-		Debug: countCategory(target?.flags || [], "debug"),
-		Network: countCategory(target?.flags || [], "network"),
-		Subcommands: subcommandCount(target),
-		Examples: target?.examples?.length || 0,
-		"Defaults (#)": flagsWithDefaults(target?.flags || []),
-		"Default values": defaultList(target?.flags || []),
-		"Choices (#)": flagsWithChoices(target?.flags || []),
-		"Choice values": choiceList(target?.flags || []),
-		Isolated: "Yes",
-		"Drift hash": jsonHash,
-	};
-});
+const pmRows = collectPmRows(typedData.commands["pm"] as CommandEntry).map(
+	(row) => {
+		const target = resolvePmPath(row.path);
+		const reqPos = (target?.positionalArgs || []).filter(
+			(a) => a.required,
+		).length;
+		const optPos = (target?.positionalArgs || []).length - reqPos;
+		return {
+			Path: row.path,
+			Flags: target?.flags?.length || 0,
+			"Value flags": flagsWithValues(target?.flags || []),
+			"Positional args": target?.positionalArgs?.length || 0,
+			"Req pos": reqPos,
+			"Opt pos": optPos,
+			"File I/O": countCategory(target?.flags || [], "fileIO"),
+			PM: countCategory(target?.flags || [], "pm"),
+			Runtime: countCategory(target?.flags || [], "runtime"),
+			Debug: countCategory(target?.flags || [], "debug"),
+			Network: countCategory(target?.flags || [], "network"),
+			Subcommands: subcommandCount(target),
+			Examples: target?.examples?.length || 0,
+			"Defaults (#)": flagsWithDefaults(target?.flags || []),
+			"Default values": defaultList(target?.flags || []),
+			"Choices (#)": flagsWithChoices(target?.flags || []),
+			"Choice values": choiceList(target?.flags || []),
+			Isolated: "Yes",
+			"Drift hash": jsonHash,
+		};
+	},
+);
 
 if (flags.verbose) {
 	console.log(`🏗️ Matrix built in ${toc("build")}`);
@@ -378,23 +380,23 @@ output.push(
 	"",
 	"### `bun install` flag defaults",
 	"",
-	flagsTable(typedData.commands.install),
+	flagsTable(typedData.commands["install"]),
 	"",
 	"### `bun add` flag defaults",
 	"",
-	flagsTable(typedData.commands.add),
+	flagsTable(typedData.commands["add"]),
 	"",
 	"### `bun test` flag defaults",
 	"",
-	flagsTable(typedData.commands.test),
+	flagsTable(typedData.commands["test"]),
 	"",
 	"### `bun build` flag defaults",
 	"",
-	flagsTable(typedData.commands.build),
+	flagsTable(typedData.commands["build"]),
 );
 
 // ── HMAC-signed artifact manifest ─────────────────────────────────
-const hmacKey = Bun.env.BUN_COMPLETION_HMAC_KEY || jsonHash;
+const hmacKey = Bun.env["BUN_COMPLETION_HMAC_KEY"] || jsonHash;
 const manifest = {
 	jsonHash,
 	sha256,
@@ -527,7 +529,7 @@ await Bun.write(
 console.log(`✅ Wrote ${DYNAMIC_SOURCES_PATH}`);
 
 // ── Optional gzip backup ────────────────────────────────────────
-if (flags.backup || Bun.env.BUN_COMPLETION_BACKUP === "1") {
+if (flags.backup || Bun.env["BUN_COMPLETION_BACKUP"] === "1") {
 	const backupPath = `${JSON_PATH}.gz`;
 	const compressed = Bun.gzipSync(rawJson);
 	await Bun.write(backupPath, compressed);
@@ -550,7 +552,7 @@ if (roundTrip.jsonHash !== jsonHash) {
 console.log(`📝 All writes completed in ${toc("write")}`);
 
 // ── DNS registry validation (async, non-blocking) ───────────────
-if (typedData.commands.add?.flags.some((f) => f.name === "registry")) {
+if (typedData.commands["add"]?.flags.some((f) => f.name === "registry")) {
 	Bun.dns
 		.lookup("registry.npmjs.org")
 		.then((address) => {
@@ -705,7 +707,7 @@ if (flags.html) {
 console.log(`\n${Bun.inspect.table(statusRows, { colors: true })}`);
 
 // ── UDP status broadcast (optional, fire-and-forget) ───────────
-if (Bun.env.BUN_COMPLETION_UDP_BROADCAST === "1") {
+if (Bun.env["BUN_COMPLETION_UDP_BROADCAST"] === "1") {
 	const udp = await Bun.udpSocket({});
 	udp.send(
 		JSON.stringify({
