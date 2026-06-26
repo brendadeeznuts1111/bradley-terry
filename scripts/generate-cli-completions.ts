@@ -976,6 +976,59 @@ function parseGlobalFlags(helpText: string): FlagInfo[] {
 }
 
 /**
+ * Bundler/build flags that were historically appended to globalFlags.
+ * They belong on `bun build` only. See https://bun.com/docs/bundler
+ */
+export const BUILD_ONLY_FLAG_NAMES = new Set([
+	"main-fields",
+	"preserve-symlinks",
+	"preserve-symlinks-main",
+	"extension-order",
+	"tsconfig-override",
+	"define",
+	"drop",
+	"feature",
+	"loader",
+	"no-macros",
+	"jsx-factory",
+	"jsx-fragment",
+	"jsx-import-source",
+	"jsx-runtime",
+	"jsx-side-effects",
+	"ignore-dce-annotations",
+	"experimental-stream-iter",
+]);
+
+function reconcileBuildFlags(
+	globalFlags: FlagInfo[],
+	commands: Record<string, CommandInfo>,
+): FlagInfo[] {
+	const build = commands.build;
+	if (!build) return globalFlags;
+
+	const buildNames = new Set(build.flags.map((f) => f.name));
+	const kept: FlagInfo[] = [];
+	const moved: FlagInfo[] = [];
+
+	for (const flag of globalFlags) {
+		if (BUILD_ONLY_FLAG_NAMES.has(flag.name)) {
+			moved.push(flag);
+		} else {
+			kept.push(flag);
+		}
+	}
+
+	for (const flag of moved) {
+		if (!buildNames.has(flag.name)) {
+			build.flags.push(flag);
+			console.log(`📦 Moved build-only flag global → build: --${flag.name}`);
+		}
+	}
+
+	return kept;
+}
+
+/**
  * Add fallback aliases for commands that don't have an "Alias:" line in help.
  * Aliases parsed from help text (in parseHelpOutput) take priority.
  */
@@ -1597,9 +1650,13 @@ function generateCompletions(cliArgs: CliArgs): void {
 	// Add documented flags that don't appear in --help output.
 	// These are flags documented on bun.com/docs but not yet in the CLI --help.
 	addDocumentedFlags(completionData.commands);
+	completionData.globalFlags = reconcileBuildFlags(
+		completionData.globalFlags,
+		completionData.commands,
+	);
 
 	// Strip any surrounding quotes from default values that leaked through parsers.
-	cleanAllDefaults(completionData.commands, globalFlags);
+	cleanAllDefaults(completionData.commands, completionData.globalFlags);
 
 	// Write the JSON file (unless --dry-run)
 	if (!cliArgs.dryRun) {

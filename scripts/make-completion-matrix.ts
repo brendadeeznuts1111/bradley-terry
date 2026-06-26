@@ -64,6 +64,7 @@ Options:
 
 // ── Constants ───────────────────────────────────────────────────
 const JSON_PATH = "completions/bun-cli.json";
+const BUNFIG_PATH = "completions/bunfig-settings.json";
 const MATRIX_PATH = "completions/COMPLETION_MATRIX.md";
 const DYNAMIC_SOURCES_PATH = "completions/DYNAMIC_SOURCES.json";
 const CSV_PATH = "completions/COMPLETION_MATRIX.csv";
@@ -154,6 +155,26 @@ if (flags.verbose) {
 }
 
 const typedData = data as CompletionData;
+
+interface BunfigCompletionData {
+	settings: Array<{
+		key: string;
+		section?: string;
+		description: string;
+		cliEquivalent?: string;
+	}>;
+}
+
+let bunfigData: BunfigCompletionData | null = null;
+let bunfigHash = "missing";
+
+if (await Bun.file(BUNFIG_PATH).exists()) {
+	const rawBunfig = await Bun.file(BUNFIG_PATH).text();
+	bunfigHash = new Bun.CryptoHasher("sha256").update(rawBunfig).digest("hex").slice(0, 12);
+	bunfigData = JSON.parse(rawBunfig) as BunfigCompletionData;
+} else if (!flags.dryRun) {
+	console.warn(`⚠️ ${BUNFIG_PATH} not found — run bun run completions:bunfig`);
+}
 
 // ── Bun.peek shape debug ────────────────────────────────────────
 if (flags.verbose) {
@@ -290,6 +311,7 @@ const output = [
 	"# Bun CLI Completion Behavior Matrix",
 	"",
 	`Generated from \`completions/bun-cli.json\` (schema v${typedData.version}, Bun ${liveBunVersion}, revision ${liveBunRevision}, hash \`${jsonHash}\`).`,
+	`- **bunfig-json:** \`${bunfigHash}\``,
 	"",
 	"## Top-level commands",
 	"",
@@ -309,6 +331,22 @@ const output = [
 			const isolated = !inheritsGlobals(name);
 			return `| ${name} | ${isolated ? "—" : typedData.globalFlags.length} | ${cmd.flags.length} | ${isolated ? cmd.flags.length : totalSurface(cmd)} | ${isolated ? "Yes" : "No"} | ${isolated ? "—" : criticalInheritedFlags(name)} |`;
 		}),
+	"",
+	"## Bunfig settings (non-CLI)",
+	"",
+	bunfigData
+		? [
+				`Canonical \`bunfig.toml\` keys live in \`${BUNFIG_PATH}\` (${bunfigData.settings.length} settings).`,
+				"",
+				"Examples that are **not** duplicated as global CLI flags:",
+				...bunfigData.settings
+					.filter((s) => !s.cliEquivalent)
+					.slice(0, 6)
+					.map((s) => `- \`${s.key}\` — ${s.description}`),
+				"",
+				"Regenerate with `bun run completions:bunfig`.",
+			].join("\n")
+		: `_Run \`bun run completions:bunfig\` to generate \`${BUNFIG_PATH}\`._`,
 	"",
 	"## Global flags",
 	"",

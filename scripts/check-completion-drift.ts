@@ -8,6 +8,7 @@ import { join } from "node:path";
 const ROOT = join(import.meta.dirname, "..");
 
 const JSON_PATH = Bun.pathToFileURL(join(ROOT, "completions/bun-cli.json")).pathname;
+const BUNFIG_PATH = Bun.pathToFileURL(join(ROOT, "completions/bunfig-settings.json")).pathname;
 const MATRIX_PATH = Bun.pathToFileURL(join(ROOT, "completions/COMPLETION_MATRIX.md")).pathname;
 const DYNAMIC_SOURCES_PATH = Bun.pathToFileURL(
 	join(ROOT, "completions/DYNAMIC_SOURCES.json"),
@@ -78,7 +79,22 @@ for (const [cmdName, cmd] of Object.entries(jsonData.commands) as [string, Comma
 	}
 }
 
-// Check 6: All matrix rows share the same drift hash as the JSON
+// Check 6: bunfig-settings.json exists and hash is recorded in the matrix
+if (!(await Bun.file(BUNFIG_PATH).exists())) {
+	console.error(`❌ Missing ${BUNFIG_PATH}; run bun run completions:bunfig`);
+	failed = true;
+} else {
+	const rawBunfig = await Bun.file(BUNFIG_PATH).text();
+	const bunfigHash = new Bun.CryptoHasher("sha256").update(rawBunfig).digest("hex").slice(0, 12);
+	if (!matrixContent.includes(bunfigHash)) {
+		console.error(
+			`❌ Bunfig drift: expected bunfig-json hash \`${bunfigHash}\` in matrix; re-run bun run completions:matrix`,
+		);
+		failed = true;
+	}
+}
+
+// Check 7: All matrix rows share the same drift hash as the JSON
 const matrixDriftHashes = [...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm)].map(
 	(m) => m[1],
 );

@@ -1,13 +1,13 @@
 {
   "schema": "1.1.0",
   "bunVersion": "1.4.0",
-  "revision": "1.4.0-canary.1+452139e36",
-  "jsonHash": "41afd46dff69",
-  "sha256": "41afd46dff69e69c9a00973a413d4fafe325d7432f2b0e2f07044a510d0e18e9",
-  "sha512": "514081059903c0d47267854afdc7a28a51765dca3f739026b0bbdc3ea8e979793902bb279f95807167a779af9ee114ef2a3b20f5f724a6635c29ddfd70a955d3",
-  "blake2b256": "2edefa384eb1232272761c367bc177acc24b5fa8044c38d0f33692e093921f8a",
-  "hmac": "3ce8350036b221cff32912f74c4d67d3ada1b82ce322a422631010f1e17cb6a1",
-  "generatedAt": "2026-06-26T01:35:08.963Z",
+  "revision": "1.4.0-canary.1+44c0cc4a6",
+  "jsonHash": "d243a5228fc6",
+  "sha256": "d243a5228fc6687b4fd2aec20d2a0b7cfc3b9c7055dd70c56fae5c724975ad61",
+  "sha512": "b1ee9dbacb2910bdadf4985c9e02cb583ad63ceeda74e2519a1d4048b57ba6b78ad2b025c9d0c795b1b49c804a71ec93deea004a08ba5aa479c6d3e7b17386a6",
+  "blake2b256": "91acd2736b0f48bbba6efd08bb198b3b5940bbcf5992184d593ab5184745a765",
+  "hmac": "60b29fc6810c4ab0945d66d7cdd3e6ace7229c711fb851375dab1cc903f84e91",
+  "generatedAt": "2026-06-26T07:12:57.552Z",
   "sources": {
     "bare_bun": {
       "completes": [

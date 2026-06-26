@@ -593,12 +593,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -971,12 +970,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -1352,12 +1350,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -1672,12 +1669,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -1906,7 +1902,7 @@
     },
     "outdated": {
       "name": "outdated",
-      "description": "bun outdated v1.4.0-canary.1 (452139e36)",
+      "description": "bun outdated v1.4.0-canary.1 (44c0cc4a6)",
       "flags": [
         {
           "name": "config",
@@ -2075,12 +2071,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -2419,12 +2414,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -2735,12 +2729,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -2881,7 +2874,7 @@
     },
     "publish": {
       "name": "publish",
-      "description": "bun publish v1.4.0-canary.1 (452139e36)",
+      "description": "bun publish v1.4.0-canary.1 (44c0cc4a6)",
       "flags": [
         {
           "name": "config",
@@ -3049,12 +3042,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -3423,12 +3415,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -4072,12 +4063,11 @@
         },
         {
           "name": "backend",
-          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"clonefile\" (default), \"hardlink\", \"symlink\", \"copyfile\"",
+          "description": "Platform-specific optimizations for installing dependencies. Possible values: \"hardlink\" (default), \"symlink\", \"copyfile\"",
           "hasValue": true,
           "valueType": "string",
           "defaultValue": "clonefile",
           "choices": [
-            "clonefile",
             "hardlink",
             "symlink",
             "copyfile"
@@ -4745,6 +4735,145 @@
           "hasValue": false,
           "required": false,
           "multiple": false
+        },
+        {
+          "name": "experimental-stream-iter",
+          "description": "Enable the experimental stream/iter API (node:stream/iter, node:zlib/iter).",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "main-fields",
+          "description": "Main fields to lookup in package.json. Defaults to --target dependent",
+          "hasValue": true,
+          "valueType": "string",
+          "defaultValue": "--target",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "preserve-symlinks",
+          "description": "Preserve symlinks when resolving files",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "preserve-symlinks-main",
+          "description": "Preserve symlinks when resolving the main entry point",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "extension-order",
+          "description": "Defaults to: .tsx,.ts,.jsx,.js,.json",
+          "hasValue": true,
+          "valueType": "string",
+          "defaultValue": ":",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "tsconfig-override",
+          "description": "Specify custom tsconfig.json. Default $cwd/tsconfig.json",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "define",
+          "shortName": "d",
+          "description": "Substitute K:V while parsing, e.g. --define process.env.NODE_ENV:\"development\". Values are parsed as JSON.",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "drop",
+          "description": "Remove function calls, e.g. --drop=console removes all console.* calls.",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "feature",
+          "description": "Enable a feature flag for dead-code elimination, e.g. --feature=SUPER_SECRET",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "loader",
+          "shortName": "l",
+          "description": "Parse files with .ext:loader, e.g. --loader .js:jsx. Valid loaders: js, jsx, ts, tsx, json, toml, text, file, wasm, napi",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "no-macros",
+          "description": "Disable macros from being executed in the bundler, transpiler and runtime",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "jsx-factory",
+          "description": "Changes the function called when compiling JSX elements using the classic JSX runtime",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "jsx-fragment",
+          "description": "Changes the function called when compiling JSX fragments",
+          "hasValue": true,
+          "valueType": "string",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "jsx-import-source",
+          "description": "Declares the module specifier to be used for importing the jsx and jsxs factory functions. Default: \"react\"",
+          "hasValue": true,
+          "valueType": "string",
+          "defaultValue": "react",
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "jsx-runtime",
+          "description": "\"automatic\" (default) or \"classic\"",
+          "hasValue": true,
+          "valueType": "string",
+          "choices": [
+            "automatic",
+            "classic"
+          ],
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "jsx-side-effects",
+          "description": "Treat JSX elements as having side effects (disable pure annotations)",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
+        },
+        {
+          "name": "ignore-dce-annotations",
+          "description": "Ignore tree-shaking annotations such as @__PURE__",
+          "hasValue": false,
+          "required": false,
+          "multiple": false
         }
       ],
       "positionalArgs": [],
@@ -5290,13 +5419,6 @@
       "multiple": false
     },
     {
-      "name": "experimental-stream-iter",
-      "description": "Enable the experimental stream/iter API (node:stream/iter, node:zlib/iter).",
-      "hasValue": false,
-      "required": false,
-      "multiple": false
-    },
-    {
       "name": "expose-gc",
       "description": "Expose gc() on the global object. Has no effect on Bun.gc().",
       "hasValue": false,
@@ -5415,138 +5537,6 @@
       "description": "Cron period for cron execution mode",
       "hasValue": true,
       "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "main-fields",
-      "description": "Main fields to lookup in package.json. Defaults to --target dependent",
-      "hasValue": true,
-      "valueType": "string",
-      "defaultValue": "--target",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "preserve-symlinks",
-      "description": "Preserve symlinks when resolving files",
-      "hasValue": false,
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "preserve-symlinks-main",
-      "description": "Preserve symlinks when resolving the main entry point",
-      "hasValue": false,
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "extension-order",
-      "description": "Defaults to: .tsx,.ts,.jsx,.js,.json",
-      "hasValue": true,
-      "valueType": "string",
-      "defaultValue": ":",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "tsconfig-override",
-      "description": "Specify custom tsconfig.json. Default $cwd/tsconfig.json",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "define",
-      "shortName": "d",
-      "description": "Substitute K:V while parsing, e.g. --define process.env.NODE_ENV:\"development\". Values are parsed as JSON.",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "drop",
-      "description": "Remove function calls, e.g. --drop=console removes all console.* calls.",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "feature",
-      "description": "Enable a feature flag for dead-code elimination, e.g. --feature=SUPER_SECRET",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "loader",
-      "shortName": "l",
-      "description": "Parse files with .ext:loader, e.g. --loader .js:jsx. Valid loaders: js, jsx, ts, tsx, json, toml, text, file, wasm, napi",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "no-macros",
-      "description": "Disable macros from being executed in the bundler, transpiler and runtime",
-      "hasValue": false,
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "jsx-factory",
-      "description": "Changes the function called when compiling JSX elements using the classic JSX runtime",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "jsx-fragment",
-      "description": "Changes the function called when compiling JSX fragments",
-      "hasValue": true,
-      "valueType": "string",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "jsx-import-source",
-      "description": "Declares the module specifier to be used for importing the jsx and jsxs factory functions. Default: \"react\"",
-      "hasValue": true,
-      "valueType": "string",
-      "defaultValue": "react",
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "jsx-runtime",
-      "description": "\"automatic\" (default) or \"classic\"",
-      "hasValue": true,
-      "valueType": "string",
-      "choices": [
-        "automatic",
-        "classic"
-      ],
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "jsx-side-effects",
-      "description": "Treat JSX elements as having side effects (disable pure annotations)",
-      "hasValue": false,
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "ignore-dce-annotations",
-      "description": "Ignore tree-shaking annotations such as @__PURE__",
-      "hasValue": false,
       "required": false,
       "multiple": false
     },
