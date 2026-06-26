@@ -6,7 +6,7 @@ Guide for agents working on this repo. Stack: **Bun 1.3+**, **Effect 3.21**, **b
 
 ```bash
 bun install
-bun test                    # 20 tests
+bun test                    # 26 tests
 bun run ci                  # test + lint (src/tests/scripts only)
 bun run start               # HTTP server :3000
 bun run dev                 # watch mode
@@ -53,7 +53,7 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 
 | Method | Path | Handler |
 |--------|------|---------|
-| GET | `/health` | status, Bun.version, timestamp |
+| GET | `/health` | status, Bun.version, timestamp, DB checks |
 | GET | `/api/ratings/bt?sport=&season=` | current BT ratings |
 | GET | `/api/ratings/history` | snapshots with `snapshotAt` |
 | POST | `/api/ratings/refresh` | Massey → BT → SQLite |

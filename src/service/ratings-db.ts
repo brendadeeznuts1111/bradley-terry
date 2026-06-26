@@ -19,6 +19,10 @@ export interface RatingsDBApi {
     season?: string,
     limit?: number,
   ) => Effect.Effect<readonly BTRatingHistory[], DBError>;
+  readonly getStats: () => Effect.Effect<
+    { readonly lastUpdated: string | null; readonly teamCount: number },
+    DBError
+  >;
 }
 
 export class RatingsDB extends Context.Tag("RatingsDB")<RatingsDB, RatingsDBApi>() {}
@@ -214,6 +218,20 @@ export const RatingsDBLive = Layer.scoped(
         catch: (cause) => new DBError({ cause, operation: "getHistory" }),
       });
 
-    return { storeMassey, storeBT, getBT, getHistory } satisfies RatingsDBApi;
+    const getStats: RatingsDBApi["getStats"] = () =>
+      Effect.try({
+        try: () => {
+          const row = db
+            .query(`SELECT MAX(updated_at) AS last_updated, COUNT(*) AS team_count FROM bt_ratings`)
+            .get() as { last_updated: string | null; team_count: number } | null;
+          return {
+            lastUpdated: row?.last_updated ?? null,
+            teamCount: row?.team_count ?? 0,
+          };
+        },
+        catch: (cause) => new DBError({ cause, operation: "getStats" }),
+      });
+
+    return { storeMassey, storeBT, getBT, getHistory, getStats } satisfies RatingsDBApi;
   }),
 );

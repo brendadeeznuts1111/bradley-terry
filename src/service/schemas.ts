@@ -44,10 +44,20 @@ export const BTRequestSchema = Schema.Struct({
 
 export type BTRequest = Schema.Schema.Type<typeof BTRequestSchema>;
 
+export const HealthChecksSchema = Schema.Struct({
+  db: Schema.Literal("ok", "error"),
+  secretsBackend: Schema.String,
+  lastUpdated: Schema.optional(Schema.String),
+  teamCount: Schema.optional(Schema.Number.pipe(Schema.int(), Schema.nonNegative())),
+});
+
+export type HealthChecks = Schema.Schema.Type<typeof HealthChecksSchema>;
+
 export const HealthResponseSchema = Schema.Struct({
   status: Schema.Literal("ok"),
   version: Schema.String,
   timestamp: Schema.Number,
+  checks: HealthChecksSchema,
 });
 
 export type HealthResponse = Schema.Schema.Type<typeof HealthResponseSchema>;

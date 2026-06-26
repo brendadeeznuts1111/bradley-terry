@@ -26,6 +26,35 @@ describe("RatingsDB", () => {
     await disposeAppRuntime();
   });
 
+  it("reports stats after storing ratings", async () => {
+    const testDbPath = `/tmp/bt-stats-${Date.now()}.db`;
+    process.env.DB_PATH = testDbPath;
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const db = yield* RatingsDB;
+        yield* db.storeBT(
+          [
+            {
+              teamID: "A",
+              teamName: "Alpha",
+              rating: 1.2,
+              confidence: 0.9,
+              rank: 1,
+              sport: "test",
+              season: "2026",
+            },
+          ],
+          "test",
+          "2026",
+        );
+        const stats = yield* db.getStats();
+        expect(stats.teamCount).toBe(1);
+        expect(stats.lastUpdated).toBeDefined();
+      }).pipe(Effect.provide(AppLive)),
+    );
+  });
+
   it("stores and retrieves BT ratings", async () => {
     const testDbPath = `/tmp/bt-test-${Date.now()}.db`;
     process.env.DB_PATH = testDbPath;
@@ -81,11 +110,12 @@ describe("RatingsDB", () => {
 });
 
 describe("HTTP handlers", () => {
-  it("GET /health returns ok", async () => {
+  it("GET /health returns ok with checks", async () => {
     const res = await handleHealth();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("ok");
     expect(body.version).toBeDefined();
+    expect(body.checks.db).toBeDefined();
   });
 });

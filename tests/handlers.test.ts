@@ -1,15 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { handleGetRatings, handleRequest } from "../src/server/handlers.js";
+import { handleRequest } from "../src/server/handlers.js";
 import { disposeAppRuntime } from "../src/server/runtime.js";
 
+const sampleMassey = {
+  teams: [
+    { teamId: "A", teamName: "Alpha" },
+    { teamId: "B", teamName: "Beta" },
+  ],
+  results: [{ homeTeamId: "A", awayTeamId: "B", homeScore: 1, awayScore: 0 }],
+  sport: "e2e",
+  season: "2026",
+};
+
 describe("HTTP handleRequest", () => {
+  let originalFetch: typeof globalThis.fetch;
+
   beforeEach(async () => {
+    originalFetch = globalThis.fetch;
     process.env.DB_PATH = `/tmp/bt-handlers-${Date.now()}.db`;
     process.env.SECRETS_BACKEND = "env";
     await disposeAppRuntime();
   });
 
   afterEach(async () => {
+    globalThis.fetch = originalFetch;
     await disposeAppRuntime();
   });
 
@@ -20,17 +34,58 @@ describe("HTTP handleRequest", () => {
     expect(body.error).toBe("NotFound");
   });
 
-  it("GET /api/ratings/bt returns empty array when no data", async () => {
-    const res = await handleGetRatings("empty", "2026");
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual([]);
+  it("returns 405 for wrong method on known route", async () => {
+    const res = await handleRequest(
+      new Request("http://localhost/api/ratings/refresh", { method: "GET" }),
+    );
+    expect(res.status).toBe(405);
+    expect(res.headers.get("Allow")).toBe("POST");
   });
 
-  it("routes GET /health through handleRequest", async () => {
+  it("handles OPTIONS preflight", async () => {
+    const res = await handleRequest(
+      new Request("http://localhost/api/ratings/bt", { method: "OPTIONS" }),
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeDefined();
+  });
+
+  it("GET /health includes db checks", async () => {
     const res = await handleRequest(new Request("http://localhost/health"));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.status).toBe("ok");
+    expect(body.checks.db).toBe("ok");
+    expect(body.checks.secretsBackend).toBe("env");
+  });
+
+  it("GET /api/ratings/bt returns empty array when no data", async () => {
+    const res = await handleRequest(
+      new Request("http://localhost/api/ratings/bt?sport=empty&season=2026"),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it("POST refresh then GET ratings end-to-end", async () => {
+    globalThis.fetch = () =>
+      Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }));
+
+    const refresh = await handleRequest(
+      new Request("http://localhost/api/ratings/refresh", { method: "POST" }),
+    );
+    expect(refresh.status).toBe(202);
+
+    const ratings = await handleRequest(
+      new Request("http://localhost/api/ratings/bt?sport=e2e&season=2026"),
+    );
+    expect(ratings.status).toBe(200);
+    const body = await ratings.json();
+    expect(body).toHaveLength(2);
+    expect(body[0]?.rating).toBeGreaterThan(0);
+
+    const health = await handleRequest(new Request("http://localhost/health"));
+    const healthBody = await health.json();
+    expect(healthBody.checks.teamCount).toBe(2);
+    expect(healthBody.checks.lastUpdated).toBeDefined();
   });
 });

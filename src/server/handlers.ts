@@ -15,6 +15,12 @@ import {
   HealthResponseSchema,
   RefreshSummarySchema,
 } from "../service/schemas.js";
+import {
+  allowedMethods,
+  jsonHeaders,
+  methodNotAllowedResponse,
+  optionsResponse,
+} from "./middleware.js";
 import { getAppRuntime } from "./runtime.js";
 
 const encodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A, status = 200) =>
@@ -23,7 +29,7 @@ const encodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A, s
       (encoded) =>
         new Response(JSON.stringify(encoded), {
           status,
-          headers: { "Content-Type": "application/json" },
+          headers: jsonHeaders(),
         }),
     ),
   );
@@ -57,13 +63,30 @@ const runHandler = <A, E, R>(
 
 export const handleHealth = () =>
   runHandler(
-    Effect.sync(
-      (): HealthResponse => ({
-        status: "ok",
+    Effect.gen(function* () {
+      const db = yield* RatingsDB;
+      const stats = yield* db.getStats().pipe(
+        Effect.map((s) => ({
+          db: "ok" as const,
+          secretsBackend: process.env.SECRETS_BACKEND ?? "auto",
+          lastUpdated: s.lastUpdated ?? undefined,
+          teamCount: s.teamCount,
+        })),
+        Effect.catchAll(() =>
+          Effect.succeed({
+            db: "error" as const,
+            secretsBackend: process.env.SECRETS_BACKEND ?? "auto",
+          }),
+        ),
+      );
+
+      return {
+        status: "ok" as const,
         version: Bun.version,
         timestamp: Date.now(),
-      }),
-    ),
+        checks: stats,
+      } satisfies HealthResponse;
+    }),
     (body) => encodeJsonResponse(HealthResponseSchema, body),
   );
 
@@ -107,9 +130,18 @@ export const handleRefresh = () =>
   );
 
 export const handleRequest = (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return Promise.resolve(optionsResponse());
+  }
+
   const url = new URL(req.url);
   const sport = url.searchParams.get("sport") ?? undefined;
   const season = url.searchParams.get("season") ?? undefined;
+  const methods = allowedMethods(url.pathname);
+
+  if (methods && !methods.includes(req.method)) {
+    return Promise.resolve(methodNotAllowedResponse(methods));
+  }
 
   if (req.method === "GET" && url.pathname === "/health") {
     return handleHealth();

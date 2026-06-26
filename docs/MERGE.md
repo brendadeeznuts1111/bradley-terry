@@ -72,4 +72,4 @@ GitHub Actions may show billing-lock failures unrelated to code. Validate locall
 
 Mergeable on its own only if #2 is **not** required for your use case (simplified BT core). For production rankings, follow the order above.
 
-**20 tests** in `tests/` on branch `cursor/effect-architecture-docs-d821` (pre-rebase).
+**26 tests** in `tests/` on branch `cursor/effect-architecture-docs-d821` (pre-rebase).
