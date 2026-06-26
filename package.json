@@ -18,6 +18,7 @@
     "lint:fix": "bunx @biomejs/biome check --write src tests test scripts",
     "bench": "bun run src/bench/bt-fit.bench.ts",
     "completions": "bun run scripts/generate-cli-completions.ts",
+    "completions:audit": "bun run scripts/audit-cli-flags.ts",
     "completions:shell": "bun run scripts/generate-shell-completions.ts",
     "matrix": "bun run scripts/make-completion-matrix.ts",
     "check:completions": "bun run scripts/check-completion-drift.ts",
