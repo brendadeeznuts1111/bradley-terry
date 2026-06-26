@@ -140,7 +140,7 @@
           "description": "Report coverage in 'text' and/or 'lcov'. Defaults to 'text'.",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "'text'",
+          "defaultValue": "text",
           "required": false,
           "multiple": false
         },
@@ -149,7 +149,7 @@
           "description": "Directory for coverage files. Defaults to 'coverage'.",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "'coverage'",
+          "defaultValue": "coverage",
           "required": false,
           "multiple": false
         },
@@ -4524,7 +4524,7 @@
           "description": "Allow unresolved dynamic import()/require() specifiers matching these glob patterns. Use '' for opaque specifiers. Default is '*' (allow all).",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "'*'",
+          "defaultValue": "*",
           "required": false,
           "multiple": false
         },
@@ -4673,7 +4673,7 @@
           "description": "Inline environment variables into the bundle as process.env.${name}. Defaults to 'disable'. To inline environment variables matching a prefix, use my prefix like 'FOO_PUBLIC_*'.",
           "hasValue": true,
           "valueType": "string",
-          "defaultValue": "'disable'",
+          "defaultValue": "disable",
           "required": false,
           "multiple": false
         },

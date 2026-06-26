@@ -173,6 +173,23 @@ function createTempPackageDir(): DisposableTempDir {
 }
 
 /**
+ * Strip matching surrounding quotes from a default value extracted from
+ * help text or documentation. Helps avoid `[default: 'coverage']` style
+ * output in generated completions when the quotes are part of the prose
+ * rather than the value itself.
+ */
+function cleanDefaultValue(value: string | undefined): string | undefined {
+	if (!value) return value;
+	if (
+		(value.startsWith('"') && value.endsWith('"')) ||
+		(value.startsWith("'") && value.endsWith("'"))
+	) {
+		return value.slice(1, -1);
+	}
+	return value;
+}
+
+/**
  * Parse flag line from help output.
  * Tries strict patterns first, then falls back to a flexible parser
  * that tolerates spacing/separator variations.
@@ -321,7 +338,7 @@ function buildFlagInfo(
 		/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/,
 	);
 	if (defaultMatch) {
-		defaultValue = defaultMatch[1];
+		defaultValue = cleanDefaultValue(defaultMatch[1]);
 	}
 
 	// Look for choices/enums
@@ -1174,7 +1191,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
 			if (defaults[flag.name]) {
-				flag.defaultValue = defaults[flag.name];
+				flag.defaultValue = cleanDefaultValue(defaults[flag.name]);
 			}
 		}
 	}
@@ -1516,6 +1533,24 @@ interface CliArgs {
 	outputPath: string;
 }
 
+/**
+ * Strip matching surrounding quotes from all default values across commands
+ * and global flags.
+ */
+function cleanAllDefaults(
+	commands: Record<string, CommandInfo>,
+	globalFlags: FlagInfo[],
+): void {
+	for (const command of Object.values(commands)) {
+		for (const flag of command.flags) {
+			flag.defaultValue = cleanDefaultValue(flag.defaultValue);
+		}
+	}
+	for (const flag of globalFlags) {
+		flag.defaultValue = cleanDefaultValue(flag.defaultValue);
+	}
+}
+
 function parseCliArgs(argv: string[]): CliArgs {
 	const args: CliArgs = {
 		dryRun: false,
@@ -1650,6 +1685,9 @@ function generateCompletions(cliArgs: CliArgs): void {
 	// Add documented flags that don't appear in --help output.
 	// These are flags documented on bun.com/docs but not yet in the CLI --help.
 	addDocumentedFlags(completionData.commands);
+
+	// Strip any surrounding quotes from default values that leaked through parsers.
+	cleanAllDefaults(completionData.commands, globalFlags);
 
 	// Write the JSON file (unless --dry-run)
 	if (!cliArgs.dryRun) {

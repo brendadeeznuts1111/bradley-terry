@@ -1,6 +1,14 @@
 # Bun CLI fish completions (generated from completions/bun-cli.json)
 # Source this file or place it in ~/.config/fish/completions/bun.fish
 
+# Helper for test file pattern completion (bun test <patterns>)
+function __bun_complete_test_files
+	set -l candidates (find . -maxdepth 3 \( 		-name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test.js' -o -name '*.test.jsx' 		-o -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.jsx' 	\) 2>/dev/null | sed 's|^\./||')
+	for c in $candidates
+		echo $c
+	end
+end
+
 complete -c bun -f
 
 complete -c bun -n '__fish_use_subcommand' -a 'run' -d 'Flags:'
@@ -143,7 +151,8 @@ complete -c bun -n '__fish_seen_subcommand_from test' -l parallel -r -d 'Run tes
 complete -c bun -n '__fish_seen_subcommand_from test' -l parallel-delay -r -d 'Milliseconds the first --parallel worker must be busy before spawning the rest. 0 spawns all immediately. Default 5.'
 complete -c bun -n '__fish_seen_subcommand_from test' -l test-worker -d '(internal) Run as a --parallel worker, receiving files over IPC.'
 complete -c bun -n '__fish_seen_subcommand_from test' -l shard -r -d 'Run a subset of test files, e.g. '\''--shard=1/3'\'' runs the first of three shards. Useful for splitting tests across multiple CI jobs.'
-complete -c bun -n '__fish_seen_subcommand_from test' -a '(bun getcompletes files)' -d 'patterns'
+complete -c bun -n '__fish_seen_subcommand_from test' -a '(__bun_complete_test_files)' -d 'patterns'
+complete -c bun -n '__fish_seen_subcommand_from test' -a '(bun getcompletes files)' -d 'File'
 complete -c bun -n '__fish_seen_subcommand_from x' -l bun -d 'Force the command to run with Bun instead of Node.js'
 complete -c bun -n '__fish_seen_subcommand_from x' -s p -l package -d '<package>    Specify package to install when binary name differs from package name'
 complete -c bun -n '__fish_seen_subcommand_from x' -l no-install -d 'Skip installation if package is not already installed'

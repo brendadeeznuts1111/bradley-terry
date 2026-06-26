@@ -268,6 +268,14 @@ describe("hash generation", () => {
 
 		expect(a).not.toBe(b);
 	});
+
+	test("non-crypto hash variants return consistent results", () => {
+		const input = "bradley-terry";
+		expect(Bun.hash.xxHash3(input)).toBe(Bun.hash.xxHash3(input));
+		expect(Bun.hash.wyhash(input)).toBe(Bun.hash.wyhash(input));
+		expect(typeof Bun.hash.xxHash3(input)).toBe("bigint");
+		expect(typeof Bun.hash.wyhash(input)).toBe("bigint");
+	});
 });
 
 // ============================================
@@ -419,6 +427,57 @@ describe("SQLite history", () => {
 		expect(id1).toMatch(uuidv7Re);
 		expect(id2).toMatch(uuidv7Re);
 	});
+
+	test("serialize and deserialize snapshots a database", () => {
+		using db = new Database(":memory:");
+		db.run("CREATE TABLE items (name TEXT, count INTEGER)");
+		db.run("INSERT INTO items VALUES ('alpha', 1), ('beta', 2)");
+
+		const snapshot = db.serialize();
+		expect(snapshot).toBeInstanceOf(Uint8Array);
+		expect(snapshot.length).toBeGreaterThan(0);
+
+		const clone = Database.deserialize(snapshot);
+		const rows = clone.query("SELECT * FROM items ORDER BY name").all();
+		expect(rows).toEqual([
+			{ name: "alpha", count: 1 },
+			{ name: "beta", count: 2 },
+		]);
+	});
+
+	test("transaction commits on success and rolls back on error", () => {
+		const db = new Database(":memory:");
+		try {
+			db.run("CREATE TABLE counters (k TEXT PRIMARY KEY, v INTEGER)");
+
+			const insertMany = db.transaction((items: [string, number][]) => {
+				for (const [k, v] of items)
+					db.run("INSERT INTO counters VALUES (?, ?)", [k, v]);
+				return items.length;
+			});
+
+			insertMany([
+				["a", 1],
+				["b", 2],
+			]);
+			expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
+				c: 2,
+			});
+
+			expect(() =>
+				insertMany([
+					["c", 3],
+					["a", 4],
+				]),
+			).toThrow();
+			// Transaction rolled back — no rows added
+			expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
+				c: 2,
+			});
+		} finally {
+			db.close();
+		}
+	});
 });
 
 // ============================================
@@ -434,6 +493,19 @@ describe("Bun native API verification", () => {
 			new Bun.CryptoHasher("sha256").update(input).digest("hex"),
 		);
 		expect(digest).toMatch(/^[0-9a-f]{64}$/);
+	});
+
+	test("CryptoHasher with HMAC key produces keyed digest", () => {
+		const key = "secret-key";
+		const a = new Bun.CryptoHasher("sha256", key).update("hello").digest("hex");
+		const b = new Bun.CryptoHasher("sha256", key).update("hello").digest("hex");
+		const c = new Bun.CryptoHasher("sha256", "other-key")
+			.update("hello")
+			.digest("hex");
+
+		expect(a).toBe(b); // same key, same input → same digest
+		expect(a).not.toBe(c); // different key → different digest
+		expect(a).toMatch(/^[0-9a-f]{64}$/);
 	});
 
 	test("deepEquals detects structural equality", () => {
@@ -581,5 +653,23 @@ describe("Bun native API verification", () => {
 
 	test("openInEditor is a function that accepts a path", () => {
 		expect(typeof Bun.openInEditor).toBe("function");
+	});
+
+	test("Bun.password hashSync and verifySync roundtrip", () => {
+		const password = "s3cure-p@ss!";
+		const hash = Bun.password.hashSync(password);
+		expect(hash).toMatch(/^\$/); // PHC or MCF format
+		expect(Bun.password.verifySync(password, hash)).toBe(true);
+		expect(Bun.password.verifySync("wrong", hash)).toBe(false);
+	});
+
+	test("mock creates a function with call tracking", () => {
+		const { mock } = require("bun:test");
+		const fn = mock((x: number) => x * 2);
+		expect(fn(3)).toBe(6);
+		expect(fn(5)).toBe(10);
+		expect(fn.mock.calls).toHaveLength(2);
+		expect(fn.mock.calls[0]).toEqual([3]);
+		expect(fn.mock.calls[1]).toEqual([5]);
 	});
 });

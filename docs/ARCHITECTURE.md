@@ -162,7 +162,12 @@ leverages Bun's performance-optimized primitives.
 ### Hashing & cryptography
 | API | Usage |
 |-----|-------|
-| `Bun.CryptoHasher("sha256"/"sha512")` | JSON drift hashing, content integrity |
+| `Bun.CryptoHasher("sha256"/"sha512", key?)` | JSON drift hashing, content integrity, HMAC keyed hashing |
+| `Bun.hash(content)` | Fast content-addressable hashing (wyhash, default) |
+| `Bun.hash.xxHash3(content)` | Fast non-crypto 64-bit hash |
+| `Bun.hash.wyhash(content)` | Wyhash 64-bit hash |
+| `Bun.password.hash(password)` / `hashSync(password)` | Argon2id/bcrypt password hashing |
+| `Bun.password.verify(password, hash)` / `verifySync(password, hash)` | Password verification |
 
 
 ### Compression
@@ -241,6 +246,16 @@ leverages Bun's performance-optimized primitives.
 | `serialize(value)` | Structured clone into SharedArrayBuffer |
 | `deserialize(buf)` | Restore from SharedArrayBuffer |
 | `estimateShallowMemoryUsageOf(obj)` | Best-effort memory estimate in bytes |
+
+### SQLite (bun:sqlite)
+| API | Usage |
+|-----|-------|
+| `new Database(path)` / `Database(":memory:")` | Open/create SQLite databases |
+| `db.run(sql, params?)` | Execute statements |
+| `db.query(sql)` | Create prepared statement with .all()/.get()/.values()/.iterate() |
+| `db.serialize()` / `Database.deserialize(buf)` | Snapshot database to/from Uint8Array |
+| `db.transaction(fn)` | Higher-order transaction with auto BEGIN/COMMIT/ROLLBACK |
+| `using db = new Database(...)` | Auto-close via Disposable |
 
 ### Versioning
 | API | Usage |

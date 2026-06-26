@@ -125,4 +125,12 @@ describe("Shell completion generator", () => {
 		expect(fish).toContain("-l timeout -r -d");
 		expect(fish).toContain("-l outdir -r -d");
 	});
+
+	test("fish completions use a test-file helper for bun test patterns", async () => {
+		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
+		expect(fish).toContain("function __bun_complete_test_files");
+		expect(fish).toContain(
+			"__fish_seen_subcommand_from test' -a '(__bun_complete_test_files)' -d 'patterns'",
+		);
+	});
 });

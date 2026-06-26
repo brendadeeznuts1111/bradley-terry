@@ -72,8 +72,9 @@ function fishDynamicCompletion(type: string): string | undefined {
 			return "(bun getcompletes binaries)";
 		case "file":
 		case "javascript_files":
-		case "test_files":
 			return "(bun getcompletes files)";
+		case "test_files":
+			return "(__bun_complete_test_files)";
 		case "directory":
 			return "(__fish_complete_directories)";
 		case "path":
@@ -183,6 +184,17 @@ commands=(
 function generateFish(): string {
 	let script = `# Bun CLI fish completions (generated from completions/bun-cli.json)
 # Source this file or place it in ~/.config/fish/completions/bun.fish
+
+# Helper for test file pattern completion (bun test <patterns>)
+function __bun_complete_test_files
+	set -l candidates (find . -maxdepth 3 \\( \
+		-name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test.js' -o -name '*.test.jsx' \
+		-o -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.jsx' \
+	\\) 2>/dev/null | sed 's|^\\./||')
+	for c in $candidates
+		echo $c
+	end
+end
 
 complete -c bun -f
 

@@ -219,6 +219,26 @@ describe("cli-completions generator", () => {
 		);
 	});
 
+	it("default values are stored without surrounding quotes", () => {
+		const scriptCwd = createTempPackageDir();
+		tempDirs.push(scriptCwd);
+		const outputDir = createTempPackageDir();
+		tempDirs.push(outputDir);
+
+		const data = runScript(scriptCwd, outputDir);
+
+		const testFlags = data.commands.test.flags as Array<{
+			name: string;
+			defaultValue?: string;
+		}>;
+		const coverageDir = testFlags.find((f) => f.name === "coverage-dir");
+		const coverageReporter = testFlags.find(
+			(f) => f.name === "coverage-reporter",
+		);
+		expect(coverageDir?.defaultValue).toBe("coverage");
+		expect(coverageReporter?.defaultValue).toBe("text");
+	});
+
 	// Cleanup all temp dirs after all tests
 	afterAll(() => {
 		for (const dir of tempDirs) {
