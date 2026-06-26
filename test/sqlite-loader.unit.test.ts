@@ -4,10 +4,10 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { type EntityId } from "../src/schema";
 import { BradleyTerry, BradleyTerryLive } from "../src/bradley-terry";
 import { MatchAdapter } from "../src/match-adapter";
 import { SqliteLoader } from "../src/repository/sqlite-loader";
+import type { EntityId } from "../src/schema";
 import {
 	cleanupWagerFixtures,
 	createWagerFixtureDb,
