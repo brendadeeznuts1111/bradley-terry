@@ -1,7 +1,7 @@
 {
   "name": "bradley-terry",
   "description": "Bradley-Terry model for ranking entities based on pairwise comparisons",
-  "version": "0.3.32",
+  "version": "0.3.33",
   "type": "module",
   "packageManager": "bun@1.4.0",
   "scripts": {

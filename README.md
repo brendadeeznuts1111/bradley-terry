@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-141%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-154%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![HTTP](https://img.shields.io/badge/HTTP-Service-blue)](#http-service)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
@@ -208,7 +208,7 @@ bun test
 | `test/property/graph-connectivity.test.ts` | 2 | Connected-component reporting |
 | `test/property/mm-invariants.test.ts` | 2 | Win-probability symmetry and monotonicity |
 | `test/ratings-config.unit.test.ts` | 2 | Ratings config |
-| `tests/*.test.ts` | 27 | HTTP service, secrets TTL, refresh integration |
+| `tests/*.test.ts` | 40 | HTTP service, secrets, logging, rate limits, refresh |
 
 ## Updating snapshots
 
