@@ -503,7 +503,7 @@ function getHelpOutput(command: string[], cwd: string): string {
 				console.warn(`⚠️  Empty help output for "${label}", retrying...`);
 				continue;
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			const msg = error instanceof Error ? error.message : String(error);
 			if (attempt === 1) {
 				console.warn(
@@ -564,7 +564,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 			);
 			return { available: false };
 		}
-	} catch (error) {
+	} catch (error: unknown) {
 		console.warn(
 			"⚠️  `bun getcompletes` could not be spawned — marking as unavailable:",
 			error,
@@ -604,9 +604,17 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	}
 
 	// Only include subcommands that actually worked
-	const commands: Record<string, string> = {};
+	const out: { scripts: string; binaries: string; packages: string; files: string } = {
+		scripts: "",
+		binaries: "",
+		packages: "",
+		files: "",
+	};
 	for (const key of working) {
-		commands[key] = key;
+		if (key === "scripts") out.scripts = key;
+		else if (key === "binaries") out.binaries = key;
+		else if (key === "packages") out.packages = key;
+		else if (key === "files") out.files = key;
 	}
 
 	console.log(
@@ -614,7 +622,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	);
 	return {
 		available: true,
-		commands: commands as unknown as { scripts: string; binaries: string; packages: string; files: string },
+		commands: out,
 	};
 }
 
@@ -1176,7 +1184,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		// publish doesn't have --save in docs
 		documentedDefaults[cmd] =
 			cmd === "publish"
-				? { ...pmDefaults, save: undefined as unknown as string }
+				? Object.fromEntries(
+					Object.entries(pmDefaults).filter(([k]) => k !== "save"),
+				)
 				: { ...pmDefaults };
 	}
 	// Remove undefined entries
@@ -1778,7 +1788,7 @@ if (import.meta.main) {
 	const cliArgs = parseCliArgs(process.argv.slice(2));
 	try {
 		generateCompletions(cliArgs);
-	} catch (error) {
+	} catch (error: unknown) {
 		console.error("Fatal error:", error);
 		process.exit(1);
 	}

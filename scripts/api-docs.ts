@@ -20,6 +20,7 @@ import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
+import * as ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
@@ -63,6 +64,111 @@ const RUNNABLE_LANGUAGES = new Set([
 	"tsx",
 	"jsx",
 ]);
+
+interface TypeSource {
+	file: string;
+	keywords: string[];
+}
+
+const API_DOC_TYPE_SOURCES: Record<string, TypeSource[]> = {
+	"runtime/http/server": [
+		{ file: "serve.d.ts", keywords: ["serve", "Serve", "Server", "WebSocket"] },
+	],
+	"runtime/file-io": [{ file: "bun.d.ts", keywords: ["file", "BunFile", "fileURLToPath"] }],
+	"runtime/glob": [{ file: "bun.d.ts", keywords: ["Glob"] }],
+	"runtime/child-process": [
+		{ file: "bun.d.ts", keywords: ["spawn", "Shell", "Subprocess", "SpawnOptions", "spawnSync"] },
+	],
+	"runtime/sqlite": [
+		{ file: "sqlite.d.ts", keywords: ["Database", "Statement", "SQLite"] },
+	],
+	"runtime/hashing": [
+		{ file: "bun.d.ts", keywords: ["CryptoHasher", "hash", "password", "bcrypt", "argon2"] },
+	],
+	"runtime/transpiler": [{ file: "bun.d.ts", keywords: ["Transpiler"] }],
+	"runtime/color": [{ file: "bun.d.ts", keywords: ["Color", "color", "gradient"] }],
+	"runtime/semver": [{ file: "bun.d.ts", keywords: ["Semver", "semver", "SemVer"] }],
+	"runtime/http/websockets": [
+		{ file: "serve.d.ts", keywords: ["WebSocket", "ServerWebSocket"] },
+	],
+	"runtime/networking/udp": [{ file: "bun.d.ts", keywords: ["udpSocket", "UDP"] }],
+	"runtime/networking/dns": [{ file: "bun.d.ts", keywords: ["dns"] }],
+};
+
+function declarationName(node: ts.Node): string | undefined {
+	if (
+		ts.isInterfaceDeclaration(node) ||
+		ts.isTypeAliasDeclaration(node) ||
+		ts.isFunctionDeclaration(node) ||
+		ts.isClassDeclaration(node) ||
+		ts.isModuleDeclaration(node) ||
+		ts.isEnumDeclaration(node)
+	) {
+		return node.name?.text;
+	}
+	if (ts.isVariableStatement(node)) {
+		const decl = node.declarationList.declarations[0];
+		if (decl?.name && ts.isIdentifier(decl.name)) return decl.name.text;
+	}
+	return undefined;
+}
+
+function extractTypeSignatures(
+	filePath: string,
+	keywords: string[],
+	maxChars = 12000,
+): string {
+	const source = ts.createSourceFile(
+		filePath,
+		readFileSync(filePath, "utf8"),
+		ts.ScriptTarget.Latest,
+		true,
+	);
+	const lowerKeywords = keywords.map((k) => k.toLowerCase());
+	const matches: string[] = [];
+	let totalLength = 0;
+
+	function visit(node: ts.Node) {
+		const name = declarationName(node);
+		if (name) {
+			const lowerName = name.toLowerCase();
+			const isMatch = lowerKeywords.some((k) => lowerName.includes(k));
+			if (isMatch) {
+				const text = node.getFullText(source).trim();
+				if (totalLength + text.length + 2 > maxChars) {
+					if (totalLength === 0) matches.push(text.slice(0, maxChars));
+					return;
+				}
+				matches.push(text);
+				totalLength += text.length + 2;
+			}
+		}
+		ts.forEachChild(node, visit);
+	}
+
+	visit(source);
+	return matches.join("\n\n");
+}
+
+function getTypeSignaturesForDoc(
+	bunTypesRoot: string,
+	slug: string,
+): string {
+	const sources = API_DOC_TYPE_SOURCES[slug];
+	if (!sources || sources.length === 0) return "";
+
+	const parts: string[] = [];
+	for (const { file, keywords } of sources) {
+		const filePath = join(bunTypesRoot, file);
+		try {
+			const sigs = extractTypeSignatures(filePath, keywords);
+			if (sigs) parts.push(`// ${file}\n\n${sigs}`);
+		} catch (err: unknown) {
+			console.warn(`Failed to extract types from ${filePath}: ${err}`);
+		}
+	}
+	return parts.join("\n\n");
+}
 
 function parseArgs(): { mode: "single"; args: Args } | { mode: "all" } {
 	let slug: string | undefined;
@@ -269,6 +375,7 @@ function generateArchSection(
 	bunTypesSlug: string,
 	content: string,
 	codeBlocks: CodeBlock[],
+	typeSignatures = "",
 ): string {
 	const title = displayTitle || extractTitle(content, registryName);
 	const slug = slugify(registryName);
@@ -278,6 +385,10 @@ function generateArchSection(
 			return `| Example ${index + 1} | \`${firstLine.slice(0, 60)}\` |`;
 		})
 		.join("\n");
+
+	const typeSection = typeSignatures
+		? `\n#### Type signatures from bun-types\n\n\`\`\`typescript\n${typeSignatures}\n\`\`\`\n`
+		: "";
 
 	return `
 
@@ -294,6 +405,7 @@ ${rows}
 \`\`\`typescript
 ${codeBlocks[0]?.code ?? "// No code examples found"}
 \`\`\`
+${typeSection}
 <!-- /api-docs:${slug} -->
 `;
 }
@@ -315,6 +427,7 @@ async function loadDocContent(
 async function processDoc(
 	{ slug, name }: ApiDoc,
 	docsRoot: string,
+	bunTypesRoot: string,
 ): Promise<number> {
 	const url = docUrl(slug);
 	console.log(`\nReading bun-types/${slug}.mdx...`);
@@ -344,6 +457,11 @@ async function processDoc(
 	writeFileSync(testPath, generateTestFile(name, codeBlocks));
 	console.log(`Wrote ${testPath}`);
 
+	const typeSignatures = getTypeSignaturesForDoc(bunTypesRoot, slug);
+	if (typeSignatures) {
+		console.log(`Augmented with type signatures for ${slug}`);
+	}
+
 	const archPath = "docs/ARCHITECTURE.md";
 	let arch = readFileSync(archPath, "utf8");
 	const displayTitle =
@@ -356,6 +474,7 @@ async function processDoc(
 		slug,
 		loaded.body,
 		codeBlocks,
+		typeSignatures,
 	);
 	const markerPattern = new RegExp(
 		`\\n<!-- api-docs:${fileSlug} -->[\\s\\S]*?<!-- /api-docs:${fileSlug} -->`,
@@ -375,14 +494,16 @@ async function processDoc(
 
 async function main(): Promise<number> {
 	const { root: docsRoot, version } = await resolveDocsRoot();
+	const bunTypesRoot = dirname(docsRoot.replace(/\/$/, ""));
 	console.log(`Using bun-types ${version} docs at ${docsRoot}`);
+	console.log(`Type definitions at ${bunTypesRoot}`);
 
 	const parsed = parseArgs();
 	const docs = parsed.mode === "all" ? API_DOC_REGISTRY : [parsed.args];
 
 	let exitCode = 0;
 	for (const doc of docs) {
-		const result = await processDoc(doc, docsRoot);
+		const result = await processDoc(doc, docsRoot, bunTypesRoot);
 		if (result !== 0) exitCode = result;
 	}
 

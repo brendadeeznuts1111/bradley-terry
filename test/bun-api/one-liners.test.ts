@@ -29,8 +29,39 @@ function parseKeyValue(stdout: string): Map<string, string> {
 	return map;
 }
 
+function validateOneLiners(raw: unknown): OneLiner[] {
+	if (!Array.isArray(raw)) throw new Error("one-liners.json must be an array");
+	return raw.map((entry, i) => {
+		if (!entry || typeof entry !== "object")
+			throw new Error(`one-liner[${i}] not an object`);
+		const e = entry as Record<string, unknown>;
+		if (typeof e.name !== "string")
+			throw new Error(`one-liner[${i}].name missing`);
+		if (typeof e.command !== "string")
+			throw new Error(`one-liner[${i}].command missing`);
+		if (!e.expect || typeof e.expect !== "object")
+			throw new Error(`one-liner[${i}].expect missing`);
+		const expect: Record<string, string> = {};
+		for (const [k, v] of Object.entries(e.expect as Record<string, unknown>)) {
+			if (typeof v !== "string")
+				throw new Error(`one-liner[${i}].expect.${k} not a string`);
+			expect[k] = v;
+		}
+		return {
+			name: e.name as string,
+			command: e.command as string,
+			expect,
+			...(typeof e.spawnFlags !== "undefined"
+				? { spawnFlags: e.spawnFlags as string[] }
+				: {}),
+			...(typeof e.stdin !== "undefined" ? { stdin: e.stdin as string } : {}),
+		};
+	});
+}
+
 describe("One-liner cookbook", () => {
-	for (const entry of oneLiners as unknown as OneLiner[]) {
+	const entries = validateOneLiners(oneLiners);
+	for (const entry of entries) {
 		test(entry.name, async () => {
 			const flags = entry.spawnFlags ?? [];
 			const proc = Bun.spawn(["bun", ...flags, "-e", entry.command], {
