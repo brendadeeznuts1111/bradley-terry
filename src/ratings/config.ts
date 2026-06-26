@@ -19,11 +19,20 @@
 import { Context, Effect, Layer } from "effect";
 import { SecretClient } from "../secrets";
 
+export const NAMESPACE = {
+	ratings: {
+		massey: "com.bradley-terry.ratings.massey",
+		db: "com.bradley-terry.ratings.db",
+	},
+} as const;
+
 export interface RatingsConfigShape {
 	readonly masseyUrl: string;
 	readonly apiKey: string;
 	readonly dbPath: string;
+	readonly dbPassphrase: string;
 	readonly interval: number;
+	readonly port: number;
 }
 
 export class RatingsConfig extends Context.Tag("RatingsConfig")<
@@ -35,16 +44,19 @@ export const RatingsConfigLive = Layer.effect(
 	RatingsConfig,
 	Effect.gen(function* () {
 		const secrets = yield* SecretClient;
-		const apiKey = yield* secrets.get(
-			"bradley-ratings.messy-client",
-			"api-key",
+		const apiKey = yield* secrets.get(NAMESPACE.ratings.massey, "api-key");
+		const dbPath = yield* secrets.get(NAMESPACE.ratings.db, "sqlite-path");
+		const dbPassphrase = yield* secrets.get(
+			NAMESPACE.ratings.db,
+			"encryption-passphrase",
 		);
-		const dbPath = yield* secrets.get("bradley-ratings.db", "sqlite-path");
 		return {
-			masseyUrl: "https://api.masseyratings.com",
+			masseyUrl: "https://masseyratings.com/api",
 			apiKey,
 			dbPath,
-			interval: 3600000,
+			dbPassphrase,
+			interval: 3600000, // 1 hour
+			port: 3000,
 		};
 	}),
 );

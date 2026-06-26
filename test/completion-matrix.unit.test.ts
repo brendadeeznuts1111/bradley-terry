@@ -1,6 +1,6 @@
 import { deserialize, estimateShallowMemoryUsageOf, serialize } from "bun:jsc";
 import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setSystemTime, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
@@ -14,9 +14,13 @@ import {
 	makeTable,
 } from "../src/completions/completion-matrix";
 import {
+	deleteSecret,
 	EnvSecretsLive,
+	getSecret,
+	InMemorySecretStoreLive,
 	SecretClient,
 	SecretError,
+	setSecret,
 	VaultSecretsLive,
 } from "../src/secrets";
 
@@ -721,5 +725,75 @@ describe("Bun native API verification", () => {
 			),
 		);
 		expect(result).toBeInstanceOf(SecretError);
+	});
+
+	test("setSystemTime mocks the system clock", () => {
+		setSystemTime(new Date("1999-01-01T12:00:00Z"));
+		expect(new Date().getFullYear()).toBe(1999);
+		setSystemTime(); // reset
+		expect(new Date().getFullYear()).toBeGreaterThan(1999);
+	});
+
+	test("secret TTL expires after the specified duration", async () => {
+		setSystemTime(new Date("2024-01-01T00:00:00Z"));
+
+		await Effect.runPromise(
+			setSecret("test", "temp-key", "s3cret", 3600).pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+
+		// Still valid within TTL
+		const fresh = await Effect.runPromise(
+			getSecret("test", "temp-key").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+		expect(fresh).toBe("s3cret");
+
+		// Fast-forward 2 hours
+		setSystemTime(new Date("2024-01-01T02:00:00Z"));
+		const expired = await Effect.runPromise(
+			getSecret("test", "temp-key").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+		expect(expired).toBeNull();
+
+		setSystemTime(); // reset
+	});
+
+	test("setSecret without TTL never expires", async () => {
+		await Effect.runPromise(
+			setSecret("perm", "key", "forever").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+
+		const value = await Effect.runPromise(
+			getSecret("perm", "key").pipe(Effect.provide(InMemorySecretStoreLive)),
+		);
+		expect(value).toBe("forever");
+	});
+
+	test("deleteSecret removes a secret", async () => {
+		await Effect.runPromise(
+			setSecret("tmp", "to-delete", "x").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+
+		await Effect.runPromise(
+			deleteSecret("tmp", "to-delete").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+
+		const result = await Effect.runPromise(
+			getSecret("tmp", "to-delete").pipe(
+				Effect.provide(InMemorySecretStoreLive),
+			),
+		);
+		expect(result).toBeNull();
 	});
 });
