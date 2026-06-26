@@ -59,7 +59,7 @@ Three ingestion paths — do not conflate the SQLite files:
 | Path | Source | Module chain |
 |------|--------|--------------|
 | Massey CSV | Local `.csv` file | `data/massey-loader.ts` → `MatchRow` |
-| Historical matches | External `wager.db` / Buckeye DB (`matches` table) | `repository/sqlite-loader.ts` → `match-adapter.ts` → `Match` |
+| Historical matches | External `wager.db` / Buckeye DB (`matches` table) | `SqliteLoader.initSchema` / `getMatches` / `countMatches` → `match-adapter.ts` → `Match` |
 | HTTP service | Massey JSON upstream | `MasseyClient` → `RatingsDB` (`massey_raw`, `bt_ratings`) |
 
 Cascade Mover integration lives in an external repository; consume via `BradleyTerry.predictWinProbability` and `FitResult.ratings`.

@@ -144,6 +144,50 @@ describe("SqliteLoader", () => {
 			'Table "matches" not found',
 		);
 	});
+
+	it("initSchema creates the matches table on a fresh database", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "bt-sqlite-init-"));
+		tempDirs.push(dir);
+		const dbPath = join(dir, "fresh.db");
+
+		await Effect.runPromise(SqliteLoader.initSchema(dbPath));
+		const count = await Effect.runPromise(SqliteLoader.countMatches(dbPath));
+		expect(count).toBe(0);
+	});
+
+	it("countMatches respects filters and limit cap", async () => {
+		const dbPath = createFixtureDb([
+			{
+				home_team: "a",
+				away_team: "b",
+				winner_idx: 0,
+				loser_idx: 1,
+				date: "2026-01-01T00:00:00.000Z",
+				sport: "fbs",
+			},
+			{
+				home_team: "c",
+				away_team: "d",
+				winner_idx: 0,
+				loser_idx: 1,
+				date: "2026-02-01T00:00:00.000Z",
+				sport: "fbs",
+			},
+			{
+				home_team: "e",
+				away_team: "f",
+				winner_idx: 0,
+				loser_idx: 1,
+				date: "2026-02-01T00:00:00.000Z",
+				sport: "nba",
+			},
+		]);
+
+		expect(await Effect.runPromise(SqliteLoader.countMatches(dbPath, { sport: "fbs" }))).toBe(2);
+		expect(
+			await Effect.runPromise(SqliteLoader.countMatches(dbPath, { sport: "fbs", limit: 1 })),
+		).toBe(1);
+	});
 });
 
 describe("SqliteLoader → MatchAdapter → BradleyTerry", () => {

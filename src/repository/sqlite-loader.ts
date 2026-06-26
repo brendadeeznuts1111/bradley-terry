@@ -54,7 +54,11 @@ type RawMatchRow = {
 const SELECT_COLUMNS =
 	"match_id, home_team, away_team, winner_idx, loser_idx, date, sport, league, y";
 
-function buildQuery(opts?: GetMatchesOptions): { sql: string; params: unknown[] } {
+function buildQuery(opts?: GetMatchesOptions): {
+	sql: string;
+	countSql: string;
+	params: unknown[];
+} {
 	const conditions: string[] = [];
 	const params: unknown[] = [];
 
@@ -73,6 +77,7 @@ function buildQuery(opts?: GetMatchesOptions): { sql: string; params: unknown[] 
 
 	const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 	let sql = `SELECT ${SELECT_COLUMNS} FROM ${MATCHES_TABLE} ${where} ORDER BY date ASC`;
+	const countSql = `SELECT COUNT(*) AS count FROM ${MATCHES_TABLE} ${where}`;
 
 	if (opts?.limit != null) {
 		const limit = Math.max(0, Math.floor(opts.limit));
@@ -80,7 +85,7 @@ function buildQuery(opts?: GetMatchesOptions): { sql: string; params: unknown[] 
 		params.push(limit);
 	}
 
-	return { sql, params };
+	return { sql, countSql, params };
 }
 
 function decodeRow(raw: RawMatchRow, index: number): Effect.Effect<MatchRow, SqliteLoaderError> {
@@ -104,6 +109,57 @@ function decodeRow(raw: RawMatchRow, index: number): Effect.Effect<MatchRow, Sql
 }
 
 export const SqliteLoader = {
+	/** Apply `MATCHES_TABLE_DDL` to create the historical match schema. */
+	initSchema: (dbPath: string) =>
+		Effect.try({
+			try: () => {
+				const db = new Database(dbPath, { create: true });
+				try {
+					db.exec(MATCHES_TABLE_DDL);
+				} finally {
+					db.close();
+				}
+			},
+			catch: (cause) => {
+				const message = cause instanceof Error ? cause.message : String(cause);
+				return new SqliteLoaderError(`SQLite schema init failed: ${message}`);
+			},
+		}),
+
+	countMatches: (dbPath: string, opts?: GetMatchesOptions) =>
+		Effect.gen(function* () {
+			const { countSql, params } = buildQuery(opts);
+			const limit = opts?.limit;
+			const countParams = limit != null ? params.slice(0, -1) : params;
+
+			const row = yield* Effect.try({
+				try: () => {
+					const db = new Database(dbPath, { readonly: true });
+					try {
+						return db.query(countSql).get(...countParams) as { count: number };
+					} finally {
+						db.close();
+					}
+				},
+				catch: (cause) => {
+					const message = cause instanceof Error ? cause.message : String(cause);
+					if (message.includes("no such table")) {
+						return new SqliteLoaderError(
+							`Table "${MATCHES_TABLE}" not found in ${dbPath}. ` +
+								"Apply MATCHES_TABLE_DDL or use a wager.db with a compatible schema.",
+						);
+					}
+					return new SqliteLoaderError(`SQLite count failed: ${message}`);
+				},
+			});
+
+			const total = row?.count ?? 0;
+			if (limit != null) {
+				return Math.min(total, Math.max(0, Math.floor(limit)));
+			}
+			return total;
+		}),
+
 	getMatches: (dbPath: string, opts?: GetMatchesOptions) =>
 		Effect.gen(function* () {
 			const { sql, params } = buildQuery(opts);

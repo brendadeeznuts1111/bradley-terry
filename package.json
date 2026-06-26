@@ -7,6 +7,7 @@
   "scripts": {
     "start": "bun run src/server/index.ts",
     "start:example": "bun run examples/usage-complete.ts",
+    "start:example:sqlite": "bun run examples/usage-sqlite.ts",
     "dev": "bun --watch src/server/index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",

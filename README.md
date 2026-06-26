@@ -109,6 +109,36 @@ const program = Effect.gen(function* () {
 await Effect.runPromise(Effect.provide(program, BradleyTerryLive));
 ```
 
+### SQLite match history (wager.db / Buckeye)
+
+Load historical win/loss rows from a SQLite `matches` table, convert via
+`MatchAdapter`, and fit:
+
+```ts
+import { Effect } from "effect";
+import { MatchAdapter } from "./src/match-adapter";
+import { BradleyTerry, BradleyTerryLive } from "./src/bradley-terry";
+import { SqliteLoader } from "./src/repository/sqlite-loader";
+
+const dbPath = "./data/wager.db";
+const count = await Effect.runPromise(SqliteLoader.countMatches(dbPath, { sport: "fbs" }));
+const matches = await Effect.runPromise(MatchAdapter.loadMatchesForBT(dbPath, { sport: "fbs" }));
+
+const fit = await Effect.runPromise(
+  Effect.provide(
+    Effect.gen(function* () {
+      const bt = yield* BradleyTerry;
+      return yield* bt.fit([...matches]);
+    }),
+    BradleyTerryLive,
+  ),
+);
+```
+
+See [`examples/usage-sqlite.ts`](examples/usage-sqlite.ts). Schema DDL:
+`SqliteLoader.MATCHES_TABLE_DDL`. This is **not** the HTTP service ratings DB
+(`massey_raw` / `bt_ratings` in `RatingsDB`).
+
 ## Features
 
 - **MM algorithm fitter** — Hunter (2004) minorization-maximization for exact
@@ -130,6 +160,9 @@ await Effect.runPromise(Effect.provide(program, BradleyTerryLive));
   `Data.TaggedError` variants on the `BradleyTerryError` union.
 - **Streaming Massey loader** — Effect `Stream`-based CSV ingestion with
   backpressure-friendly line parsing and `MatchRow` schema validation.
+- **SQLite match loader** — `SqliteLoader` reads historical wager.db /
+  Buckeye `matches` rows; `MatchAdapter.loadMatchesForBT` converts to
+  validated `Match` records for `BradleyTerry.fit`.
 - **Property tests** — fast-check invariants for win-probability symmetry,
   monotonicity under added wins, graph-connectivity reporting, and error
   handling.
@@ -273,7 +306,7 @@ bradley-terry/
 │   ├── secrets/                 # SecretClient + Bun/env/vault backends
 │   ├── service/                 # MasseyClient, RatingsDB, BTCompute layers
 │   ├── server/                  # Bun.serve HTTP handlers + shared runtime
-│   ├── repository/              # sqlite-loader (SQLite persistence layer)
+│   ├── repository/              # sqlite-loader — historical match DB (wager.db)
 │   ├── data/massey-loader.ts    # Streaming Massey CSV → MatchRow
 │   ├── match-adapter.ts         # SQLite MatchRow → BT Match pipeline
 │   ├── bench/                   # Benchmark utilities and scripts
