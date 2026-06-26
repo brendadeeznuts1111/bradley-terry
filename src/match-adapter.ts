@@ -1,13 +1,13 @@
 import { Effect, Schema } from "effect";
 import {
 	type GetMatchesOptions,
-	type MatchRow,
 	SqliteLoader,
 } from "./repository/sqlite-loader";
 import {
 	type BradleyTerryError,
 	type EntityId,
 	type Match,
+	type MatchRow,
 	MatchSchema,
 } from "./schema";
 

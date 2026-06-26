@@ -8,10 +8,6 @@ using the Hunter (2004) MM algorithm, with graph-connectivity awareness, time
 decay, multiple output scales, and a streaming Massey CSV loader.
 
 ```
-                ┌──────────────────────────────────────────┐
-                │              Consumer (Cascade)           │
-                └────────────────────┬─────────────────────┘
-                                     │ fit / predict / ratings
                 ┌────────────────────▼─────────────────────┐
                 │           BradleyTerry Service            │
                 │  (Context tag + BradleyTerryLive layer)   │
@@ -105,13 +101,9 @@ wired in.
 
 ### 4. Repository (`src/repository/`)
 
-`RatingsRepositoryLive` — SQLite persistence for rating snapshots and deltas.
-Enables historical backtesting and Cascade risk-flag tracking.
-
-### 5. Cascade Integration (`src/integrations/cascade-mover.ts`)
-
-Consumes `FitResult` + deltas to generate Cascade signals. Flags entities with
-`|delta| > 0.15` as high-volatility risk candidates.
+`src/repository/sqlite-loader.ts` — placeholder SQLite loader for the
+`match-adapter` pipeline. A full `RatingsRepositoryLive` for rating snapshots
+and deltas will live here once the SQLite schema is finalized.
 
 ## Data flow
 
@@ -121,9 +113,6 @@ SQLite matches ──► match-adapter ──► Match[] ──► fit() ──�
 Massey CSV ──► massey-loader ──► Match[] ─────────────────┤
                                                           ▼
                                                    predictWinProbability
-                                                          │
-                                                          ▼
-                                                   Cascade signals
 ```
 
 ## Testing strategy

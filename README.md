@@ -184,7 +184,7 @@ bun run src/bench/bt-fit.bench.ts                  # 5k + 25k timed runs
 | 50k matches | 87ms | — | < 1500ms |
 
 The bench script embeds the current git commit hash via a Bun macro
-(`src/utils/getGitCommitHash.ts`) and prints a clickable GitHub commit URL.
+(`src/utils/git-commit.ts`) and prints a clickable GitHub commit URL.
 
 ## Project layout
 
@@ -193,16 +193,14 @@ bradley-terry/
 ├── src/
 │   ├── bradley-terry/index.ts   # Core MM fitter + Effect service
 │   ├── schema.ts                # EntityId, Match, FitResult, errors (SSOT)
-│   ├── repository/              # RatingsRepository + sqlite-loader (SQLite persistence)
-│   ├── integrations/cascade-mover.ts  # Cascade signal generation
+│   ├── repository/              # sqlite-loader (SQLite persistence layer)
 │   ├── data/massey-loader.ts    # Streaming Massey CSV → MatchRow
 │   ├── match-adapter.ts         # SQLite MatchRow → BT Match pipeline
 │   ├── bench/                   # Benchmark utilities and scripts
 │   │   ├── bt-fit.bench.ts      # 5k + 25k benchmark script
 │   │   └── benchmark-loader.ts  # runBench() timing utility
 │   ├── utils/                   # Bun macros and helpers
-│   │   ├── getGitCommitHash.ts  # Bun macro: embed HEAD hash at build time
-│   │   └── git-commit.ts        # Bun macro: GIT_COMMIT constant
+│   │   └── git-commit.ts        # Bun macros for embedding HEAD hash
 │   └── index.ts                 # Barrel export
 ├── test/
 │   ├── property/                # fast-check invariants (3 files)

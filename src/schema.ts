@@ -6,6 +6,20 @@ export const EntityId = Schema.String.pipe(
 	Schema.brand("EntityId"),
 );
 
+export const MatchRowSchema = Schema.Struct({
+	match_id: Schema.optional(Schema.String),
+	home_team: Schema.String,
+	away_team: Schema.String,
+	winner_idx: Schema.Number,
+	loser_idx: Schema.Number,
+	date: Schema.String,
+	sport: Schema.optional(Schema.String),
+	league: Schema.optional(Schema.String),
+	y: Schema.optional(Schema.Number),
+});
+
+export type MatchRow = Schema.Schema.Type<typeof MatchRowSchema>;
+
 export const MatchSchema = Schema.Struct({
 	winner: EntityId,
 	loser: EntityId,

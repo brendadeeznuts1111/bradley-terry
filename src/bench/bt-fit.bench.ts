@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { BradleyTerry, BradleyTerryLive } from "../bradley-terry";
-import { getGitCommitHash } from "../utils/getGitCommitHash.ts" with {
+import { getGitCommitHash } from "../utils/git-commit.ts" with {
 	type: "macro",
 };
 import { runBench } from "./benchmark-loader";
