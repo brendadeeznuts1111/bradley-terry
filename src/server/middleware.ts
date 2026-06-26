@@ -31,3 +31,18 @@ export const methodNotAllowedResponse = (allowed: readonly string[]) =>
 	);
 
 export const optionsResponse = () => new Response(null, { status: 204, headers: corsHeaders() });
+
+export const rateLimitResponse = (retryAfterSeconds: number) =>
+	new Response(
+		JSON.stringify({
+			error: "RateLimitExceeded",
+			message: `Too many refresh requests. Retry after ${retryAfterSeconds}s.`,
+		}),
+		{
+			status: 429,
+			headers: {
+				...jsonHeaders(),
+				"Retry-After": String(retryAfterSeconds),
+			},
+		},
+	);

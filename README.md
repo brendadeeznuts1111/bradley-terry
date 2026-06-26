@@ -52,6 +52,9 @@ Full reference with curl examples: [docs/API.md](docs/API.md). Copy [`.env.examp
 | `MASSEY_API_TOKEN` | — | Bearer token (env secret backend) |
 | `SECRETS_BACKEND` | `auto` | `auto` \| `env` \| `bun` \| `vault` |
 | `REFRESH_INTERVAL` | `3600` | Auto-refresh seconds (`0` = off) |
+| `REFRESH_RATE_LIMIT` | `5` | Max manual refresh requests per IP per window (`0` = off) |
+| `REFRESH_RATE_WINDOW` | `60` | Rate limit window in seconds |
+| `REQUEST_LOG` | `true` | JSON request logs to stdout (`0` / `false` = off) |
 | `CORS_ORIGIN` | `*` | CORS allow-origin header |
 
 See [`.env.example`](.env.example) for all variables. Secrets use reverse-domain namespaces (`com.bradley-terry.massey/api-token`). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [AGENTS.md](AGENTS.md), and [docs/MERGE.md](docs/MERGE.md) for architecture, agent conventions, and merge order.

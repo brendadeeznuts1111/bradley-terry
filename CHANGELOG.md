@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased (HTTP service — PR #4 integrated with v0.3.32)
+## Unreleased
 
+- Structured JSON request logging (`REQUEST_LOG`, default on)
+- Per-IP rate limit on `POST /api/ratings/refresh` (`REFRESH_RATE_LIMIT` / `REFRESH_RATE_WINDOW`)
 - Effect HTTP service: MasseyClient, RatingsDB, BTCompute, 4 routes
 - `src/secrets/` — SecretClient with Bun/env/vault backends, TTL entries
 - `bt_ratings_history` snapshots, ManagedRuntime for handlers
