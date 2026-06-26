@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { Context, Effect, Layer } from "effect";
 import { RatingsConfigTag } from "./config.js";
 import { DBError } from "./errors.js";
@@ -9,13 +11,13 @@ export interface RatingsDBApi {
   readonly storeBT: (
     ratings: readonly BTRating[],
     sport?: string,
-    season?: string
+    season?: string,
   ) => Effect.Effect<void, DBError>;
   readonly getBT: (sport?: string, season?: string) => Effect.Effect<readonly BTRating[], DBError>;
   readonly getHistory: (
     sport?: string,
     season?: string,
-    limit?: number
+    limit?: number,
   ) => Effect.Effect<readonly BTRatingHistory[], DBError>;
 }
 
@@ -58,9 +60,6 @@ CREATE INDEX IF NOT EXISTS idx_bt_history_lookup
   ON bt_ratings_history (sport, season, snapshot_at DESC);
 `;
 
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-
 function openDb(path: string): Effect.Effect<Database, DBError> {
   return Effect.try({
     try: () => {
@@ -82,7 +81,7 @@ export const RatingsDBLive = Layer.scoped(
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
         db.close();
-      })
+      }),
     );
 
     const storeMassey: RatingsDBApi["storeMassey"] = (data) =>
@@ -95,7 +94,7 @@ export const RatingsDBLive = Layer.scoped(
               JSON.stringify(data),
               data.sport ?? null,
               data.season ?? null,
-            ]
+            ],
           );
         },
         catch: (cause) => new DBError({ cause, operation: "storeMassey" }),
@@ -112,12 +111,12 @@ export const RatingsDBLive = Layer.scoped(
                rating = excluded.rating,
                confidence = excluded.confidence,
                rank = excluded.rank,
-               updated_at = excluded.updated_at`
+               updated_at = excluded.updated_at`,
           );
           const history = db.prepare(
             `INSERT INTO bt_ratings_history
                (team_id, team_name, rating, confidence, rank, sport, season, snapshot_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           );
           const updatedAt = new Date().toISOString();
           for (const r of ratings) {
@@ -129,7 +128,7 @@ export const RatingsDBLive = Layer.scoped(
               r.rank,
               sport,
               season,
-              updatedAt
+              updatedAt,
             );
             history.run(
               r.teamID,
@@ -139,7 +138,7 @@ export const RatingsDBLive = Layer.scoped(
               r.rank,
               sport,
               season,
-              updatedAt
+              updatedAt,
             );
           }
         },
@@ -152,7 +151,7 @@ export const RatingsDBLive = Layer.scoped(
           const rows = db
             .query(
               `SELECT team_id, team_name, rating, confidence, rank, sport, season
-               FROM bt_ratings WHERE sport = ? AND season = ? ORDER BY rank ASC`
+               FROM bt_ratings WHERE sport = ? AND season = ? ORDER BY rank ASC`,
             )
             .all(sport, season) as Array<{
             team_id: string;
@@ -179,7 +178,7 @@ export const RatingsDBLive = Layer.scoped(
     const getHistory: RatingsDBApi["getHistory"] = (
       sport = "default",
       season = "default",
-      limit = 500
+      limit = 500,
     ) =>
       Effect.try({
         try: () => {
@@ -189,7 +188,7 @@ export const RatingsDBLive = Layer.scoped(
                FROM bt_ratings_history
                WHERE sport = ? AND season = ?
                ORDER BY snapshot_at DESC, rank ASC
-               LIMIT ?`
+               LIMIT ?`,
             )
             .all(sport, season, limit) as Array<{
             team_id: string;
@@ -216,5 +215,5 @@ export const RatingsDBLive = Layer.scoped(
       });
 
     return { storeMassey, storeBT, getBT, getHistory } satisfies RatingsDBApi;
-  })
+  }),
 );

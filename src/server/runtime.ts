@@ -1,7 +1,9 @@
 import { ManagedRuntime } from "effect";
 import { AppLive } from "../service/index.js";
 
-let runtime: ManagedRuntime.ManagedRuntime<ManagedRuntime.ManagedRuntime.Context<typeof AppLive>> | undefined;
+let runtime:
+  | ManagedRuntime.ManagedRuntime<ManagedRuntime.ManagedRuntime.Context<typeof AppLive>>
+  | undefined;
 
 /** Lazily-built runtime; AppLive (incl. scoped RatingsDB) stays alive for server lifetime. */
 export const getAppRuntime = () => {

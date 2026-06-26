@@ -54,7 +54,7 @@ export type HealthResponse = Schema.Schema.Type<typeof HealthResponseSchema>;
 
 export const BTRatingHistorySchema = Schema.extend(
   BTRatingSchema,
-  Schema.Struct({ snapshotAt: Schema.String })
+  Schema.Struct({ snapshotAt: Schema.String }),
 );
 
 export type BTRatingHistory = Schema.Schema.Type<typeof BTRatingHistorySchema>;

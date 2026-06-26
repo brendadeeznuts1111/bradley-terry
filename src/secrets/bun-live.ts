@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { secretError, SecretClient } from "./client.js";
+import { SecretClient, secretError } from "./client.js";
 import { decodeSecretEntry } from "./entry.js";
 import { bunSecretsOptions } from "./namespaces.js";
 
@@ -7,9 +7,7 @@ const decodeRaw = (namespace: string, name: string, raw: string) =>
   Effect.gen(function* () {
     const decoded = decodeSecretEntry(raw);
     if (decoded === null) {
-      return yield* Effect.fail(
-        secretError(new Error("secret expired"), namespace, name)
-      );
+      return yield* Effect.fail(secretError(new Error("secret expired"), namespace, name));
     }
     return decoded;
   });
@@ -18,7 +16,7 @@ export const bunGet = (namespace: string, name: string) =>
   Effect.gen(function* () {
     if (typeof Bun === "undefined" || !Bun.secrets) {
       return yield* Effect.fail(
-        secretError(new Error("Bun.secrets is not available"), namespace, name)
+        secretError(new Error("Bun.secrets is not available"), namespace, name),
       );
     }
     const raw = yield* Effect.tryPromise({
@@ -26,9 +24,7 @@ export const bunGet = (namespace: string, name: string) =>
       catch: (e) => secretError(e, namespace, name),
     });
     if (raw === null || raw === "") {
-      return yield* Effect.fail(
-        secretError(new Error("secret not found"), namespace, name)
-      );
+      return yield* Effect.fail(secretError(new Error("secret not found"), namespace, name));
     }
     return yield* decodeRaw(namespace, name, raw);
   });
@@ -37,7 +33,7 @@ export const bunSet = (namespace: string, name: string, value: string) =>
   Effect.gen(function* () {
     if (typeof Bun === "undefined" || !Bun.secrets) {
       return yield* Effect.fail(
-        secretError(new Error("Bun.secrets is not available"), namespace, name)
+        secretError(new Error("Bun.secrets is not available"), namespace, name),
       );
     }
     yield* Effect.tryPromise({
@@ -50,7 +46,7 @@ export const bunDelete = (namespace: string, name: string) =>
   Effect.gen(function* () {
     if (typeof Bun === "undefined" || !Bun.secrets) {
       return yield* Effect.fail(
-        secretError(new Error("Bun.secrets is not available"), namespace, name)
+        secretError(new Error("Bun.secrets is not available"), namespace, name),
       );
     }
     return yield* Effect.tryPromise({
@@ -66,5 +62,5 @@ export const BunSecretsLive = Layer.effect(
     get: bunGet,
     set: bunSet,
     delete: bunDelete,
-  }))
+  })),
 );

@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import {
   type BradleyTerryConfig,
+  ConvergenceError,
   type EntityId,
   type FitResult,
-  type Match,
-  ConvergenceError,
   InsufficientDataError,
+  type Match,
   SelfMatchError,
 } from "../../schema.js";
 
@@ -18,7 +18,7 @@ const defaultConfig: BradleyTerryConfig = {
 
 function normalizeStrengths(
   strengths: Map<EntityId, number>,
-  scale: BradleyTerryConfig["outputScale"]
+  scale: BradleyTerryConfig["outputScale"],
 ): Map<EntityId, number> {
   const values = [...strengths.values()];
   if (values.length === 0) return strengths;
@@ -44,12 +44,12 @@ function normalizeStrengths(
 
 export function fit(
   matches: readonly Match[],
-  config: BradleyTerryConfig = defaultConfig
+  config: BradleyTerryConfig = defaultConfig,
 ): Effect.Effect<FitResult, InsufficientDataError | ConvergenceError | SelfMatchError> {
   return Effect.gen(function* () {
     if (matches.length < 1) {
       return yield* Effect.fail(
-        new InsufficientDataError({ message: "No matches provided", matchCount: 0 })
+        new InsufficientDataError({ message: "No matches provided", matchCount: 0 }),
       );
     }
 
@@ -69,9 +69,7 @@ export function fit(
     }
 
     const entityList = [...entities];
-    const strengths = new Map<EntityId, number>(
-      entityList.map((e) => [e, 1])
-    );
+    const strengths = new Map<EntityId, number>(entityList.map((e) => [e, 1]));
 
     const maxIterations = config.maxIterations ?? defaultConfig.maxIterations;
     const tolerance = config.tolerance ?? defaultConfig.tolerance;
@@ -99,7 +97,7 @@ export function fit(
       // Geometric-mean normalization each iteration (prevents drift / oscillation)
       const logSum = entityList.reduce(
         (acc, e) => acc + Math.log(Math.max(next.get(e) ?? 1, 1e-12)),
-        0
+        0,
       );
       const geoMean = Math.exp(logSum / entityList.length);
       for (const entity of entityList) {
@@ -124,7 +122,7 @@ export function fit(
         new ConvergenceError({
           message: "Bradley-Terry did not converge within tolerance",
           iterations,
-        })
+        }),
       );
     }
 

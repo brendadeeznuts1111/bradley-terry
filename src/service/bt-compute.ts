@@ -60,9 +60,7 @@ export const BTComputeLive = Layer.succeed(BTCompute, {
       const teamCount = data.teams.length;
 
       const result = yield* BradleyTerry.fit(matches).pipe(
-        Effect.mapError(
-          (cause) => new BTComputationError({ cause, teamCount })
-        )
+        Effect.mapError((cause) => new BTComputationError({ cause, teamCount })),
       );
 
       const ranked = rankRatings(result.ratings);

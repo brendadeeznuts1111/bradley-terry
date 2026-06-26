@@ -6,7 +6,8 @@ Guide for agents working on this repo. Stack: **Bun 1.3+**, **Effect 3.21**, **b
 
 ```bash
 bun install
-bun test                    # 19 tests
+bun test                    # 20 tests
+bun run ci                  # test + lint (src/tests/scripts only)
 bun run start               # HTTP server :3000
 bun run dev                 # watch mode
 bun run secret set <ns> <name> <value> [--ttl N]
@@ -65,13 +66,13 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 
 ## Cross-PR context
 
+See [docs/MERGE.md](docs/MERGE.md) for the full merge playbook.
+
 | PR | Branch | Notes |
 |----|--------|-------|
-| #2 | `feature/v0.3.2-testing` | Production BT core — **merge first**, then rebase this branch |
-| #3 | `cursor/setup-dev-environment-fae3` | Stale; superseded by this AGENTS.md |
-| #4 | `cursor/effect-architecture-docs-d821` | Architecture + service skeleton |
-
-After #2 merges: replace `src/bradley-terry/index.ts` with #2's implementation; resolve conflicts in `schema.ts`, `package.json`, `ci.yml`.
+| **#2** | `feature/v0.3.2-testing` | Production BT core — **merge first**, then rebase this branch |
+| **#3** | `cursor/setup-dev-environment-fae3` | **Close** — superseded by this `AGENTS.md` |
+| **#4** | `cursor/effect-architecture-docs-d821` | Architecture + service skeleton — rebase after #2 |
 
 ## Do not
 

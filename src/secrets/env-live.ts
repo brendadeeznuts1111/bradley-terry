@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { secretError, SecretClient } from "./client.js";
+import { SecretClient, secretError } from "./client.js";
 import { decodeSecretEntry } from "./entry.js";
 import { lookupEnv } from "./env-key.js";
 
@@ -7,15 +7,11 @@ const envGet = (namespace: string, name: string) =>
   Effect.gen(function* () {
     const raw = lookupEnv(namespace, name);
     if (!raw) {
-      return yield* Effect.fail(
-        secretError(new Error("secret not found"), namespace, name)
-      );
+      return yield* Effect.fail(secretError(new Error("secret not found"), namespace, name));
     }
     const decoded = decodeSecretEntry(raw);
     if (decoded === null) {
-      return yield* Effect.fail(
-        secretError(new Error("secret expired"), namespace, name)
-      );
+      return yield* Effect.fail(secretError(new Error("secret expired"), namespace, name));
     }
     return decoded;
   });
@@ -27,7 +23,7 @@ export const EnvSecretsLive = Layer.effect(
     get: envGet,
     set: () => Effect.void,
     delete: () => Effect.succeed(false),
-  }))
+  })),
 );
 
 export { envGet };

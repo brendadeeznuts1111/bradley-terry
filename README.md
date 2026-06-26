@@ -2,7 +2,7 @@
 
 Effect TS + Bun ratings service with Bradley-Terry MLE, Massey ingestion, and SQLite persistence.
 
-![Bun](https://img.shields.io/badge/Bun-1.3+-brightgreen) ![Effect](https://img.shields.io/badge/Effect-3.21-blue) ![Tests](https://img.shields.io/badge/Tests-19%20passing-brightgreen)
+![Bun](https://img.shields.io/badge/Bun-1.3+-brightgreen) ![Effect](https://img.shields.io/badge/Effect-3.21-blue) ![Tests](https://img.shields.io/badge/Tests-20%20passing-brightgreen)
 
 ## Quick start
 
@@ -31,7 +31,7 @@ bun run start          # http://localhost:3000
 | `MASSEY_API_TOKEN` | — | Bearer token (env secret backend) |
 | `SECRETS_BACKEND` | `auto` | `auto` \| `env` \| `bun` \| `vault` |
 
-Secrets use reverse-domain namespaces (`com.bradley-terry.massey/api-token`). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the 6-layer design and [AGENTS.md](AGENTS.md) for agent conventions.
+Secrets use reverse-domain namespaces (`com.bradley-terry.massey/api-token`). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [AGENTS.md](AGENTS.md), and [docs/MERGE.md](docs/MERGE.md) for architecture, agent conventions, and merge order.
 
 ### Secret CLI
 

@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 import {
   BTCompute,
+  isServiceError,
   MasseyClient,
   RatingsDB,
-  isServiceError,
   serviceErrorBody,
   serviceErrorStatus,
 } from "../service/index.js";
@@ -11,25 +11,21 @@ import {
   BTRatingHistoryListSchema,
   BTRatingsSchema,
   ErrorResponseSchema,
+  type HealthResponse,
   HealthResponseSchema,
   RefreshSummarySchema,
-  type HealthResponse,
 } from "../service/schemas.js";
 import { getAppRuntime } from "./runtime.js";
 
-const encodeJsonResponse = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
-  value: A,
-  status = 200
-) =>
+const encodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A, status = 200) =>
   Schema.encode(schema)(value).pipe(
     Effect.map(
       (encoded) =>
         new Response(JSON.stringify(encoded), {
           status,
           headers: { "Content-Type": "application/json" },
-        })
-    )
+        }),
+    ),
   );
 
 const errorResponse = (error: unknown) =>
@@ -38,25 +34,25 @@ const errorResponse = (error: unknown) =>
       return yield* encodeJsonResponse(
         ErrorResponseSchema,
         serviceErrorBody(error),
-        serviceErrorStatus(error)
+        serviceErrorStatus(error),
       );
     }
     return yield* encodeJsonResponse(
       ErrorResponseSchema,
       { error: "UnknownError", message: "Internal server error" },
-      500
+      500,
     );
   });
 
 const runHandler = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
-  encode: (value: A) => Effect.Effect<Response, never, never>
+  encode: (value: A) => Effect.Effect<Response, never, never>,
 ) =>
   getAppRuntime().runPromise(
     effect.pipe(
       Effect.flatMap(encode),
-      Effect.catchAll((error) => errorResponse(error))
-    )
+      Effect.catchAll((error) => errorResponse(error)),
+    ),
   ) as Promise<Response>;
 
 export const handleHealth = () =>
@@ -66,9 +62,9 @@ export const handleHealth = () =>
         status: "ok",
         version: Bun.version,
         timestamp: Date.now(),
-      })
+      }),
     ),
-    (body) => encodeJsonResponse(HealthResponseSchema, body)
+    (body) => encodeJsonResponse(HealthResponseSchema, body),
   );
 
 export const handleGetRatings = (sport?: string, season?: string) =>
@@ -77,7 +73,7 @@ export const handleGetRatings = (sport?: string, season?: string) =>
       const db = yield* RatingsDB;
       return yield* db.getBT(sport, season);
     }),
-    (ratings) => encodeJsonResponse(BTRatingsSchema, [...ratings])
+    (ratings) => encodeJsonResponse(BTRatingsSchema, [...ratings]),
   );
 
 export const handleGetHistory = (sport?: string, season?: string) =>
@@ -86,7 +82,7 @@ export const handleGetHistory = (sport?: string, season?: string) =>
       const db = yield* RatingsDB;
       return yield* db.getHistory(sport, season);
     }),
-    (history) => encodeJsonResponse(BTRatingHistoryListSchema, [...history])
+    (history) => encodeJsonResponse(BTRatingHistoryListSchema, [...history]),
   );
 
 export const handleRefresh = () =>
@@ -107,7 +103,7 @@ export const handleRefresh = () =>
         season: data.season ?? "default",
       };
     }),
-    (summary) => encodeJsonResponse(RefreshSummarySchema, summary, 202)
+    (summary) => encodeJsonResponse(RefreshSummarySchema, summary, 202),
   );
 
 export const handleRequest = (req: Request): Promise<Response> => {
@@ -128,10 +124,7 @@ export const handleRequest = (req: Request): Promise<Response> => {
     return handleRefresh();
   }
 
-  return Promise.resolve(
-    new Response(JSON.stringify({ error: "NotFound", message: "Route not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    })
+  return getAppRuntime().runPromise(
+    encodeJsonResponse(ErrorResponseSchema, { error: "NotFound", message: "Route not found" }, 404),
   );
 };

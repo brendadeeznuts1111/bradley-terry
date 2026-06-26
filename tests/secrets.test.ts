@@ -28,13 +28,13 @@ describe("SecretClient", () => {
           masseyApiKey,
           dbEncryptionKey: null,
         };
-      })
+      }),
     ).pipe(Layer.provide(EnvSecretsLive));
 
     const config = await Effect.runPromise(
       Effect.gen(function* () {
         return yield* RatingsConfigTag;
-      }).pipe(Effect.provide(ConfigTestLive))
+      }).pipe(Effect.provide(ConfigTestLive)),
     );
 
     expect(config.masseyApiKey).toBe("test-token-123");
@@ -51,7 +51,7 @@ describe("SecretClient", () => {
         yield* secrets.set(MASSEY_NAMESPACE, MASSEY_SECRET_NAME, "x");
         const deleted = yield* secrets.delete(MASSEY_NAMESPACE, MASSEY_SECRET_NAME);
         expect(deleted).toBe(false);
-      }).pipe(Effect.provide(EnvSecretsLive))
+      }).pipe(Effect.provide(EnvSecretsLive)),
     );
 
     delete process.env.SECRETS_BACKEND;

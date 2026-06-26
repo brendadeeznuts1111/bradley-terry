@@ -50,7 +50,7 @@ export const serviceErrorStatus = (error: ServiceError): number => {
 };
 
 export const serviceErrorBody = (
-  error: ServiceError
+  error: ServiceError,
 ): { readonly error: string; readonly message: string } => {
   switch (error._tag) {
     case "MasseyFetchError":
@@ -68,7 +68,7 @@ export const serviceErrorBody = (
         error: error._tag,
         message: causeMessage(
           error.cause,
-          `Bradley-Terry computation failed for ${error.teamCount} teams`
+          `Bradley-Terry computation failed for ${error.teamCount} teams`,
         ),
       };
     case "SchemaDecodeError":
@@ -81,7 +81,7 @@ export const serviceErrorBody = (
         error: error._tag,
         message: causeMessage(
           error.cause,
-          `Failed to access secret ${error.namespace}/${error.name}`
+          `Failed to access secret ${error.namespace}/${error.name}`,
         ),
       };
     default:

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Effect } from "effect";
-import { handleRefresh } from "../src/server/handlers.js";
+import { handleGetHistory, handleRefresh } from "../src/server/handlers.js";
 import { disposeAppRuntime } from "../src/server/runtime.js";
 import { AppLive, RatingsDB } from "../src/service/index.js";
 
@@ -40,7 +40,7 @@ describe("POST /api/ratings/refresh integration", () => {
         new Response(JSON.stringify(sampleMassey), {
           status: 200,
           headers: { "Content-Type": "application/json" },
-        })
+        }),
       );
 
     const res = await handleRefresh();
@@ -55,10 +55,25 @@ describe("POST /api/ratings/refresh integration", () => {
       Effect.gen(function* () {
         const db = yield* RatingsDB;
         return yield* db.getBT("test", "2026");
-      }).pipe(Effect.provide(AppLive))
+      }).pipe(Effect.provide(AppLive)),
     );
 
     expect(ratings).toHaveLength(3);
     expect(ratings.every((r) => r.rating > 0)).toBe(true);
+
+    const historyRes = await handleGetHistory("test", "2026");
+    expect(historyRes.status).toBe(200);
+    const history = await historyRes.json();
+    expect(history.length).toBeGreaterThanOrEqual(3);
+    expect(history[0]?.snapshotAt).toBeDefined();
+  });
+
+  it("returns 502 when Massey fetch fails", async () => {
+    globalThis.fetch = () => Promise.reject(new Error("network down"));
+
+    const res = await handleRefresh();
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toBe("MasseyFetchError");
   });
 });

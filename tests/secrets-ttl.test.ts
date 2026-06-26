@@ -45,7 +45,7 @@ describe("secret TTL entries", () => {
       Effect.gen(function* () {
         const client = yield* SecretClient;
         return yield* client.get("com.bradley-terry.massey", "api-token");
-      }).pipe(Effect.provide(EnvSecretsLive))
+      }).pipe(Effect.provide(EnvSecretsLive)),
     );
     expect(before).toBe("ttl-token");
 
@@ -60,9 +60,9 @@ describe("secret TTL entries", () => {
         Effect.catchTag("SecretError", (e) =>
           e.cause instanceof Error && e.cause.message === "secret expired"
             ? Effect.succeed("expired")
-            : Effect.fail(e)
-        )
-      )
+            : Effect.fail(e),
+        ),
+      ),
     );
     expect(result).toBe("expired");
   });

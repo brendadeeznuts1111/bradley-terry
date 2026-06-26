@@ -1,10 +1,10 @@
 import { Effect, Layer } from "effect";
+import { BunSecretsLive, bunDelete, bunGet, bunSet } from "./bun-live.js";
 import { SecretClient, type SecretClientApi, secretError } from "./client.js";
-import { bunDelete, bunGet, bunSet, BunSecretsLive } from "./bun-live.js";
+import { decodeSecretEntry } from "./entry.js";
+import { lookupEnv } from "./env-key.js";
 import { EnvSecretsLive } from "./env-live.js";
 import { VaultSecretsLive } from "./vault-live.js";
-import { lookupEnv } from "./env-key.js";
-import { decodeSecretEntry } from "./entry.js";
 
 const autoGet: SecretClientApi["get"] = (namespace, name) =>
   Effect.gen(function* () {
@@ -12,9 +12,7 @@ const autoGet: SecretClientApi["get"] = (namespace, name) =>
     if (raw !== undefined) {
       const decoded = decodeSecretEntry(raw);
       if (decoded === null) {
-        return yield* Effect.fail(
-          secretError(new Error("secret expired"), namespace, name)
-        );
+        return yield* Effect.fail(secretError(new Error("secret expired"), namespace, name));
       }
       return decoded;
     }
@@ -30,7 +28,7 @@ const autoClient: SecretClientApi = {
 /** auto: env read → Bun.secrets fallback; writes always use Bun.secrets */
 export const AutoSecretsLive = Layer.effect(
   SecretClient,
-  Effect.sync(() => autoClient)
+  Effect.sync(() => autoClient),
 );
 
 export const resolveSecretClientLive = (): Layer.Layer<SecretClient> => {

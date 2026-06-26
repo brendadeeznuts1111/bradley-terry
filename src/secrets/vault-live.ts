@@ -1,8 +1,7 @@
 import { Effect, Layer } from "effect";
-import { secretError, SecretClient } from "./client.js";
+import { SecretClient, secretError } from "./client.js";
 
-const vaultPath = (namespace: string, name: string) =>
-  `${namespace.replace(/\./g, "/")}/${name}`;
+const vaultPath = (namespace: string, name: string) => `${namespace.replace(/\./g, "/")}/${name}`;
 
 const vaultHeaders = () => {
   const token = process.env.VAULT_TOKEN;
@@ -37,21 +36,18 @@ const vaultGet = (namespace: string, name: string) =>
 
     if (!response.ok) {
       return yield* Effect.fail(
-        secretError(new Error(`Vault HTTP ${response.status}`), namespace, name)
+        secretError(new Error(`Vault HTTP ${response.status}`), namespace, name),
       );
     }
 
     const body = (yield* Effect.tryPromise({
-      try: () =>
-        response.json() as Promise<{ data?: { data?: { value?: string } } }>,
+      try: () => response.json() as Promise<{ data?: { data?: { value?: string } } }>,
       catch: (e) => secretError(e, namespace, name),
     })) as { data?: { data?: { value?: string } } };
 
     const value = body.data?.data?.value;
     if (!value) {
-      return yield* Effect.fail(
-        secretError(new Error("secret not found"), namespace, name)
-      );
+      return yield* Effect.fail(secretError(new Error("secret not found"), namespace, name));
     }
     return value;
   });
@@ -78,7 +74,7 @@ const vaultSet = (namespace: string, name: string, value: string) =>
 
     if (!response.ok) {
       return yield* Effect.fail(
-        secretError(new Error(`Vault HTTP ${response.status}`), namespace, name)
+        secretError(new Error(`Vault HTTP ${response.status}`), namespace, name),
       );
     }
   });
@@ -112,5 +108,5 @@ export const VaultSecretsLive = Layer.effect(
     get: vaultGet,
     set: vaultSet,
     delete: vaultDelete,
-  }))
+  })),
 );

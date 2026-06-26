@@ -4,8 +4,8 @@ import {
   DB_SECRET_NAME,
   MASSEY_NAMESPACE,
   MASSEY_SECRET_NAME,
-  SecretClient,
   resolveSecretClientLive,
+  SecretClient,
 } from "../secrets/index.js";
 
 export interface RatingsConfig {
@@ -45,7 +45,7 @@ export const RatingsConfigLive = Layer.effect(
       masseyApiKey,
       dbEncryptionKey,
     } satisfies RatingsConfig;
-  })
+  }),
 );
 
 export const ConfigLive = Layer.provide(RatingsConfigLive, resolveSecretClientLive());

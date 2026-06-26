@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { RatingsConfigTag } from "./config.js";
 import { MasseyFetchError, SchemaDecodeError } from "./errors.js";
-import { MasseyDataSchema, type MasseyData } from "./schemas.js";
+import { type MasseyData, MasseyDataSchema } from "./schemas.js";
 
 export interface MasseyClientApi {
   readonly fetch: () => Effect.Effect<MasseyData, MasseyFetchError | SchemaDecodeError>;
@@ -34,7 +34,7 @@ export const MasseyClientLive = Layer.effect(
             new MasseyFetchError({
               cause: new Error(`HTTP ${response.status}`),
               url: config.masseyUrl,
-            })
+            }),
           );
         }
 
@@ -44,10 +44,10 @@ export const MasseyClientLive = Layer.effect(
         });
 
         return yield* Schema.decodeUnknown(MasseyDataSchema)(json).pipe(
-          Effect.mapError((cause) => new SchemaDecodeError({ cause, input: json }))
+          Effect.mapError((cause) => new SchemaDecodeError({ cause, input: json })),
         );
       });
 
     return { fetch } satisfies MasseyClientApi;
-  })
+  }),
 );

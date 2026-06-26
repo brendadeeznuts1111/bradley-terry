@@ -1,18 +1,13 @@
-import { Schema, Brand, Data } from "effect";
+import { type Brand, Data, Schema } from "effect";
 
 export type EntityId = string & Brand.Brand<"EntityId">;
-export const EntityId = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.brand("EntityId")
-);
+export const EntityId = Schema.String.pipe(Schema.minLength(1), Schema.brand("EntityId"));
 
 export const MatchSchema = Schema.Struct({
   winner: EntityId,
   loser: EntityId,
   date: Schema.optional(Schema.DateFromSelf),
-  weight: Schema.optional(
-    Schema.Number.pipe(Schema.positive(), Schema.lessThanOrEqualTo(10))
-  ),
+  weight: Schema.optional(Schema.Number.pipe(Schema.positive(), Schema.lessThanOrEqualTo(10))),
   sport: Schema.optional(Schema.String),
   league: Schema.optional(Schema.String),
 });
@@ -35,19 +30,17 @@ export type MatchRow = Schema.Schema.Type<typeof MatchRowSchema>;
 
 export const BradleyTerryConfigSchema = Schema.Struct({
   maxIterations: Schema.Number.pipe(Schema.int(), Schema.positive()).pipe(
-    Schema.optionalWith({ default: () => 150 })
+    Schema.optionalWith({ default: () => 150 }),
   ),
   tolerance: Schema.Number.pipe(Schema.positive()).pipe(
-    Schema.optionalWith({ default: () => 1e-6 })
+    Schema.optionalWith({ default: () => 1e-6 }),
   ),
-  normalize: Schema.Boolean.pipe(
-    Schema.optionalWith({ default: () => true })
-  ),
+  normalize: Schema.Boolean.pipe(Schema.optionalWith({ default: () => true })),
   timeDecayHalfLifeDays: Schema.optional(Schema.Number.pipe(Schema.positive())),
   homeAdvantage: Schema.optional(Schema.Boolean),
-  outputScale: Schema.optional(
-    Schema.Literal("geometric", "arithmetic", "elo400")
-  ).pipe(Schema.optionalWith({ default: () => "arithmetic" as const })),
+  outputScale: Schema.optional(Schema.Literal("geometric", "arithmetic", "elo400")).pipe(
+    Schema.optionalWith({ default: () => "arithmetic" as const }),
+  ),
 });
 
 export type BradleyTerryConfig = Schema.Schema.Type<typeof BradleyTerryConfigSchema>;
