@@ -12,7 +12,25 @@ bun run start               # HTTP server :3000
 bun run dev                 # watch mode
 bun run secret set <ns> <name> <value> [--ttl N]
 bun run lint                # biome
+bun run completions:audit   # compare bun --help vs bun-cli.json (before regen)
+bun run completions         # regenerate bun-cli.json (requires Bun 1.4.0+)
+bun run check:completions   # drift hash + matrix alignment
 ```
+
+## Completions pipeline
+
+Global CLI flags come from **`bun --help`** (parsed by `scripts/generate-cli-completions.ts`), not from manual `llms.txt` edits.
+
+| Step | Command | Notes |
+|------|---------|-------|
+| Audit | `bun run completions:audit` | Fails if `--help` has flags missing from JSON |
+| Regenerate | `bun run completions` | **Use Bun 1.4.0+** (`packageManager` pin); 1.3.x drifts snapshots |
+| Matrix + drift | `bun run matrix && bun run check:completions` | Updates `COMPLETION_MATRIX.md` hashes |
+| Shell scripts | `bun run completions:shell` | bash/zsh/fish from JSON |
+
+`--console-depth` and `--smol` are **CLI flags** (confirmed in `bun --help`). Some JSX/build flags may appear only under `bun build --help` as per-command flags, not globals.
+
+Do **not** batch-add ~40 flags from `llms.txt` manually — run audit first; proposed flags are already in `completions/bun-cli.json` (84 global + per-command).
 
 ## Layout
 
