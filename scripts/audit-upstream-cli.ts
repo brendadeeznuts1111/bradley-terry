@@ -49,10 +49,11 @@ function extractFlagsFromSource(source: string): Set<string> {
 	for (const m of source.matchAll(
 		/(?:bunExe\(\),\s*|cmd:\s*\[[^\]]*?)(["'`])(--[a-z][a-z0-9-]*)\1/g,
 	)) {
-		names.add(m[2]!.slice(2));
+		const name = m[2]?.slice(2);
+		if (name) names.add(name);
 	}
 	for (const m of source.matchAll(/(["'`])--([a-z][a-z0-9-]*)\1/g)) {
-		names.add(m[2]!);
+		if (m[2]) names.add(m[2]);
 	}
 	return names;
 }

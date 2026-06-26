@@ -1029,6 +1029,21 @@ function reconcileBuildFlags(
 }
 
 /**
+ * `-i` in `bun --help` is shorthand for `--install=fallback`, not a separate `--i` global.
+ * Upstream: oven-sh/bun test/cli + bun --help Flags section.
+ */
+function mergeStandaloneInstallShort(globalFlags: FlagInfo[]): FlagInfo[] {
+	const installShortIdx = globalFlags.findIndex((f) => f.name === "i");
+	if (installShortIdx < 0) return globalFlags;
+
+	const install = globalFlags.find((f) => f.name === "install");
+	if (!install) return globalFlags;
+
+	if (!install.shortName) install.shortName = "i";
+	return globalFlags.filter((_, idx) => idx !== installShortIdx);
+}
+
+/**
  * Add fallback aliases for commands that don't have an "Alias:" line in help.
  * Aliases parsed from help text (in parseHelpOutput) take priority.
  */
@@ -1654,9 +1669,8 @@ function generateCompletions(cliArgs: CliArgs): void {
 	// Add documented flags that don't appear in --help output.
 	// These are flags documented on bun.com/docs but not yet in the CLI --help.
 	addDocumentedFlags(completionData.commands);
-	completionData.globalFlags = reconcileBuildFlags(
-		completionData.globalFlags,
-		completionData.commands,
+	completionData.globalFlags = mergeStandaloneInstallShort(
+		reconcileBuildFlags(completionData.globalFlags, completionData.commands),
 	);
 
 	// Strip any surrounding quotes from default values that leaked through parsers.

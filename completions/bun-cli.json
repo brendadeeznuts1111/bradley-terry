@@ -1906,7 +1906,7 @@
     },
     "outdated": {
       "name": "outdated",
-      "description": "bun outdated v1.4.0-canary.1 (05895486d)",
+      "description": "bun outdated v1.4.0-canary.1 (44c0cc4a6)",
       "flags": [
         {
           "name": "config",
@@ -2878,7 +2878,7 @@
     },
     "publish": {
       "name": "publish",
-      "description": "bun publish v1.4.0-canary.1 (05895486d)",
+      "description": "bun publish v1.4.0-canary.1 (44c0cc4a6)",
       "flags": [
         {
           "name": "config",
@@ -5312,20 +5312,13 @@
     },
     {
       "name": "install",
+      "shortName": "i",
       "description": "Configure auto-install behavior. One of \"auto\" (default, auto-installs when no node_modules), \"fallback\" (missing packages only), \"force\" (always).",
       "hasValue": true,
       "valueType": "string",
       "choices": [
         "auto"
       ],
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "i",
-      "shortName": "i",
-      "description": "Auto-install dependencies during execution. Equivalent to --install=fallback.",
-      "hasValue": false,
       "required": false,
       "multiple": false
     },

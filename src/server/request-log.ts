@@ -8,7 +8,7 @@ export type RequestLogEntry = {
 	readonly clientIp: string;
 };
 
-import { envFlag, envNumber, envString } from "../env.js";
+import { envFlag } from "../env.js";
 
 export const isRequestLogEnabled = (): boolean => envFlag("REQUEST_LOG", true);
 
