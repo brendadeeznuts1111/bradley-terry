@@ -144,6 +144,12 @@ describe("Snapshot contracts", () => {
 			expect(inheritsGlobals("install")).toBe(true);
 			expect(inheritsGlobals("pm")).toBe(false);
 		});
+
+		test("parseMatrixHeader throws on malformed headers", () => {
+			expect(() =>
+				parseMatrixHeader("bad header"),
+			).toThrowErrorMatchingInlineSnapshot(`"Unable to parse matrix header: "`);
+		});
 	});
 
 	// ── 3. DYNAMIC_SOURCES.json snapshot ──────────────────────────

@@ -54,7 +54,10 @@ function zshFlagSpec(flag: FlagEntry, name: string): string {
 		spec += `:${flag.name}:(${flag.choices.map(escapeShell).join(" ")})'`;
 	} else if (flag.hasValue) {
 		spec = spec.slice(0, -1); // remove closing quote
-		spec += `:${flag.name}:'`;
+		const defaultHint = flag.defaultValue
+			? ` [default: ${escapeShell(flag.defaultValue)}]`
+			: "";
+		spec += `:${flag.name}${defaultHint}:'`;
 	}
 	return spec;
 }

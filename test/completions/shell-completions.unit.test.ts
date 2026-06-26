@@ -69,6 +69,26 @@ describe("Shell completion generator", () => {
 		);
 	});
 
+	test("zsh completions include default values in parameter hints when set", async () => {
+		const zsh = await Bun.file(`${SHELL_DIR}/bun.zsh`).text();
+		expect(zsh).toContain(":timeout [default: 5000]:");
+		expect(zsh).toContain(":bail [default: 1]:");
+		expect(zsh).toContain(":max-concurrency [default: 20]:");
+		expect(zsh).toMatch(/:coverage-dir\s+\[default:[^\]]+coverage[^\]]*\]:/);
+	});
+
+	test("zsh completions omit default hints when no default is set", async () => {
+		const zsh = await Bun.file(`${SHELL_DIR}/bun.zsh`).text();
+		// --target has choices but no default value; parameter hint should not contain [default: ...]
+		expect(zsh).toContain(
+			'--target[The intended execution environment for the bundle. "browser", "bun" or "node"]:target:(browser bun node)',
+		);
+		expect(zsh).not.toContain(":target [default:");
+		// --registry is a value flag without a default
+		expect(zsh).toContain(":registry:'");
+		expect(zsh).not.toMatch(/:registry\s+\[default:/);
+	});
+
 	test("fish completions contain subcommand and flag completions", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
 		expect(fish).toContain("complete -c bun -f");
