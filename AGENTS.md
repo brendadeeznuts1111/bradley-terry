@@ -41,6 +41,9 @@ Do **not** batch-add ~40 flags from `llms.txt` manually — run audit first; pro
 ```
 src/
   bradley-terry/     # Production MM fitter — BradleyTerry + BradleyTerryLive
+  data/              # massey-loader.ts — streaming Massey CSV
+  repository/        # sqlite-loader.ts — historical match DB (wager.db / Buckeye)
+  match-adapter.ts   # MatchRow → Match pipeline for library consumers
   secrets/           # SecretClient — namespace API, Bun/env/vault backends
   service/           # Effect layers: MasseyClient, RatingsDB, BTCompute, config
   server/            # Bun.serve handlers, logging, rate limits, ManagedRuntime
@@ -52,6 +55,18 @@ docs/
 tests/               # HTTP service, secrets TTL, rate limits, refresh integration
 test/                # Property tests, benchmarks, completion matrix
 ```
+
+## Library data paths
+
+Three ingestion paths — do not conflate the SQLite files:
+
+| Path | Source | Module chain |
+|------|--------|--------------|
+| Massey CSV | Local `.csv` file | `data/massey-loader.ts` → `MatchRow` |
+| Historical matches | External `wager.db` / Buckeye DB (`matches` table) | `SqliteLoader.initSchema` / `getMatches` / `countMatches` → `match-adapter.ts` → `Match` |
+| HTTP service | Massey JSON upstream | `MasseyClient` → `RatingsDB` (`massey_raw`, `bt_ratings`) |
+
+Cascade Mover integration lives in an external repository; consume via `BradleyTerry.predictWinProbability` and `FitResult.ratings`.
 
 ## Architecture (6 layers)
 

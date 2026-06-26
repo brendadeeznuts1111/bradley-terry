@@ -1,50 +1,57 @@
 # Merge playbook
 
-Historical guide for landing PRs #2–#4. **All merge work is complete** as of 2026-06-26.
+Guide for landing stacked PRs onto `main`.
 
-## Final status
+## Final status (2026-06-26)
+
+| PR | Branch | Status |
+|----|--------|--------|
+| **#10** | `cursor/completions-bunfig-regen-d821` | Merged → `main` (Bun 1.4.0 completions regen, bunfig settings) |
+| **#11** | `cursor/completions-llms-batch-d821` | Merged → `main` (docs/upstream audits, console-depth tests) |
+| **#13** | `cursor/preserving-work-backlog-884c` | Merged → `main` (SqliteLoader, doc drift guard, ARCHITECTURE sync) |
+| **#12** | `cursor/bradley-terry-docs-canvas-884c` | **Close manually** — net empty diff; canvas in IDE `canvases/` path |
+| **#3** | `cursor/setup-dev-environment-fae3` | **Close manually** — superseded by `AGENTS.md` on `main` |
+
+### Historical (prior stack)
 
 | PR | Branch | Status |
 |----|--------|--------|
 | **#2** | `feature/v0.3.2-testing` | Merged → `main` (v0.3.32 BT core) |
 | **#4** | `cursor/effect-architecture-docs-d821` | Merged → `main` (HTTP service, secrets, OpenAPI) |
 | **#5** | `cursor/request-logging-rate-limits-d821` | Merged → `main` (request logging, refresh rate limits) |
-| **#3** | `cursor/setup-dev-environment-fae3` | **Close manually** — superseded by `AGENTS.md` on `main` |
 
-Current `main` includes production Bradley-Terry MM fitter, Effect HTTP service, secrets layer, OpenAPI, structured request logs, and per-IP refresh rate limiting.
+Current `main` includes: production BT fitter, Effect HTTP service, Bun 1.4.0 completions pipeline, SqliteLoader library path, and doc drift tests.
+
+## Stacked merge order (2026-06-26)
+
+```
+main ──► PR #10 (completions bunfig regen)
+           │
+           └──► PR #11 (completions batch + upstream audit)
+                     │
+                     └──► PR #13 (SqliteLoader + preserving-work docs)
+```
+
+### Conflict resolution (#13 onto #11)
+
+| File | Resolution |
+|------|------------|
+| `AGENTS.md` | Completions pipeline (#11) + library data paths (#13) |
+| `README.md` | Test counts/completions (#11) + SQLite library section (#13) |
+| `package.json` | Audit scripts (#11) + `start:example:sqlite` (#13) |
 
 ## Verify on `main`
 
 ```bash
 bun install
-bun test                    # tests/ + test/
+bun test                    # 172 tests (requires Bun 1.4.0 for full check:full)
+bun run ci                  # test + lint
+bun run check:full          # completions drift + bench (Bun 1.4.0+)
 bun run start               # http://localhost:3000
+bun run examples/usage-sqlite.ts
 curl -s localhost:3000/openapi.json | jq .info.title
-curl -s -X POST localhost:3000/api/ratings/refresh  # rate-limited per IP
 ```
-
-## Historical merge order (reference)
-
-```
-main ──merge──► PR #2 (feature/v0.3.2-testing)
-                  │
-                  └──integrate──► PR #4 (effect-architecture)
-                                    │
-                                    └──► PR #5 (logging + rate limits)
-```
-
-### Conflict resolution (PR #4 onto #2)
-
-| File | Resolution |
-|------|------------|
-| `src/bradley-terry/index.ts` | Take #2 production MM fitter |
-| `src/secrets/*` | Take #4 SecretClient + backends |
-| `src/service/*`, `src/server/*` | Take #4 HTTP layer |
-| `package.json` | #2 scripts + #4 `start`, `secret`, `ci` |
-| `docs/ARCHITECTURE.md` | Keep #4 six-layer matrix |
-
-`BTCompute` imports `BradleyTerry` + `BradleyTerryLive` from #2 — no duplicate MLE.
 
 ## CI note
 
-GitHub Actions may show billing-lock failures unrelated to code. Validate locally with `bun test` before merging.
+GitHub Actions may show billing-lock failures unrelated to code. Validate locally with `bun test` on **Bun 1.4.0** before merging.
