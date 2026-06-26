@@ -19,12 +19,26 @@ export const MatchSchema = Schema.Struct({
 
 export type Match = Schema.Schema.Type<typeof MatchSchema>;
 
+export const MatchRowSchema = Schema.Struct({
+  home_team: Schema.String,
+  away_team: Schema.String,
+  winner_idx: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  loser_idx: Schema.optional(Schema.Number.pipe(Schema.int())),
+  date: Schema.optional(Schema.String),
+  y: Schema.optional(Schema.Number),
+  sport: Schema.optional(Schema.String),
+  league: Schema.optional(Schema.String),
+  match_id: Schema.optional(Schema.String),
+});
+
+export type MatchRow = Schema.Schema.Type<typeof MatchRowSchema>;
+
 export const BradleyTerryConfigSchema = Schema.Struct({
   maxIterations: Schema.Number.pipe(Schema.int(), Schema.positive()).pipe(
     Schema.optionalWith({ default: () => 150 })
   ),
   tolerance: Schema.Number.pipe(Schema.positive()).pipe(
-    Schema.optionalWith({ default: () => 1e-8 })
+    Schema.optionalWith({ default: () => 1e-6 })
   ),
   normalize: Schema.Boolean.pipe(
     Schema.optionalWith({ default: () => true })

@@ -4,8 +4,9 @@
   "version": "0.3.1",
   "type": "module",
   "scripts": {
-    "start": "bun run examples/usage-complete.ts",
-    "dev": "bun --watch examples/usage-complete.ts",
+    "start": "bun run src/server/index.ts",
+    "start:example": "bun run examples/usage-complete.ts",
+    "dev": "bun --watch src/server/index.ts",
     "test": "bun test",
     "lint": "bunx @biomejs/biome check ."
   },
