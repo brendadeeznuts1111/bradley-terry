@@ -23,9 +23,7 @@ import {
 	mkdtempSync,
 	realpathSync,
 	rmSync,
-	writeFileSync,
 } from "node:fs";
-import os from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "bun";
 
@@ -164,8 +162,8 @@ class DisposableTempDir extends String {
  * Returns a DisposableTempDir — use with `using` for auto-cleanup.
  */
 function createTempPackageDir(): DisposableTempDir {
-	const base = mkdtempSync(join(realpathSync(os.tmpdir()), "bun-completions-"));
-	writeFileSync(
+	const base = mkdtempSync(join(realpathSync(Bun.env["TMPDIR"] || "/tmp"), "bun-completions-"));
+	Bun.write(
 		join(base, "package.json"),
 		JSON.stringify({ name: "test", version: "1.0.0", scripts: {} }),
 	);
@@ -1740,7 +1738,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 		}
 
 		const jsonData = JSON.stringify(completionData, null, 2);
-		writeFileSync(cliArgs.outputPath, jsonData, "utf8");
+		Bun.write(cliArgs.outputPath, jsonData);
 		console.log(`✅ Generated CLI completion data at: ${cliArgs.outputPath}`);
 	} else {
 		console.log(`⏭️  Dry-run — skipping file write`);
