@@ -36,6 +36,16 @@ function flagNames(flag: FlagEntry): string[] {
 	return names;
 }
 
+function bashFlagWords(flag: FlagEntry): string[] {
+	const words = flagNames(flag);
+	if (flag.choices?.length) {
+		for (const choice of flag.choices) {
+			words.push(`--${flag.name}=${choice}`);
+		}
+	}
+	return words;
+}
+
 function zshFlagSpec(flag: FlagEntry, name: string): string {
 	const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
 	let spec = `'${name}[${desc}]'`;
@@ -70,7 +80,7 @@ function fishDynamicCompletion(type: string): string | undefined {
 
 function generateBash(): string {
 	const commandNames = commands.map(([name]) => name).join(" ");
-	const globalFlags = data.globalFlags.flatMap(flagNames).join(" ");
+	const globalFlags = data.globalFlags.flatMap(bashFlagWords).join(" ");
 
 	let script = `#!/usr/bin/env bash
 # Bun CLI bash completions (generated from completions/bun-cli.json)
@@ -100,7 +110,7 @@ _bun() {
 `;
 
 	for (const [name, cmd] of commands) {
-		const flags = cmd.flags.flatMap(flagNames).join(" ");
+		const flags = cmd.flags.flatMap(bashFlagWords).join(" ");
 		script += `\t\t${name})\n`;
 		script += `\t\t\tcmd_flags="${escapeShell(flags)}"\n`;
 		script += `\t\t\t;;\n`;
@@ -112,7 +122,7 @@ _bun() {
 	return 0
 }
 
-complete -F _bun bun
+complete -F _bun -o default bun
 `;
 	return script;
 }

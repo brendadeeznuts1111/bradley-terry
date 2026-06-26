@@ -34,11 +34,20 @@ describe("Shell completion generator", () => {
 	test("bash completions contain core commands and flags", async () => {
 		const bash = await Bun.file(`${SHELL_DIR}/bun.bash`).text();
 		expect(bash).toContain("_bun()");
-		expect(bash).toContain("complete -F _bun bun");
+		expect(bash).toContain("complete -F _bun -o default bun");
 		expect(bash).toContain("run");
 		expect(bash).toContain("test");
 		expect(bash).toContain("install");
 		expect(bash).toContain("--help");
+	});
+
+	test("bash completions include choice values as --flag=value entries", async () => {
+		const bash = await Bun.file(`${SHELL_DIR}/bun.bash`).text();
+		expect(bash).toContain("--target=browser");
+		expect(bash).toContain("--target=bun");
+		expect(bash).toContain("--target=node");
+		expect(bash).toContain("--backend=clonefile");
+		expect(bash).toContain("--linker=isolated");
 	});
 
 	test("zsh completions contain compdef and command descriptions", async () => {
