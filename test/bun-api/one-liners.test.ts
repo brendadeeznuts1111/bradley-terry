@@ -35,10 +35,10 @@ function validateOneLiners(raw: unknown): OneLiner[] {
 		if (!entry || typeof entry !== "object")
 			throw new Error(`one-liner[${i}] not an object`);
 		const e = entry as Record<string, unknown>;
-		if (typeof e.name !== "string")
-			throw new Error(`one-liner[${i}].name missing`);
-		if (typeof e.command !== "string")
-			throw new Error(`one-liner[${i}].command missing`);
+		const name = e.name;
+		const command = e.command;
+		if (typeof name !== "string") throw new Error(`one-liner[${i}].name missing`);
+		if (typeof command !== "string") throw new Error(`one-liner[${i}].command missing`);
 		if (!e.expect || typeof e.expect !== "object")
 			throw new Error(`one-liner[${i}].expect missing`);
 		const expect: Record<string, string> = {};
@@ -47,15 +47,17 @@ function validateOneLiners(raw: unknown): OneLiner[] {
 				throw new Error(`one-liner[${i}].expect.${k} not a string`);
 			expect[k] = v;
 		}
-		return {
-			name: e.name as string,
-			command: e.command as string,
-			expect,
-			...(typeof e.spawnFlags !== "undefined"
-				? { spawnFlags: e.spawnFlags as string[] }
-				: {}),
-			...(typeof e.stdin !== "undefined" ? { stdin: e.stdin as string } : {}),
-		};
+		const entryResult: OneLiner = { name, command, expect };
+		if (e.stdin !== undefined && e.stdin !== null) {
+			if (typeof e.stdin !== "string") throw new Error(`one-liner[${i}].stdin not a string`);
+			entryResult.stdin = e.stdin;
+		}
+		if (e.spawnFlags !== undefined && e.spawnFlags !== null) {
+			if (!Array.isArray(e.spawnFlags) || !e.spawnFlags.every((f: unknown) => typeof f === "string"))
+				throw new Error(`one-liner[${i}].spawnFlags not string[]`);
+			entryResult.spawnFlags = e.spawnFlags;
+		}
+		return entryResult;
 	});
 }
 
