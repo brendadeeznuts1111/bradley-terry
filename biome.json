@@ -1,0 +1,10 @@
+{
+	"files": {
+		"includes": ["**", "!.devin", "!.reasonix", "!completions"]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 80
+	}
+}

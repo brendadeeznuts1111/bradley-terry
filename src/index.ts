@@ -1,7 +1,5 @@
-// Central barrel export fixing all references
-export * from './bradley-terry';
-export * from './schema';
-export * from './repository/index';
-export * from './integrations/cascade-mover';
-export * from './data/massey-importer';
-// All paths standardized
+// Central barrel export for the public API
+export * from "./bradley-terry";
+export * from "./data/massey-loader";
+export * from "./match-adapter";
+export * from "./schema";
