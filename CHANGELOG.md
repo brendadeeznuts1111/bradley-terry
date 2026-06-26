@@ -11,6 +11,7 @@
 - Bun macros for embedding git commit hash in bench output
 - **Bun CLI completion matrix pipeline** — generate `completions/bun-cli.json`,
   `COMPLETION_MATRIX.md`, and `DYNAMIC_SOURCES.json` with drift checks
+- **Shell completions** — generate bash/zsh/fish scripts from `bun-cli.json`
 - **Snapshot contracts** for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, and
   `COMPLETION_MATRIX.md` header format
 - **Bun-native API coverage** in tests: `Bun.semver` version gate, `Bun.markdown`
