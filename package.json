@@ -20,9 +20,11 @@
 		"check:completions": "bun run scripts/check-completion-drift.ts",
 		"cookbook": "bun test test/bun-api/one-liners.test.ts",
 		"check:fast": "bun run check:completions && bun run lint",
+		"check:types": "tsc --noEmit 2>&1 | grep -v \"TS2339:\" | grep -v \"node_modules\" | grep -q \"^[a-z]\" && exit 1 || exit 0",
+		"check:gates": "bun run check:types && bun test",
 		"update-readme-test-counts": "bun run scripts/update-readme-test-counts.ts",
 		"api-docs": "bun run scripts/api-docs.ts",
-		"check:full": "bun run check:fast && bun run update-readme-test-counts && bun run bench"
+		"check:full": "bun run check:gates && bun run check:completions && bun run lint && bun run update-readme-test-counts && bun run bench"
 	},
 	"dependencies": {
 		"effect": "3.21.4",
