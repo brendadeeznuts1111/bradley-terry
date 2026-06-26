@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
+import { Effect } from "effect";
 import {
 	type CompletionData,
 	classifyFlag,
@@ -12,6 +13,12 @@ import {
 	inheritsGlobals,
 	makeTable,
 } from "../src/completions/completion-matrix";
+import {
+	EnvSecretsLive,
+	SecretClient,
+	SecretError,
+	VaultSecretsLive,
+} from "../src/secrets";
 
 // ============================================
 // Mock fixture
@@ -671,5 +678,48 @@ describe("Bun native API verification", () => {
 		expect(fn.mock.calls).toHaveLength(2);
 		expect(fn.mock.calls[0]).toEqual([3]);
 		expect(fn.mock.calls[1]).toEqual([5]);
+	});
+
+	test("SecretClient EnvSecretsLive resolves env vars", async () => {
+		const key = "SECRETCLIENT_TEST_API_KEY";
+		Bun.env[key] = "test-api-key-123";
+		try {
+			const result = await Effect.runPromise(
+				Effect.gen(function* () {
+					const client = yield* SecretClient;
+					return yield* client.get("secretclient-test", "api-key");
+				}).pipe(Effect.provide(EnvSecretsLive)),
+			);
+			expect(result).toBe("test-api-key-123");
+		} finally {
+			delete Bun.env[key];
+		}
+	});
+
+	test("SecretClient EnvSecretsLive fails on missing key", async () => {
+		const result = await Effect.runPromise(
+			Effect.gen(function* () {
+				const client = yield* SecretClient;
+				return yield* client.get("nonexistent", "missing-key");
+			}).pipe(
+				Effect.provide(EnvSecretsLive),
+				Effect.catchTag("SecretError", (e) => Effect.succeed(e as SecretError)),
+			),
+		);
+		expect(result).toBeInstanceOf(SecretError);
+		expect((result as SecretError).service).toBe("nonexistent");
+	});
+
+	test("SecretClient VaultSecretsLive is a stub that fails", async () => {
+		const result = await Effect.runPromise(
+			Effect.gen(function* () {
+				const client = yield* SecretClient;
+				return yield* client.get("prod", "db-password");
+			}).pipe(
+				Effect.provide(VaultSecretsLive),
+				Effect.catchTag("SecretError", (e) => Effect.succeed(e as SecretError)),
+			),
+		);
+		expect(result).toBeInstanceOf(SecretError);
 	});
 });

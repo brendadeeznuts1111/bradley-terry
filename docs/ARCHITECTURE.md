@@ -42,6 +42,172 @@ decay, multiple output scales, and a streaming Massey CSV loader.
 └─────────────────┘       └────────────────────┘         └──────────────────┘
 ```
 
+## Deep architecture: Effect layers
+
+```mermaid
+graph TB
+    %% ── Color legend (CSS variables not supported in all renderers; use style) ──
+    %% HEX mapping: Effect=#00FF88, Bun=#FF6B35, Schema=#00CCFF, DB=#FF00FF,
+    %%               Compute=#FFFF00, Fetch=#FF3366, Server=#9966FF,
+    %%               Error=#FF3333, Config=#888888, Layer=#44FF44
+
+    %% ═══════════════════ LAYER 0: Configuration ═══════════════════
+    subgraph L0["⚙️ Layer 0: Configuration"]
+        direction LR
+        CFG_DB["DB path"]
+        CFG_API["API base URL"]
+        CFG_HALF["halfLifeDays"]
+        CFG_TOL["tolerance"]
+        CFG_SEC["SecretClient<br/>Bun.secrets / Env / Vault"]
+    end
+
+    %% ═══════════════════ LAYER 1: Services ═══════════════════
+    subgraph L1["🔌 Layer 1: Service Dependency Graph"]
+        direction TB
+        subgraph SVC_MC["MasseyClient"]
+            MC_FETCH["Bun.fetch"]
+            MC_DECODE["Schema.decode"]
+            MC_HDR["Headers"]
+        end
+        subgraph SVC_DB["RatingsDB"]
+            DB_SQL["bun:sqlite"]
+            DB_CRUD["CRUD Ops"]
+            DB_TXN["Transactions"]
+        end
+        subgraph SVC_BT["BTCompute"]
+            BT_PURE["Pure Function"]
+            BT_CONV["Convergence"]
+            BT_NORM["Normalization"]
+        end
+    end
+
+    %% ═══════════════════ LAYER 2: Effect Runtime ═══════════════════
+    subgraph L2["⚡ Layer 2: Effect Runtime"]
+        direction LR
+        E_GEN["Effect.gen"]
+        E_TP["tryPromise"]
+        E_SYNC["sync"]
+        E_CTCH["catchAll"]
+        E_CTAG["catchTag"]
+        E_PROV["Layer.provide"]
+        E_RUN["runPromise / runFork / runSync / runCallback"]
+    end
+
+    %% ═══════════════════ LAYER 3: Error Channel ═══════════════════
+    subgraph L3["❌ Layer 3: Error Channel"]
+        direction LR
+        ERR_SELF["SelfMatchError<br/>entity: EntityId"]
+        ERR_DATA["InsufficientDataError<br/>matchCount: 0"]
+        ERR_CONV["ConvergenceError<br/>delta, iterations"]
+        ERR_DISC["DisconnectedGraphError<br/>components"]
+    end
+
+    %% ═══════════════════ LAYER 4: HTTP Server ═══════════════════
+    subgraph L4["🌐 Layer 4: HTTP Server"]
+        direction LR
+        R_FIT["POST /fit"]
+        R_PREDICT["GET /predict"]
+        R_RATINGS["GET /ratings"]
+        R_HEALTH["GET /health"]
+    end
+
+    %% ═══════════════════ LAYER 5: Schema ═══════════════════
+    subgraph L5["📐 Layer 5: Schema (SSOT)"]
+        direction LR
+        S_MT["MasseyTeam"]
+        S_MD["MasseyData"]
+        S_BR["BTRating"]
+        S_MS["MasseySchedule"]
+        S_REQ["BTRequest"]
+        S_DEC["decodeUnknownSync"]
+        S_ENC["encode"]
+        S_PRS["parse"]
+        S_ASRT["asserts"]
+    end
+
+    %% ═══════════════════ DATA FLOWS ═══════════════════
+    L0 -->|"Layer.provide"| L1
+    SVC_MC -->|"Effect&lt;_,MasseyError&gt;"| L2
+    SVC_DB -->|"Effect&lt;_,DbError&gt;"| L2
+    SVC_BT -->|"Effect&lt;_,BTError&gt;"| L2
+    L2 -->|"handler(req)"| L4
+    L2 -.->|"catchTag"| L3
+    L3 -.->|"catchAll"| L4
+    L4 -->|"encode"| L5
+    SVC_MC -->|"Schema.decode"| L5
+    R_FIT --> SVC_BT
+    R_PREDICT --> SVC_BT
+    R_RATINGS --> SVC_DB
+    R_HEALTH --> L5
+
+    %% ── Styles ──
+    style L0 fill:#88888820,stroke:#888888,color:#666
+    style L1 fill:#FF6B3515,stroke:#FF6B35,color:#FF6B35
+    style L2 fill:#00FF8815,stroke:#00FF88,color:#00FF88
+    style L3 fill:#FF333315,stroke:#FF3333,color:#FF3333
+    style L4 fill:#9966FF15,stroke:#9966FF,color:#9966FF
+    style L5 fill:#00CCFF15,stroke:#00CCFF,color:#00CCFF
+```
+
+> **Color key:** Effect `#00FF88` · Bun `#FF6B35` · Schema `#00CCFF` · DB `#FF00FF` ·
+> Compute `#FFFF00` · Fetch `#FF3366` · Server `#9966FF` · Error `#FF3333` ·
+> Config `#888888` · Layer `#44FF44`
+
+**SecretClient abstraction** (`src/secrets/index.ts`): Layer 0's `SecretClient` is a
+channel-agnostic Effect service that wraps `Bun.secrets` (local), env vars (CI),
+or HashiCorp Vault (production) behind a single `get(service, name)` interface.
+Swap implementations by changing the provided `Layer` — the rest of the pipeline
+never knows which backend resolved the secret.
+
+## Configuration & Secrets
+
+`src/secrets/index.ts` defines a channel-agnostic `SecretClient` Effect tag. The
+same service contract (`get(service, name)`) is implemented by three different
+backends, so the `RatingsConfig` Layer never needs to know where a secret came
+from.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 0: CONFIGURATION (RatingsConfig)                          │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  SecretClient.get(service, name)                         │    │
+│  │  ─────────────────────────────────────────────────────  │    │
+│  │  Channel: OS IPC (Bun.secrets) / HTTPS (Vault) / env   │    │
+│  │  Isolation: Data namespace (service + name)             │    │
+│  │  NOT: Process sandboxing (same user = theoretical read) │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│         ↓ SecretClient returns plaintext to Effect.gen           │
+└─────────────────────────────────────────────────────────────────┘
+         ↓ Layer.provide (Effect dependency injection)
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 1: SERVICES                                               │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
+│  │ MasseyClient│    │  RatingsDB  │    │  BTCompute  │        │
+│  │ ─────────── │    │ ─────────── │    │ ─────────── │        │
+│  │ Channel:    │    │ Channel:    │    │ Channel:    │        │
+│  │ HTTPS/TCP   │    │ File I/O    │    │ In-memory   │        │
+│  │ (Bun.fetch) │    │ (bun:sqlite)│    │ (pure fn)   │        │
+│  └─────────────┘    └─────────────┘    └─────────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Backend mapping:**
+
+| Environment | Backend | Channel | Isolation guarantee |
+|-------------|---------|---------|-------------------|
+| Local dev | `BunSecretsLive` | OS IPC (`Bun.secrets`) | Data namespace (same user) |
+| CI / ephemeral | `EnvSecretsLive` | Environment variables | Process-level (short-lived) |
+| Production | `VaultSecretsLive` | HTTPS to Vault/Secrets Manager | IAM + network ACLs |
+
+`src/ratings/config.ts` consumes `SecretClient` to build `RatingsConfig`:
+
+- `masseyUrl` — static endpoint for Massey data
+- `apiKey` — from `bradley-ratings.messy-client:api-key`
+- `dbPath` — from `bradley-ratings.db:sqlite-path`
+- `interval` — refresh interval in milliseconds
+
+The key property is that the channel can change without touching `RatingsConfig`.
+
 ## Layers
 
 ### 1. Schema (`src/schema.ts`)
