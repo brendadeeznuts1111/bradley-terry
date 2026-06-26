@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { Effect } from "effect";
 import { BradleyTerry, BradleyTerryLive } from "../src/bradley-terry/index.js";
 import type { EntityId, Match } from "../src/schema.js";
-import { handleHealth } from "../src/server/handlers.js";
+import { handleHealth, handleReady } from "../src/server/handlers.js";
 import { disposeAppRuntime } from "../src/server/runtime.js";
 import { AppLive, RatingsDB } from "../src/service/index.js";
 
@@ -115,12 +115,20 @@ describe("RatingsDB", () => {
 });
 
 describe("HTTP handlers", () => {
-	it("GET /health returns ok with checks", async () => {
+	it("GET /health returns liveness payload", async () => {
 		const res = await handleHealth();
 		expect(res.status).toBe(200);
 		const body = await res.json();
 		expect(body.status).toBe("ok");
-		expect(body.version).toBeDefined();
+		expect(body.appVersion).toBeDefined();
+		expect(body.runtimeVersion).toBeDefined();
+	});
+
+	it("GET /ready returns dependency checks", async () => {
+		const res = await handleReady();
+		expect([200, 503]).toContain(res.status);
+		const body = await res.json();
 		expect(body.checks.db).toBeDefined();
+		expect(["ready", "not_ready"]).toContain(body.status);
 	});
 });

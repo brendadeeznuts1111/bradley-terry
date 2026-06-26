@@ -53,6 +53,27 @@ export const HealthChecksSchema = Schema.Struct({
 
 export type HealthChecks = Schema.Schema.Type<typeof HealthChecksSchema>;
 
+/** Liveness — process is up (always 200). */
+export const LivenessResponseSchema = Schema.Struct({
+	status: Schema.Literal("ok"),
+	appVersion: Schema.String,
+	runtimeVersion: Schema.String,
+	commit: Schema.String,
+	timestamp: Schema.Number,
+});
+
+export type LivenessResponse = Schema.Schema.Type<typeof LivenessResponseSchema>;
+
+/** Readiness — dependencies healthy (200 or 503). */
+export const ReadinessResponseSchema = Schema.Struct({
+	status: Schema.Literal("ready", "not_ready"),
+	checks: HealthChecksSchema,
+	timestamp: Schema.Number,
+});
+
+export type ReadinessResponse = Schema.Schema.Type<typeof ReadinessResponseSchema>;
+
+/** @deprecated Use LivenessResponseSchema — kept for OpenAPI migration */
 export const HealthResponseSchema = Schema.Struct({
 	status: Schema.Literal("ok"),
 	version: Schema.String,

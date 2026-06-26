@@ -10,23 +10,38 @@ All JSON responses use `Content-Type: application/json`. CORS is enabled (`CORS_
 
 ### `GET /health`
 
-Liveness + dependency checks.
-
-**Response 200**
+**Liveness** — process is running. Always returns `200`.
 
 ```json
 {
   "status": "ok",
-  "version": "1.3.14",
-  "timestamp": 1719398400000,
+  "appVersion": "0.3.33",
+  "runtimeVersion": "1.4.0",
+  "commit": "c1ef070",
+  "timestamp": 1719398400000
+}
+```
+
+### `GET /ready`
+
+**Readiness** — dependency checks (SQLite). Returns `503` when not ready.
+
+```json
+{
+  "status": "ready",
   "checks": {
     "db": "ok",
     "secretsBackend": "auto",
     "lastUpdated": "2024-06-26T12:00:00.000Z",
     "teamCount": 32
-  }
+  },
+  "timestamp": 1719398400000
 }
 ```
+
+### `GET /metrics`
+
+Prometheus text exposition format (request/refresh counters).
 
 ### `GET /api/ratings/bt`
 
@@ -93,6 +108,8 @@ Structured errors use `{ "error": "<Tag>", "message": "..." }`.
 | 502 | `MasseyFetchError` | Upstream fetch failed |
 | 503 | `SecretError` | Secret not found |
 | 429 | `RateLimitExceeded` | Too many `POST /api/ratings/refresh` from same IP |
+| 409 | `RefreshInProgress` | Concurrent refresh already running |
+| 401 | `Unauthorized` | Missing/invalid `REFRESH_TOKEN` |
 
 ## Request logging
 

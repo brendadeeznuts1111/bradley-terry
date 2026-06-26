@@ -1,5 +1,7 @@
 export const ROUTE_METHODS: Readonly<Record<string, readonly string[]>> = {
 	"/health": ["GET"],
+	"/ready": ["GET"],
+	"/metrics": ["GET"],
 	"/openapi.json": ["GET"],
 	"/openapi.yaml": ["GET"],
 	"/api/ratings/bt": ["GET"],
@@ -45,4 +47,22 @@ export const rateLimitResponse = (retryAfterSeconds: number) =>
 				"Retry-After": String(retryAfterSeconds),
 			},
 		},
+	);
+
+export const conflictResponse = () =>
+	new Response(
+		JSON.stringify({
+			error: "RefreshInProgress",
+			message: "A ratings refresh is already in progress",
+		}),
+		{ status: 409, headers: jsonHeaders() },
+	);
+
+export const unauthorizedResponse = () =>
+	new Response(
+		JSON.stringify({
+			error: "Unauthorized",
+			message: "Valid REFRESH_TOKEN required (Bearer or X-Refresh-Token header)",
+		}),
+		{ status: 401, headers: jsonHeaders() },
 	);

@@ -123,28 +123,31 @@ export const RatingsDBLive = Layer.scoped(
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 					);
 					const updatedAt = new Date().toISOString();
-					for (const r of ratings) {
-						upsert.run(
-							r.teamID,
-							r.teamName,
-							r.rating,
-							r.confidence,
-							r.rank,
-							sport,
-							season,
-							updatedAt,
-						);
-						history.run(
-							r.teamID,
-							r.teamName,
-							r.rating,
-							r.confidence,
-							r.rank,
-							sport,
-							season,
-							updatedAt,
-						);
-					}
+
+					db.transaction(() => {
+						for (const r of ratings) {
+							upsert.run(
+								r.teamID,
+								r.teamName,
+								r.rating,
+								r.confidence,
+								r.rank,
+								sport,
+								season,
+								updatedAt,
+							);
+							history.run(
+								r.teamID,
+								r.teamName,
+								r.rating,
+								r.confidence,
+								r.rank,
+								sport,
+								season,
+								updatedAt,
+							);
+						}
+					})();
 				},
 				catch: (cause) => new DBError({ cause, operation: "storeBT" }),
 			});

@@ -1,5 +1,6 @@
 export type RequestLogEntry = {
 	readonly ts: string;
+	readonly requestId: string;
 	readonly method: string;
 	readonly path: string;
 	readonly status: number;
@@ -24,6 +25,17 @@ export const clientIp = (req: Request): string => {
 	return "unknown";
 };
 
+export const requestId = (req: Request): string => {
+	const incoming = req.headers.get("x-request-id")?.trim();
+	return incoming && incoming.length > 0 ? incoming : crypto.randomUUID();
+};
+
+export const withRequestIdHeader = (res: Response, id: string): Response => {
+	const headers = new Headers(res.headers);
+	headers.set("X-Request-Id", id);
+	return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+};
+
 export const formatRequestLog = (entry: RequestLogEntry): string => JSON.stringify(entry);
 
 export const logRequest = (entry: RequestLogEntry): void => {
@@ -37,12 +49,14 @@ export const withRequestLog = async (
 	handler: () => Promise<Response>,
 ): Promise<Response> => {
 	const url = new URL(req.url);
+	const id = requestId(req);
 	const started = performance.now();
-	const res = await handler();
+	const res = withRequestIdHeader(await handler(), id);
 	const durationMs = Math.round((performance.now() - started) * 100) / 100;
 
 	logRequest({
 		ts: new Date().toISOString(),
+		requestId: id,
 		method: req.method,
 		path: url.pathname,
 		status: res.status,
