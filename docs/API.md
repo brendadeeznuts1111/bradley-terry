@@ -17,6 +17,7 @@ All JSON responses use `Content-Type: application/json`. CORS is enabled (`CORS_
   "status": "ok",
   "appVersion": "0.3.33",
   "runtimeVersion": "1.4.0",
+  "runtimeRevision": "f02561530fda1ee9396f51c8bc99b38716e38296",
   "commit": "c1ef070",
   "timestamp": 1719398400000
 }

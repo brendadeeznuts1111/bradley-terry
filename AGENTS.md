@@ -82,4 +82,4 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 - Call `Effect.provide(AppLive)` per HTTP request — use `getAppRuntime()`
 - Add duplicate BT MLE — use `BradleyTerry` + `BradleyTerryLive` from `src/bradley-terry/`
 
-See [docs/MERGE.md](docs/MERGE.md) for completed PR merge history.
+See [docs/BUN_RUNTIME.md](docs/BUN_RUNTIME.md) for Bun API mapping ([bun.com/docs/runtime](https://bun.com/docs/runtime)).

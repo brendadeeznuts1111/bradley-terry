@@ -1,6 +1,4 @@
-import { join } from "node:path";
-
-const openApiYamlPath = join(import.meta.dir, "../../docs/openapi.yaml");
+const openApiYamlFile = Bun.file(new URL("../../docs/openapi.yaml", import.meta.url));
 
 /** OpenAPI 3.1 document aligned with `docs/openapi.yaml` and `src/service/schemas.ts`. */
 export const openApiDocument = {
@@ -241,7 +239,7 @@ let cachedYaml: string | undefined;
 
 export const getOpenApiYaml = async (): Promise<string> => {
 	if (cachedYaml === undefined) {
-		cachedYaml = await Bun.file(openApiYamlPath).text();
+		cachedYaml = await openApiYamlFile.text();
 	}
 	return cachedYaml;
 };

@@ -1,3 +1,5 @@
+import { envNumber } from "../env.js";
+
 export type RateLimitConfig = {
 	readonly limit: number;
 	readonly windowMs: number;
@@ -16,8 +18,8 @@ type Bucket = {
 const buckets = new Map<string, Bucket>();
 
 export const parseRateLimitConfig = (): RateLimitConfig | null => {
-	const limit = Number(process.env.REFRESH_RATE_LIMIT ?? "5");
-	const windowSeconds = Number(process.env.REFRESH_RATE_WINDOW ?? "60");
+	const limit = envNumber("REFRESH_RATE_LIMIT", 5);
+	const windowSeconds = envNumber("REFRESH_RATE_WINDOW", 60);
 
 	if (!Number.isFinite(limit) || limit <= 0) return null;
 	if (!Number.isFinite(windowSeconds) || windowSeconds <= 0) return null;
