@@ -915,4 +915,45 @@ describe("Bun native API verification", () => {
 		await proc.exited;
 		expect(proc.killed).toBe(true);
 	});
+
+	test("performance.now returns monotonically increasing timestamps", () => {
+		const a = performance.now();
+		const b = performance.now();
+		expect(b).toBeGreaterThanOrEqual(a);
+		expect(typeof a).toBe("number");
+	});
+
+	test("CustomEvent dispatches on an EventTarget", () => {
+		const target = new EventTarget();
+		let detail: unknown = null;
+		target.addEventListener("test", (e) => {
+			detail = (e as CustomEvent).detail;
+		});
+		target.dispatchEvent(new CustomEvent("test", { detail: { ok: true } }));
+		expect(detail).toEqual({ ok: true });
+	});
+
+	test("Bun.serve starts and stops on an ephemeral port", async () => {
+		const server = Bun.serve({
+			port: 0,
+			fetch: (req) => {
+				const url = new URL(req.url);
+				if (url.pathname === "/health") {
+					return new Response("ok");
+				}
+				return new Response("not found", { status: 404 });
+			},
+		});
+
+		expect(typeof server.port).toBe("number");
+		expect(server.port).toBeGreaterThan(0);
+		expect(server.stop).toBeInstanceOf(Function);
+
+		const response = await fetch(`http://localhost:${server.port}/health`);
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("ok");
+
+		server.stop();
+		expect(server.port).toBe(0);
+	});
 });

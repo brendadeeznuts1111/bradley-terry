@@ -452,6 +452,23 @@ leverages Bun's performance-optimized primitives.
 |-----|-------|
 | `Bun.markdown.html(md, opts)` | Validate markdown structure (not used in production output) |
 
+### Web APIs (globals)
+| API | Usage |
+|-----|-------|
+| `performance.now()` | High-resolution monotonic timestamps |
+| `CustomEvent` / `EventTarget` | Web-standard event dispatching |
+| `DOMException` | Web API error type |
+| `alert` / `confirm` / `prompt` | CLI interactive dialogs (blocking) |
+| `ShadowRealm` | Sandboxed JS evaluation (Stage 3) |
+
+### Bun Runtime
+| API | Usage |
+|-----|-------|
+| `--watch` / `--hot` | Auto-restart on file change |
+| `--smol` | Reduced memory heap size |
+| `Bun.env` / `process.env` | Auto-loaded .env with variable expansion |
+| `Bun.Archive` (≥1.4.0) | Create/extract tar.gz archives |
+
 ## References
 
 - Hunter, D. R. (2004). *MM algorithms for generalized Bradley-Terry models.*
