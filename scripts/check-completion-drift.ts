@@ -19,6 +19,15 @@ const jsonData = JSON.parse(rawJson);
 
 let failed = false;
 
+// Check 0: Running Bun version meets the pipeline minimum
+const MIN_BUN_VERSION = "1.4.0";
+if (!Bun.semver.satisfies(Bun.version, `>=${MIN_BUN_VERSION}`)) {
+	console.error(
+		`❌ Bun version drift: running Bun ${Bun.version} is older than required ${MIN_BUN_VERSION}`,
+	);
+	failed = true;
+}
+
 // Check 1: Matrix contains current JSON hash
 if (!matrixContent.includes(jsonHash)) {
 	console.error(

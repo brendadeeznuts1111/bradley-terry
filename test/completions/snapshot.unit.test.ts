@@ -284,5 +284,15 @@ describe("Snapshot contracts", () => {
 			expect(header.schema).toBe(dynamicSources.schema);
 			expect(header.schema).toBe("1.1.0");
 		});
+
+		test("running Bun version is at least the artifact bunVersion", async () => {
+			const raw = await Bun.file(DYNAMIC_SOURCES_PATH).text();
+			const dynamicSources = JSON.parse(raw);
+
+			// semver.order throws on invalid versions, validating the format
+			expect(
+				Bun.semver.order(Bun.version, dynamicSources.bunVersion),
+			).toBeGreaterThanOrEqual(0);
+		});
 	});
 });
