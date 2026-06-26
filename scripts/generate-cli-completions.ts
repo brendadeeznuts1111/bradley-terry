@@ -1387,6 +1387,8 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun test --test-name-pattern addition",
 			"bun test --timeout 20",
 			"bun test --concurrent",
+			"bun test --dots",
+			"bun test --preload ./test-setup.ts",
 			"bun test --reporter=junit --reporter-outfile=./bun.xml",
 		],
 		build: [

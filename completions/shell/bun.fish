@@ -112,8 +112,8 @@ complete -c bun -l cwd -r -d 'Absolute path to resolve files & entry points from
 complete -c bun -s c -l config -r -d 'Specify path to Bun config file. Default $cwd/bunfig.toml'
 complete -c bun -s h -l help -d 'Display this menu and exit'
 
+complete -c bun -n '__fish_seen_subcommand_from run' -a '(bun getcompletes files)' -d 'file'
 complete -c bun -n '__fish_seen_subcommand_from run' -a '(bun getcompletes scripts)' -d 'Script'
-complete -c bun -n '__fish_seen_subcommand_from run' -a '(bun getcompletes files)' -d 'File'
 complete -c bun -n '__fish_seen_subcommand_from run' -a '(bun getcompletes binaries)' -d 'Binary'
 complete -c bun -n '__fish_seen_subcommand_from test' -l no-orphans -d 'Exit when the parent process dies, and on exit SIGKILL every descendant. Linux/macOS only.'
 complete -c bun -n '__fish_seen_subcommand_from test' -l timeout -r -d 'Set the per-test timeout in milliseconds, default is 5000.'
@@ -143,7 +143,7 @@ complete -c bun -n '__fish_seen_subcommand_from test' -l parallel -r -d 'Run tes
 complete -c bun -n '__fish_seen_subcommand_from test' -l parallel-delay -r -d 'Milliseconds the first --parallel worker must be busy before spawning the rest. 0 spawns all immediately. Default 5.'
 complete -c bun -n '__fish_seen_subcommand_from test' -l test-worker -d '(internal) Run as a --parallel worker, receiving files over IPC.'
 complete -c bun -n '__fish_seen_subcommand_from test' -l shard -r -d 'Run a subset of test files, e.g. '\''--shard=1/3'\'' runs the first of three shards. Useful for splitting tests across multiple CI jobs.'
-complete -c bun -n '__fish_seen_subcommand_from test' -a '(bun getcompletes files)' -d 'File'
+complete -c bun -n '__fish_seen_subcommand_from test' -a '(bun getcompletes files)' -d 'patterns'
 complete -c bun -n '__fish_seen_subcommand_from x' -l bun -d 'Force the command to run with Bun instead of Node.js'
 complete -c bun -n '__fish_seen_subcommand_from x' -s p -l package -d '<package>    Specify package to install when binary name differs from package name'
 complete -c bun -n '__fish_seen_subcommand_from x' -l no-install -d 'Skip installation if package is not already installed'

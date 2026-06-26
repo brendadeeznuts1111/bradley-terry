@@ -68,6 +68,8 @@ function fishDynamicCompletion(type: string): string | undefined {
 		case "binary":
 			return "(bun getcompletes binaries)";
 		case "file":
+		case "javascript_files":
+		case "test_files":
 			return "(bun getcompletes files)";
 		case "directory":
 			return "(__fish_complete_directories)";

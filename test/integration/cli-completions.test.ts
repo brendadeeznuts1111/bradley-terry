@@ -210,6 +210,10 @@ describe("cli-completions generator", () => {
 		expect(data.commands.run.examples).toContain("bun run index.js");
 		expect(data.commands.run.examples).toContain("bun run --bun vite");
 		expect(data.commands.test.examples).toContain("bun test --timeout 20");
+		expect(data.commands.test.examples).toContain("bun test --dots");
+		expect(data.commands.test.examples).toContain(
+			"bun test --preload ./test-setup.ts",
+		);
 		expect(data.commands.build.examples).toContain(
 			"bun build ./index.tsx --outdir ./out",
 		);
