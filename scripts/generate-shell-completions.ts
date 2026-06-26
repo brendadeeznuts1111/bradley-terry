@@ -36,6 +36,25 @@ function flagNames(flag: FlagEntry): string[] {
 	return names;
 }
 
+function fishDynamicCompletion(type: string): string | undefined {
+	switch (type) {
+		case "package":
+			return "(bun getcompletes packages)";
+		case "script":
+			return "(bun getcompletes scripts)";
+		case "binary":
+			return "(bun getcompletes binaries)";
+		case "file":
+			return "(bun getcompletes files)";
+		case "directory":
+			return "(__fish_complete_directories)";
+		case "path":
+			return "(__fish_complete_path)";
+		default:
+			return undefined;
+	}
+}
+
 function generateBash(): string {
 	const commandNames = commands.map(([name]) => name).join(" ");
 	const globalFlags = data.globalFlags.flatMap(flagNames).join(" ");
@@ -152,11 +171,16 @@ complete -c bun -f
 
 	for (const flag of data.globalFlags) {
 		const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
-		if (flag.shortName) {
-			script += `complete -c bun -s ${flag.shortName} -l ${flag.name} -d '${desc}'\n`;
-		} else {
-			script += `complete -c bun -l ${flag.name} -d '${desc}'\n`;
+		let line = `complete -c bun`;
+		if (flag.shortName) line += ` -s ${flag.shortName}`;
+		line += ` -l ${flag.name}`;
+		if (flag.choices?.length) {
+			line += ` -a '${flag.choices.map(escapeShell).join(" ")}'`;
+		} else if (flag.hasValue) {
+			line += " -r";
 		}
+		line += ` -d '${desc}'\n`;
+		script += line;
 	}
 
 	script += "\n";
@@ -165,10 +189,62 @@ complete -c bun -f
 		for (const flag of cmd.flags) {
 			const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
 			const condition = `__fish_seen_subcommand_from ${name}`;
-			if (flag.shortName) {
-				script += `complete -c bun -n '${condition}' -s ${flag.shortName} -l ${flag.name} -d '${desc}'\n`;
-			} else {
-				script += `complete -c bun -n '${condition}' -l ${flag.name} -d '${desc}'\n`;
+			let line = `complete -c bun -n '${condition}'`;
+			if (flag.shortName) line += ` -s ${flag.shortName}`;
+			line += ` -l ${flag.name}`;
+			if (flag.choices?.length) {
+				line += ` -a '${flag.choices.map(escapeShell).join(" ")}'`;
+			} else if (flag.hasValue) {
+				line += " -r";
+			}
+			line += ` -d '${desc}'\n`;
+			script += line;
+		}
+
+		// Dynamic positional arg completions based on completionType.
+		const addedDynamic = new Set<string>();
+		for (const arg of cmd.positionalArgs) {
+			if (arg.completionType) {
+				const dynamic = fishDynamicCompletion(arg.completionType);
+				if (dynamic && !addedDynamic.has(dynamic)) {
+					const argDesc = escapeShell(
+						arg.description?.split("\n")[0] ?? arg.name,
+					);
+					script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '${dynamic}' -d '${argDesc}'\n`;
+					addedDynamic.add(dynamic);
+				}
+			}
+		}
+
+		// Command-level dynamic completions from bun getcompletes.
+		if (cmd.dynamicCompletions) {
+			if (
+				cmd.dynamicCompletions.scripts &&
+				!addedDynamic.has("(bun getcompletes scripts)")
+			) {
+				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes scripts)' -d 'Script'\n`;
+				addedDynamic.add("(bun getcompletes scripts)");
+			}
+			if (
+				cmd.dynamicCompletions.files &&
+				!addedDynamic.has("(bun getcompletes files)")
+			) {
+				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes files)' -d 'File'\n`;
+				addedDynamic.add("(bun getcompletes files)");
+			}
+			if (
+				cmd.dynamicCompletions.binaries &&
+				!addedDynamic.has("(bun getcompletes binaries)")
+			) {
+				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes binaries)' -d 'Binary'\n`;
+				addedDynamic.add("(bun getcompletes binaries)");
+			}
+			if (
+				cmd.dynamicCompletions.packages &&
+				!addedDynamic.has("(bun getcompletes packages)")
+			) {
+				script += `complete -c bun -n '__fish_seen_subcommand_from ${name}' -a '(bun getcompletes packages)' -d 'Package'\n`;
+				addedDynamic.add("(bun getcompletes packages)");
 			}
 		}
 	}
