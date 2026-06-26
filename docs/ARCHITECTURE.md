@@ -899,3 +899,453 @@ const addrs = await dns.promises.resolve4("bun.com", { ttl: true });
 console.log(addrs);
 // => [{ address: "172.67.161.226", family: 4, ttl: 0 }, ...]
 ```
+
+
+<!-- api-docs:http-server -->
+
+### Server
+
+Source: <https://bun.com/docs/runtime/http/server> · bun-types `runtime/http/server.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const server = Bun.serve({` |
+| Example 2 | `Bun.serve({` |
+| Example 3 | `console.log(server.url); // http://localhost:3000` |
+| Example 4 | `import type { Serve } from "bun";` |
+| Example 5 | `server.unref();` |
+| Example 6 | `Bun.serve({` |
+| Example 7 | `import type { Post } from "./types.ts";` |
+| Example 8 | `export interface Post {` |
+| Example 9 | `interface Server extends Disposable {` |
+
+```typescript
+const server = Bun.serve({
+  // `routes` requires Bun v1.2.3+
+  routes: {
+    // Static routes
+    "/api/status": new Response("OK"),
+
+    // Dynamic routes
+    "/users/:id": req => {
+      return new Response(`Hello User ${req.params.id}!`);
+    },
+
+    // Per-HTTP method handlers
+    "/api/posts": {
+      GET: () => new Response("List posts"),
+      POST: async req => {
+        const body = await req.json();
+        return Response.json({ created: true, ...body });
+      },
+    },
+
+    // Wildcard route for all routes that start with "/api/" and aren't otherwise matched
+    "/api/*": Response.json({ message: "Not found" }, { status: 404 }),
+
+    // Redirect from /blog/hello to /blog/hello/world
+    "/blog/hello": Response.redirect("/blog/hello/world"),
+
+    // Serve a file by lazily loading it into memory
+    "/favicon.ico": Bun.file("./favicon.ico"),
+  },
+
+  // (optional) fallback for unmatched routes:
+  // Required if Bun's version < 1.2.3
+  fetch(req) {
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log(`Server running at ${server.url}`);
+```
+
+<!-- /api-docs:http-server -->
+
+
+<!-- api-docs:bun-file -->
+
+### File I/O
+
+Source: <https://bun.com/docs/runtime/file-io> · bun-types `runtime/file-io.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `foo.size; // number of bytes` |
+| Example 2 | `await foo.text(); // contents as a string` |
+| Example 3 | `Bun.file(new URL(import.meta.url)); // reference to the curr` |
+| Example 4 | `notreal.size; // 0` |
+| Example 5 | `notreal.type; // => "application/json;charset=utf-8"` |
+| Example 6 | `Bun.stdout;` |
+| Example 7 | `await Bun.write("output.txt", data);` |
+| Example 8 | `const output = Bun.file("output.txt"); // doesn't exist yet!` |
+| Example 9 | `const data = encoder.encode("datadatadata"); // Uint8Array` |
+| Example 10 | `await Bun.write(Bun.stdout, input);` |
+| Example 11 | `await Bun.write("index.html", response);` |
+| Example 12 | `const writer = file.writer();` |
+| Example 13 | `const writer = file.writer();` |
+| Example 14 | `const writer = file.writer({ highWaterMark: 1024 * 1024 }); ` |
+| Example 15 | `// to "re-ref" it later` |
+| Example 16 | `// read all the files in the current directory` |
+| Example 17 | `// read all the files in the current directory, recursively` |
+| Example 18 | `await mkdir("path/to/dir", { recursive: true });` |
+| Example 19 | `// Usage` |
+
+```typescript
+foo.size; // number of bytes
+foo.type; // MIME type
+```
+
+<!-- /api-docs:bun-file -->
+
+
+
+<!-- api-docs:glob -->
+
+### Glob
+
+Source: <https://bun.com/docs/runtime/glob> · bun-types `runtime/glob.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const glob = new Glob("**/*.ts");` |
+| Example 2 | `const glob = new Glob("*.ts");` |
+| Example 3 | `glob.match("foo.ts"); // => true` |
+| Example 4 | `glob.match("index.ts"); // => true` |
+| Example 5 | `glob.match("index.ts"); // => true` |
+| Example 6 | `glob.match("bar.ts"); // => true` |
+| Example 7 | `glob.match("bar01.ts"); // => true` |
+| Example 8 | `glob.match("a.ts"); // => true` |
+| Example 9 | `glob.match("index.ts"); // => false` |
+| Example 10 | `glob.match("!index.ts"); // => true` |
+| Example 11 | `// Array of patterns` |
+
+```typescript
+const glob = new Glob("**/*.ts");
+
+// Scans the current working directory and each of its sub-directories recursively
+for await (const file of glob.scan(".")) {
+  console.log(file); // => "index.ts"
+}
+```
+
+<!-- /api-docs:glob -->
+
+
+
+<!-- api-docs:spawn -->
+
+### Spawn
+
+Source: <https://bun.com/docs/runtime/child-process> · bun-types `runtime/child-process.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `console.log(await proc.exited); // 0` |
+| Example 2 | `const text = await proc.stdout.text();` |
+| Example 3 | `const proc = Bun.spawn(["bun", "--version"], {` |
+| Example 4 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 5 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 6 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 7 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 8 | `const controller = new AbortController();` |
+| Example 9 | `// Kill the process after 5 seconds` |
+| Example 10 | `// Kill the process with SIGKILL after 5 seconds` |
+| Example 11 | `// Kill 'yes' after it emits over 100 bytes of output` |
+| Example 12 | `const child = Bun.spawn(["bun", "child.ts"], {` |
+| Example 13 | `const childProc = Bun.spawn(["bun", "child.ts"], {` |
+| Example 14 | `process.send("Hello from child as string");` |
+| Example 15 | `// send a string` |
+| Example 16 | `if (typeof Bun !== "undefined") {` |
+| Example 17 | `proc.terminal.write("echo hello\n");` |
+| Example 18 | `console.log(proc.stdout.toString());` |
+| Example 19 | `interface Bun {` |
+
+```typescript
+console.log(await proc.exited); // 0
+```
+
+<!-- /api-docs:spawn -->
+
+
+<!-- api-docs:sqlite -->
+
+### SQLite
+
+Source: <https://bun.com/docs/runtime/sqlite> · bun-types `runtime/sqlite.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import { Database } from "bun:sqlite";` |
+| Example 2 | `import { Database } from "bun:sqlite";` |
+| Example 3 | `import { Database } from "bun:sqlite";` |
+| Example 4 | `import { Database } from "bun:sqlite";` |
+| Example 5 | `import { Database } from "bun:sqlite";` |
+| Example 6 | `import db from "./mydb.sqlite" with { type: "sqlite" };` |
+| Example 7 | `import { Database } from "bun:sqlite";` |
+| Example 8 | `const db = new Database();` |
+| Example 9 | `const db = new Database();` |
+| Example 10 | `import { Database } from "bun:sqlite";` |
+| Example 11 | `const olddb = new Database("mydb.sqlite");` |
+| Example 12 | `const query = db.query(`select "Hello world" as message`);` |
+| Example 13 | `query.get(1); // ✓ Works` |
+| Example 14 | `const query = db.prepare("SELECT * FROM foo WHERE bar = ?");` |
+| Example 15 | `db.run("PRAGMA journal_mode = WAL;");` |
+| Example 16 | `import { Database, constants } from "bun:sqlite";` |
+| Example 17 | `const query = db.query(`select "Hello world" as message`);` |
+| Example 18 | `const query = db.query(`select $message;`);` |
+| Example 19 | `const query = db.query(`select ?1;`);` |
+| Example 20 | `import { Database } from "bun:sqlite";` |
+| Example 21 | `const query = db.query(`select $message;`);` |
+| Example 22 | `const query = db.query(`select $message;`);` |
+| Example 23 | `const query = db.query(`create table foo;`);` |
+| Example 24 | `class Movie {` |
+| Example 25 | `const query = db.query("SELECT * FROM foo");` |
+| Example 26 | `const query = db.query("SELECT * FROM foo");` |
+| Example 27 | `const query = db.query(`select $message;`);` |
+| Example 28 | `const query = db.query("SELECT title, year FROM movies");` |
+| Example 29 | `import { Database } from "bun:sqlite";` |
+| Example 30 | `const query = db.query("SELECT * FROM foo WHERE bar = $bar")` |
+| Example 31 | `const query = db.query("SELECT ?1, ?2");` |
+| Example 32 | `import { Database } from "bun:sqlite";` |
+| Example 33 | `import { Database } from "bun:sqlite";` |
+| Example 34 | `import { Database } from "bun:sqlite";` |
+| Example 35 | `const insertCat = db.prepare("INSERT INTO cats (name) VALUES` |
+| Example 36 | `const insert = db.prepare("INSERT INTO cats (name) VALUES ($` |
+| Example 37 | `// setup` |
+| Example 38 | `insertCats.deferred(cats); // uses "BEGIN DEFERRED"` |
+| Example 39 | `import { Database } from "bun:sqlite";` |
+| Example 40 | `import { Database } from "bun:sqlite";` |
+| Example 41 | `import { Database, constants } from "bun:sqlite";` |
+| Example 42 | `class Database {` |
+
+```typescript
+import { Database } from "bun:sqlite";
+
+const db = new Database(":memory:");
+const query = db.query("select 'Hello world' as message;");
+query.get();
+```
+
+<!-- /api-docs:sqlite -->
+
+
+<!-- api-docs:hashing -->
+
+### Hashing
+
+Source: <https://bun.com/docs/runtime/hashing> · bun-types `runtime/hashing.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const hash = await Bun.password.hash(password);` |
+| Example 2 | `// use argon2 (default)` |
+| Example 3 | `const hash = await Bun.password.hash(password, {` |
+| Example 4 | `const hash = Bun.password.hashSync(password, {` |
+| Example 5 | `// 11562320457524636935n` |
+| Example 6 | `Bun.hash("some data here");` |
+| Example 7 | `// 15724820720172937558n` |
+| Example 8 | `Bun.hash.crc32("data", 1234);` |
+| Example 9 | `hasher.update("hello world");` |
+| Example 10 | `hasher.update("hello world");` |
+| Example 11 | `hasher.update("hello world", "hex");` |
+| Example 12 | `hasher.update("hello world");` |
+| Example 13 | `// => "uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek="` |
+| Example 14 | `hasher.digest(arr);` |
+| Example 15 | `hasher.update("hello world");` |
+| Example 16 | `hasher.update("hello world");` |
+
+```typescript
+const hash = await Bun.password.hash(password);
+// => $argon2id$v=19$m=65536,t=2,p=1$tFq+9AVr1bfPxQdh6E8DQRhEXg/M/SqYCNu6gVdRRNs$GzJ8PuBi+K+BVojzPfS5mjnC8OpLGtv8KJqF99eP6a4
+
+const isMatch = await Bun.password.verify(password, hash);
+// => true
+```
+
+<!-- /api-docs:hashing -->
+
+
+<!-- api-docs:transpiler -->
+
+### Transpiler
+
+Source: <https://bun.com/docs/runtime/transpiler> · bun-types `runtime/transpiler.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const transpiler = new Bun.Transpiler({` |
+| Example 2 | `import { __require as require } from "bun:wrap";` |
+| Example 3 | `const result = await transpiler.transform("<div>hi!</div>");` |
+| Example 4 | `const transpiler = new Bun.Transpiler({` |
+| Example 5 | `const transpiler = new Bun.Transpiler({` |
+
+```typescript
+const transpiler = new Bun.Transpiler({
+  loader: 'tsx',
+});
+
+const code = `
+import * as whatever from "./whatever.ts"
+export function Home(props: {title: string}){
+  return <p>{props.title}</p>;
+}`;
+
+const result = transpiler.transformSync(code);
+```
+
+<!-- /api-docs:transpiler -->
+
+
+<!-- api-docs:color -->
+
+### Color
+
+Source: <https://bun.com/docs/runtime/color> · bun-types `runtime/color.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `Bun.color(0xff0000, "css"); // "#f000"` |
+| Example 2 | `Bun.color(0xff0000, "ansi"); // "\u001b[38;2;255;0;0m"` |
+| Example 3 | `Bun.color(0xff0000, "ansi-16m"); // "\x1b[38;2;255;0;0m"` |
+| Example 4 | `Bun.color(0xff0000, "ansi-256"); // "\u001b[38;5;196m"` |
+| Example 5 | `Bun.color(0xff0000, "ansi-16"); // "\u001b[38;5;\tm"` |
+| Example 6 | `Bun.color(0xff0000, "number"); // 16711680` |
+| Example 7 | `Bun.color("red", "{rgba}"); // { r: 255, g: 0, b: 0, a: 1 }` |
+| Example 8 | `Bun.color("red", "{rgb}"); // { r: 255, g: 0, b: 0 }` |
+| Example 9 | `type RGBAArray = [number, number, number, number];` |
+| Example 10 | `Bun.color("red", "[rgba]"); // [255, 0, 0, 255]` |
+| Example 11 | `Bun.color("red", "[rgb]"); // [255, 0, 0]` |
+| Example 12 | `Bun.color("red", "hex"); // "#ff0000"` |
+| Example 13 | `Bun.color("red", "HEX"); // "#FF0000"` |
+| Example 14 | `import { color } from "bun" with { type: "macro" };` |
+| Example 15 | `console.log("red");` |
+
+```typescript
+Bun.color(0xff0000, "css"); // "#f000"
+Bun.color("#f00", "css"); // "red"
+Bun.color("#ff0000", "css"); // "red"
+Bun.color("rgb(255, 0, 0)", "css"); // "red"
+Bun.color("rgba(255, 0, 0, 1)", "css"); // "red"
+Bun.color("hsl(0, 100%, 50%)", "css"); // "red"
+Bun.color("hsla(0, 100%, 50%, 1)", "css"); // "red"
+Bun.color({ r: 255, g: 0, b: 0 }, "css"); // "red"
+Bun.color({ r: 255, g: 0, b: 0, a: 1 }, "css"); // "red"
+Bun.color([255, 0, 0], "css"); // "red"
+Bun.color([255, 0, 0, 255], "css"); // "red"
+```
+
+<!-- /api-docs:color -->
+
+
+<!-- api-docs:semver -->
+
+### Semver
+
+Source: <https://bun.com/docs/runtime/semver> · bun-types `runtime/semver.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `semver.satisfies("1.0.0", "^1.0.0"); // true` |
+| Example 2 | `semver.order("1.0.0", "1.0.0"); // 0` |
+
+```typescript
+semver.satisfies("1.0.0", "^1.0.0"); // true
+semver.satisfies("1.0.0", "^1.0.1"); // false
+semver.satisfies("1.0.0", "~1.0.0"); // true
+semver.satisfies("1.0.0", "~1.0.1"); // false
+semver.satisfies("1.0.0", "1.0.0"); // true
+semver.satisfies("1.0.0", "1.0.1"); // false
+semver.satisfies("1.0.1", "1.0.0"); // false
+semver.satisfies("1.0.0", "1.0.x"); // true
+semver.satisfies("1.0.0", "1.x.x"); // true
+semver.satisfies("1.0.0", "x.x.x"); // true
+semver.satisfies("1.0.0", "1.0.0 - 2.0.0"); // true
+semver.satisfies("1.0.0", "1.0.0 - 1.0.1"); // true
+```
+
+<!-- /api-docs:semver -->
+
+
+<!-- api-docs:websockets -->
+
+### WebSockets
+
+Source: <https://bun.com/docs/runtime/http/websockets> · bun-types `runtime/http/websockets.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `Bun.serve({` |
+| Example 2 | `Bun.serve({` |
+| Example 3 | `Bun.serve({` |
+| Example 4 | `Bun.serve({` |
+| Example 5 | `type WebSocketData = {` |
+| Example 6 | `const socket = new WebSocket("ws://localhost:3000/chat");` |
+| Example 7 | `const server = Bun.serve({` |
+| Example 8 | `Bun.serve({` |
+| Example 9 | `// With subprotocol negotiation` |
+| Example 10 | `socket.addEventListener("message", event => {});` |
+| Example 11 | `namespace Bun {` |
+
+```typescript
+Bun.serve({
+  fetch(req, server) {
+    // upgrade the request to a WebSocket
+    if (server.upgrade(req)) {
+      return; // do not return a Response
+    }
+    return new Response("Upgrade failed", { status: 500 });
+  },
+  websocket: {}, // handlers
+});
+```
+
+<!-- /api-docs:websockets -->
+
+
+<!-- api-docs:udp -->
+
+### UDP
+
+Source: <https://bun.com/docs/runtime/networking/udp> · bun-types `runtime/networking/udp.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `console.log(socket.port); // assigned by the operating syste` |
+| Example 2 | `const server = await Bun.udpSocket({` |
+| Example 3 | `const server = await Bun.udpSocket({` |
+| Example 4 | `const socket = await Bun.udpSocket({});` |
+| Example 5 | `const socket = await Bun.udpSocket({` |
+| Example 6 | `// Enable broadcasting to send packets to a broadcast addres` |
+| Example 7 | `// Join a multicast group` |
+| Example 8 | `socket.setMulticastTTL(2);` |
+| Example 9 | `socket.dropSourceSpecificMembership("10.0.0.1", "232.0.0.1")` |
+
+```typescript
+console.log(socket.port); // assigned by the operating system
+```
+
+<!-- /api-docs:udp -->
+
+
+<!-- api-docs:dns -->
+
+### DNS
+
+Source: <https://bun.com/docs/runtime/networking/dns> · bun-types `runtime/networking/dns.mdx`
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const addrs = await dns.promises.resolve4("bun.com", { ttl: ` |
+| Example 2 | `dns.prefetch("bun.com", 443);` |
+| Example 3 | `dns.prefetch("my.database-host.com", 5432);` |
+| Example 4 | `dns.prefetch("bun.com", 443);` |
+| Example 5 | `const stats = dns.getCacheStats();` |
+
+```typescript
+const addrs = await dns.promises.resolve4("bun.com", { ttl: true });
+console.log(addrs);
+// => [{ address: "172.67.161.226", family: 4, ttl: 0 }, ...]
+```
+
+<!-- /api-docs:dns -->

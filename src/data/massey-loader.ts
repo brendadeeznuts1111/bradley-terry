@@ -56,12 +56,15 @@ function parseMasseyLine(line: string): Partial<MatchRow> {
 		throw new Error(`Invalid Massey line: ${line}`);
 	}
 
+	const h = parts[0];
+	const a = parts[1];
+	const d = parts[4];
 	return {
-		home_team: parts[0],
-		away_team: parts[1],
+		...(h ? { home_team: h } : {}),
+		...(a ? { away_team: a } : {}),
 		winner_idx: Number(parts[2]) > Number(parts[3]) ? 0 : 1,
 		loser_idx: Number(parts[2]) > Number(parts[3]) ? 1 : 0,
-		date: parts[4] ?? new Date().toISOString().split("T")[0],
+		...(d ? { date: d } : {}),
 	};
 }
 

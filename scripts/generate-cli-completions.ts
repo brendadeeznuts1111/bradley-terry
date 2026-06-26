@@ -393,12 +393,12 @@ function buildFlagInfo(
 
 	return {
 		name,
-		shortName: shortName?.replace(/^-/, ""),
+		...(shortName ? { shortName: shortName.replace(/^-/, "") } : {}),
 		description: description.trim(),
 		hasValue,
-		valueType,
-		defaultValue,
-		choices,
+		...(valueType ? { valueType } : {}),
+		...(defaultValue ? { defaultValue } : {}),
+		...(choices ? { choices } : {}),
 		required: false,
 		multiple:
 			description.toLowerCase().includes("multiple") ||
@@ -463,8 +463,8 @@ function parseUsage(usage: string): {
 					name,
 					required,
 					multiple,
-					type: "string", // Default type
-					completionType,
+					type: "string",
+					...(completionType ? { completionType } : {}),
 				});
 			}
 		}
@@ -614,7 +614,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	);
 	return {
 		available: true,
-		commands: commands as CompletionData["bunGetCompletes"]["commands"],
+		commands: commands as unknown as { scripts: string; binaries: string; packages: string; files: string },
 	};
 }
 
@@ -1195,10 +1195,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			if (!existingNames.has(flag.name)) {
 				commands[cmd].flags.push({
 					name: flag.name,
-					shortName: flag.shortName,
+					...(flag.shortName ? { shortName: flag.shortName } : {}),
 					description: flag.description,
 					hasValue: flag.hasValue ?? false,
-					valueType: flag.hasValue ? "string" : undefined,
+					...(flag.hasValue ? { valueType: "string" } : {}),
 				});
 				console.log(
 					`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`,
@@ -1214,8 +1214,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, defaults] of Object.entries(documentedDefaults)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			if (defaults[flag.name]) {
-				flag.defaultValue = cleanDefaultValue(defaults[flag.name]);
+			const val = defaults[flag.name];
+			const cleaned = cleanDefaultValue(val ?? "");
+			if (cleaned !== undefined) {
+				flag.defaultValue = cleaned;
 			}
 		}
 	}
@@ -1229,10 +1231,11 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, aliases] of Object.entries(documentedAliases)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			if (aliases[flag.name] && !flag.shortName) {
-				flag.shortName = aliases[flag.name];
+			const alias = aliases[flag.name];
+			if (alias !== undefined && !flag.shortName) {
+				flag.shortName = alias;
 				console.log(
-					`📝 Adding documented alias: ${cmd} --${flag.name} (-${aliases[flag.name]})`,
+					`📝 Adding documented alias: ${cmd} --${flag.name} (-${alias})`,
 				);
 			}
 		}
@@ -1248,8 +1251,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, flagAliases] of Object.entries(documentedExtraAliases)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			if (flagAliases[flag.name] && !flag.aliases) {
-				flag.aliases = flagAliases[flag.name];
+			const extraAliases = flagAliases[flag.name];
+			if (extraAliases && !flag.aliases) {
+				flag.aliases = extraAliases;
 			}
 		}
 	}
@@ -1312,8 +1316,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, flagChoices] of Object.entries(documentedChoices)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			if (flagChoices[flag.name] && !flag.choices) {
-				flag.choices = flagChoices[flag.name];
+			const choices = flagChoices[flag.name];
+			if (choices && !flag.choices) {
+				flag.choices = choices;
 			}
 		}
 	}
@@ -1379,11 +1384,11 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, argTypes] of Object.entries(completionTypeMap)) {
 		if (!commands[cmd]) continue;
 		for (const arg of commands[cmd].positionalArgs) {
-			if (
-				argTypes[arg.name] &&
+			const cType = argTypes[arg.name];
+			if (cType &&
 				(!arg.completionType || arg.completionType === "none")
 			) {
-				arg.completionType = argTypes[arg.name];
+				arg.completionType = cType;
 			}
 		}
 	}
@@ -1567,11 +1572,13 @@ function cleanAllDefaults(
 ): void {
 	for (const command of Object.values(commands)) {
 		for (const flag of command.flags) {
-			flag.defaultValue = cleanDefaultValue(flag.defaultValue);
+		const dv = cleanDefaultValue(flag.defaultValue ?? "");
+			if (dv !== undefined) flag.defaultValue = dv;
 		}
 	}
 	for (const flag of globalFlags) {
-		flag.defaultValue = cleanDefaultValue(flag.defaultValue);
+	const dv = cleanDefaultValue(flag.defaultValue ?? "");
+			if (dv !== undefined) flag.defaultValue = dv;
 	}
 }
 
@@ -1646,7 +1653,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 
 	const completionData: CompletionData = {
 		version: "1.1.0",
-		bunVersion,
+		...(bunVersion ? { bunVersion } : {}),
 		commands: {},
 		globalFlags,
 		specialHandling: {

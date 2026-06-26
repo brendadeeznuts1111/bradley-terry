@@ -1,28 +1,35 @@
 #!/usr/bin/env bun
 import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 /**
- * api-docs — scaffold Bun native API docs and tests from official docs.
+ * api-docs — scaffold Bun native API docs and tests from bun-types MDX.
+ *
+ * Source: node_modules/bun-types/docs (shipped with @types/bun / bun-types)
+ * https://github.com/oven-sh/bun/tree/main/packages/bun-types
  *
  * Usage:
- *   bun run api-docs --url https://bun.com/docs/api/http --name "HTTP Server"
+ *   bun run api-docs --slug runtime/http/server --name "HTTP Server"
  *   bun run api-docs --all
  *
- * The script fetches the page (Mintlify renders code blocks as HTML with Shiki),
- * extracts TypeScript/JavaScript code blocks, and creates:
+ * Extracts TypeScript/JavaScript code blocks and creates:
  *   - a new section in `docs/ARCHITECTURE.md`
  *   - a test file under `test/bun-api/` that syntax-checks each example with
  *     `Bun.Transpiler` (safe for examples that reference files, sockets, certs,
  *     or long-running servers that would fail or hang if executed).
  */
 import { mkdir } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
+
+const require = createRequire(import.meta.url);
 
 interface Args {
-	url: string;
+	slug: string;
 	name: string;
 }
 
 interface ApiDoc {
-	url: string;
+	slug: string;
 	name: string;
 }
 
@@ -31,19 +38,21 @@ interface CodeBlock {
 	code: string;
 }
 
+const BUN_DOCS_BASE = "https://bun.com/docs";
+
 const API_DOC_REGISTRY: ApiDoc[] = [
-	{ url: "https://bun.com/docs/api/http", name: "HTTP Server" },
-	{ url: "https://bun.com/docs/api/file", name: "Bun File" },
-	{ url: "https://bun.com/docs/api/glob", name: "Glob" },
-	{ url: "https://bun.com/docs/api/spawn", name: "Spawn" },
-	{ url: "https://bun.com/docs/api/sqlite", name: "SQLite" },
-	{ url: "https://bun.com/docs/api/hashing", name: "Hashing" },
-	{ url: "https://bun.com/docs/api/transpiler", name: "Transpiler" },
-	{ url: "https://bun.com/docs/api/color", name: "Color" },
-	{ url: "https://bun.com/docs/api/semver", name: "Semver" },
-	{ url: "https://bun.com/docs/api/websockets", name: "WebSockets" },
-	{ url: "https://bun.com/docs/api/udp", name: "UDP" },
-	{ url: "https://bun.com/docs/api/dns", name: "DNS" },
+	{ slug: "runtime/http/server", name: "HTTP Server" },
+	{ slug: "runtime/file-io", name: "Bun File" },
+	{ slug: "runtime/glob", name: "Glob" },
+	{ slug: "runtime/child-process", name: "Spawn" },
+	{ slug: "runtime/sqlite", name: "SQLite" },
+	{ slug: "runtime/hashing", name: "Hashing" },
+	{ slug: "runtime/transpiler", name: "Transpiler" },
+	{ slug: "runtime/color", name: "Color" },
+	{ slug: "runtime/semver", name: "Semver" },
+	{ slug: "runtime/http/websockets", name: "WebSockets" },
+	{ slug: "runtime/networking/udp", name: "UDP" },
+	{ slug: "runtime/networking/dns", name: "DNS" },
 ];
 
 const RUNNABLE_LANGUAGES = new Set([
@@ -56,13 +65,13 @@ const RUNNABLE_LANGUAGES = new Set([
 ]);
 
 function parseArgs(): { mode: "single"; args: Args } | { mode: "all" } {
-	let url: string | undefined;
+	let slug: string | undefined;
 	let name: string | undefined;
 	let all = false;
 
 	for (let i = 0; i < Bun.argv.length; i++) {
-		if (Bun.argv[i] === "--url" && Bun.argv[i + 1]) {
-			url = Bun.argv[i + 1];
+		if (Bun.argv[i] === "--slug" && Bun.argv[i + 1]) {
+			slug = Bun.argv[i + 1];
 			i++;
 		} else if (Bun.argv[i] === "--name" && Bun.argv[i + 1]) {
 			name = Bun.argv[i + 1];
@@ -73,14 +82,77 @@ function parseArgs(): { mode: "single"; args: Args } | { mode: "all" } {
 	}
 
 	if (all) return { mode: "all" };
-	if (!url || !name) {
+	if (!slug || !name) {
 		console.error(
-			"Usage: bun run api-docs --url <url> --name <name>  OR  bun run api-docs --all",
+			"Usage: bun run api-docs --slug <bun-types-slug> --name <name>  OR  bun run api-docs --all",
 		);
 		process.exit(1);
 	}
 
-	return { mode: "single", args: { url, name } };
+	return { mode: "single", args: { slug, name } };
+}
+
+function normalizeDocsRoot(path: string): string {
+	const trimmed = path.replace(/\/+$/, "");
+	return trimmed.endsWith("/docs") ? `${trimmed}/` : `${trimmed}/docs/`;
+}
+
+async function readPkgVersion(docsRoot: string): Promise<string> {
+	const pkgPath = join(docsRoot.replace(/\/$/, ""), "..", "package.json");
+	try {
+		const pkg = (await Bun.file(pkgPath).json()) as { version?: string };
+		return pkg.version ?? "0.0.0";
+	} catch {
+		return "0.0.0";
+	}
+}
+
+async function resolveDocsRoot(): Promise<{ root: string; version: string }> {
+	const explicit = process.env.BUN_TYPES_DOCS?.trim();
+	if (explicit) {
+		const root = normalizeDocsRoot(explicit);
+		return { root, version: await readPkgVersion(root) };
+	}
+
+	let pkgPath: string;
+	try {
+		pkgPath = require.resolve("bun-types/package.json");
+	} catch {
+		console.error(
+			"No bun-types package found. Run `bun add -d @types/bun` or set BUN_TYPES_DOCS.",
+		);
+		process.exit(1);
+	}
+
+	const root = normalizeDocsRoot(join(dirname(pkgPath), "docs"));
+	if (!(await Bun.file(join(root, "index.mdx")).exists())) {
+		console.error(`bun-types docs missing at ${root}`);
+		process.exit(1);
+	}
+
+	return { root, version: await readPkgVersion(root) };
+}
+
+function docUrl(slug: string): string {
+	return `${BUN_DOCS_BASE}/${slug}`;
+}
+
+function stripFrontmatter(raw: string): string {
+	if (!raw.startsWith("---")) return raw;
+	const end = raw.indexOf("\n---", 3);
+	if (end === -1) return raw;
+	return raw.slice(end + 4).trim();
+}
+
+function parseFrontmatterTitle(raw: string, fallback: string): string {
+	if (!raw.startsWith("---")) return fallback;
+	const end = raw.indexOf("\n---", 3);
+	if (end === -1) return fallback;
+	for (const line of raw.slice(4, end).split("\n")) {
+		const m = line.match(/^title:\s*"?(.+?)"?\s*$/);
+		if (m?.[1]) return m[1];
+	}
+	return fallback;
 }
 
 function slugify(name: string): string {
@@ -114,7 +186,6 @@ function extractMarkdownCodeBlocks(content: string): CodeBlock[] {
 
 function extractHtmlCodeBlocks(html: string): CodeBlock[] {
 	const blocks: CodeBlock[] = [];
-	// Mintlify/Shiki rendered code blocks: <pre class="shiki ..." language="..."><code>...</code></pre>
 	const preRegex =
 		/<pre[^>]*class="shiki[^"]*"[^>]*\slanguage="([^"]+)"[^>]*>([\s\S]*?)<\/pre>/g;
 	let preMatch: RegExpExecArray | null = preRegex.exec(html);
@@ -145,24 +216,17 @@ function extractCodeBlocks(content: string): CodeBlock[] {
 }
 
 function loaderForLanguage(language: string): "ts" | "tsx" | "js" | "jsx" {
-	switch (language) {
-		case "javascript":
-		case "js":
-			return "js";
-		case "jsx":
-			return "jsx";
-		case "tsx":
-			return "tsx";
-		case "typescript":
-		case "ts":
-		default:
-			return "ts";
-	}
+	if (language === "javascript" || language === "js") return "js";
+	if (language === "jsx") return "jsx";
+	if (language === "tsx") return "tsx";
+	return "ts";
 }
 
 function transpiles(code: string, language: string): boolean {
 	try {
-		new Bun.Transpiler({ loader: loaderForLanguage(language) }).transformSync(code);
+		new Bun.Transpiler({ loader: loaderForLanguage(language) }).transformSync(
+			code,
+		);
 		return true;
 	} catch {
 		return false;
@@ -185,7 +249,7 @@ function generateTestFile(name: string, codeBlocks: CodeBlock[]): string {
 			return `
 	test("${slug} example ${index + 1} transpiles without error", () => {
 		const code = \`${escaped}\`;
-		const transpiler = new Bun.Transpiler({ loader: "ts" });
+		const transpiler = new Bun.Transpiler({ loader: "${loader}" });
 		expect(() => transpiler.transformSync(code)).not.toThrow();
 	});`;
 		})
@@ -193,18 +257,21 @@ function generateTestFile(name: string, codeBlocks: CodeBlock[]): string {
 
 	return `import { expect, test } from "bun:test";
 
-// Generated by api-docs from "${name}"
+// Generated by api-docs from bun-types "${name}"
 ${tests}
 `;
 }
 
 function generateArchSection(
-	name: string,
+	registryName: string,
+	displayTitle: string,
 	url: string,
+	bunTypesSlug: string,
 	content: string,
 	codeBlocks: CodeBlock[],
 ): string {
-	const title = extractTitle(content, name);
+	const title = displayTitle || extractTitle(content, registryName);
+	const slug = slugify(registryName);
 	const rows = codeBlocks
 		.map(({ code }, index) => {
 			const firstLine = code.split("\n")[0] ?? "";
@@ -214,9 +281,11 @@ function generateArchSection(
 
 	return `
 
+<!-- api-docs:${slug} -->
+
 ### ${title}
 
-Source: <${url}>
+Source: <${url}> · bun-types \`${bunTypesSlug}.mdx\`
 
 | Example | First line |
 | ------- | ---------- |
@@ -225,24 +294,40 @@ ${rows}
 \`\`\`typescript
 ${codeBlocks[0]?.code ?? "// No code examples found"}
 \`\`\`
+<!-- /api-docs:${slug} -->
 `;
 }
 
-async function processDoc({ url, name }: ApiDoc): Promise<number> {
-	console.log(`\nFetching ${url}...`);
-
-	const response = await fetch(url);
-	if (!response.ok) {
-		console.error(`Failed to fetch ${url}: ${response.status}`);
-		return 1;
+async function loadDocContent(
+	docsRoot: string,
+	slug: string,
+): Promise<{ raw: string; body: string } | null> {
+	const path = join(docsRoot, `${slug}.mdx`);
+	const file = Bun.file(path);
+	if (!(await file.exists())) {
+		console.error(`Missing bun-types doc: ${path}`);
+		return null;
 	}
-	const content = await response.text();
-	let codeBlocks = extractCodeBlocks(content);
+	const raw = await file.text();
+	return { raw, body: stripFrontmatter(raw) };
+}
+
+async function processDoc(
+	{ slug, name }: ApiDoc,
+	docsRoot: string,
+): Promise<number> {
+	const url = docUrl(slug);
+	console.log(`\nReading bun-types/${slug}.mdx...`);
+
+	const loaded = await loadDocContent(docsRoot, slug);
+	if (!loaded) return 1;
+
+	let codeBlocks = extractCodeBlocks(loaded.body);
 	console.log(`Found ${codeBlocks.length} code blocks.`);
 
 	codeBlocks = codeBlocks.filter((block) => {
 		if (transpiles(block.code, block.language)) return true;
-		console.log(`Skipping example that fails to transpile.`);
+		console.log("Skipping example that fails to transpile.");
 		return false;
 	});
 	console.log(`Using ${codeBlocks.length} transpileable examples.`);
@@ -252,29 +337,52 @@ async function processDoc({ url, name }: ApiDoc): Promise<number> {
 		return 0;
 	}
 
-	const slug = slugify(name);
+	const fileSlug = slugify(name);
 	const testDir = "test/bun-api";
 	await mkdir(testDir, { recursive: true });
-	const testPath = `${testDir}/${slug}.test.ts`;
+	const testPath = `${testDir}/${fileSlug}.test.ts`;
 	writeFileSync(testPath, generateTestFile(name, codeBlocks));
 	console.log(`Wrote ${testPath}`);
 
 	const archPath = "docs/ARCHITECTURE.md";
 	let arch = readFileSync(archPath, "utf8");
-	arch += generateArchSection(name, url, content, codeBlocks);
+	const displayTitle =
+		parseFrontmatterTitle(loaded.raw, name) ||
+		extractTitle(loaded.body, name);
+	const newSection = generateArchSection(
+		name,
+		displayTitle,
+		url,
+		slug,
+		loaded.body,
+		codeBlocks,
+	);
+	const markerPattern = new RegExp(
+		`\\n<!-- api-docs:${fileSlug} -->[\\s\\S]*?<!-- /api-docs:${fileSlug} -->`,
+		"g",
+	);
+	if (markerPattern.test(arch)) {
+		arch = arch.replace(markerPattern, newSection);
+		console.log(`Replaced existing section in ${archPath}`);
+	} else {
+		arch += newSection;
+		console.log(`Appended new section to ${archPath}`);
+	}
 	writeFileSync(archPath, arch);
-	console.log(`Updated ${archPath}`);
 
 	return 0;
 }
 
 async function main(): Promise<number> {
+	const { root: docsRoot, version } = await resolveDocsRoot();
+	console.log(`Using bun-types ${version} docs at ${docsRoot}`);
+
 	const parsed = parseArgs();
 	const docs = parsed.mode === "all" ? API_DOC_REGISTRY : [parsed.args];
 
 	let exitCode = 0;
 	for (const doc of docs) {
-		const result = await processDoc(doc);
+		const result = await processDoc(doc, docsRoot);
 		if (result !== 0) exitCode = result;
 	}
 

@@ -74,7 +74,7 @@ export function setSecret(
 		const store = yield* SecretStore;
 		const entry: SecretEntry = {
 			value,
-			expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined,
+			...(ttlSeconds ? { expiresAt: Date.now() + ttlSeconds * 1000 } : {}),
 		};
 		yield* store.set(domain, name, entry);
 	});
