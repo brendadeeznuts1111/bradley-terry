@@ -3,7 +3,7 @@
 	"description": "Bradley-Terry model for ranking entities based on pairwise comparisons",
 	"version": "0.3.31",
 	"type": "module",
-	"packageManager": "bun@1.3.0",
+	"packageManager": "bun@1.4.0",
 	"scripts": {
 		"start": "bun run examples/usage-complete.ts",
 		"dev": "bun --watch examples/usage-complete.ts",
