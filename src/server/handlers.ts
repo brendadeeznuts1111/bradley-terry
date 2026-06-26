@@ -17,10 +17,12 @@ import {
 } from "../service/schemas.js";
 import {
 	allowedMethods,
+	corsHeaders,
 	jsonHeaders,
 	methodNotAllowedResponse,
 	optionsResponse,
 } from "./middleware.js";
+import { getOpenApiYaml, openApiDocument } from "./openapi.js";
 import { getAppRuntime } from "./runtime.js";
 
 const encodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A, status = 200) =>
@@ -145,6 +147,20 @@ export const handleRequest = (req: Request): Promise<Response> => {
 
 	if (req.method === "GET" && url.pathname === "/health") {
 		return handleHealth();
+	}
+	if (req.method === "GET" && url.pathname === "/openapi.json") {
+		return Promise.resolve(
+			new Response(JSON.stringify(openApiDocument), { status: 200, headers: jsonHeaders() }),
+		);
+	}
+	if (req.method === "GET" && url.pathname === "/openapi.yaml") {
+		return getOpenApiYaml().then(
+			(yaml) =>
+				new Response(yaml, {
+					status: 200,
+					headers: { "Content-Type": "application/yaml", ...corsHeaders() },
+				}),
+		);
 	}
 	if (req.method === "GET" && url.pathname === "/api/ratings/bt") {
 		return handleGetRatings(sport, season);

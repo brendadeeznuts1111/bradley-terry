@@ -58,6 +58,22 @@ describe("HTTP handleRequest", () => {
 		expect(body.checks.secretsBackend).toBe("env");
 	});
 
+	it("GET /openapi.json returns OpenAPI document", async () => {
+		const res = await handleRequest(new Request("http://localhost/openapi.json"));
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.openapi).toBe("3.1.0");
+		expect(body.paths["/api/ratings/bt"]).toBeDefined();
+	});
+
+	it("GET /openapi.yaml returns YAML spec", async () => {
+		const res = await handleRequest(new Request("http://localhost/openapi.yaml"));
+		expect(res.status).toBe(200);
+		expect(res.headers.get("Content-Type")).toContain("yaml");
+		const text = await res.text();
+		expect(text).toContain("openapi: 3.1.0");
+	});
+
 	it("GET /api/ratings/bt returns empty array when no data", async () => {
 		const res = await handleRequest(
 			new Request("http://localhost/api/ratings/bt?sport=empty&season=2026"),

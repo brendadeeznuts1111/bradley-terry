@@ -1,5 +1,7 @@
 export const ROUTE_METHODS: Readonly<Record<string, readonly string[]>> = {
 	"/health": ["GET"],
+	"/openapi.json": ["GET"],
+	"/openapi.yaml": ["GET"],
 	"/api/ratings/bt": ["GET"],
 	"/api/ratings/history": ["GET"],
 	"/api/ratings/refresh": ["POST"],

@@ -53,8 +53,17 @@ git rebase origin/main
 bun install
 bun test                    # all tests/ + test/ from #2
 bun run start               # HTTP server boots
+curl -s localhost:3000/openapi.json | jq .info.title
 bun run secret get com.bradley-terry.massey api-token  # optional
 ```
+
+## Status
+
+- [x] PR #2 merged to `main` (2026-06-26)
+- [x] PR #4 branch synced with `origin/main`
+- [x] OpenAPI served at `/openapi.json` and `/openapi.yaml`
+- [ ] Merge PR #4 → `main`
+- [ ] Close PR #3
 
 ### Wire BTCompute to #2 core
 

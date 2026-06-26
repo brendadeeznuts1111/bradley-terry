@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:3000` (default `PORT`).
 
+OpenAPI: [`GET /openapi.json`](http://localhost:3000/openapi.json) · [`GET /openapi.yaml`](http://localhost:3000/openapi.yaml) · source [`docs/openapi.yaml`](openapi.yaml)
+
 All JSON responses use `Content-Type: application/json`. CORS is enabled (`CORS_ORIGIN`, default `*`).
 
 ## Endpoints

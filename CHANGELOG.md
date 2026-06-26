@@ -9,7 +9,8 @@
 - Enhanced `/health` with DB stats; CORS + 405 handling; auto-refresh scheduler
 - `docs/API.md`, `.env.example`
 - BTCompute wired to production `BradleyTerry` MM fitter from v0.3.32
-- 27 tests in `tests/` (141 total with core suite)
+- OpenAPI 3.1 at `GET /openapi.json` and `GET /openapi.yaml` (`docs/openapi.yaml`)
+- 29 tests in `tests/` (143 total with core suite)
 
 ## v0.3.32
 
