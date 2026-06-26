@@ -10,20 +10,14 @@ Pin: `packageManager: bun@1.4.0` in `package.json`. Verify before `completions:r
 bun --version   # must be >= 1.4.0
 ```
 
-**Canary vs stable:** If Bun 1.4.0 is not yet on the stable channel, install or upgrade via canary:
+**Canary vs stable** ([upgrade guide](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable)):
 
 ```bash
-bun upgrade --canary
-# or: curl -fsSL https://bun.sh/install | bash -s canary
+bun upgrade --canary   # back to 1.4.0 for this repo
+bun upgrade --stable   # when you're done with canary-only work elsewhere
 ```
 
-After canary work, switch back to the latest stable release:
-
-```bash
-bun upgrade --stable
-```
-
-See [Switch back to stable](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable). **Note:** until stable reaches 1.4.0, `bun upgrade --stable` downgrades below this repo's pin (e.g. 1.3.14) — stay on canary for completions regen and snapshot tests here.
+Until stable reaches 1.4.0, `--stable` downgrades below this pin (e.g. 1.3.14). Stay on canary for `completions:regen` and `check:full`.
 
 ## Commands
 

@@ -7,8 +7,8 @@ How **@platform/bradley-terry** uses the [Bun runtime](https://bun.com/docs/runt
 | Action | Command |
 |--------|---------|
 | Check version | `bun --version` |
-| Latest canary | `bun upgrade --canary` |
-| Back to stable | `bun upgrade --stable` |
+| Back to 1.4.0 (this repo) | `bun upgrade --canary` |
+| Back to stable (other work) | `bun upgrade --stable` |
 
 Upgrades are channel-sticky: a canary install keeps upgrading on canary until you run `--stable`. See [Bun upgrade guide](https://bun.com/docs/guides/util/upgrade) and [switch back to stable](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable).
 
