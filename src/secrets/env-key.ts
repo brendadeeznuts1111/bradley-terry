@@ -12,7 +12,7 @@ const KNOWN_ENV_ALIASES: Record<string, string> = {
 
 /** CI/CD env key: `SECRET_COM_BRADLEY_TERRY_MASSEY_API_TOKEN` */
 export const envVarName = (namespace: string, name: string): string =>
-  `SECRET_${namespace.replace(/\./g, "_").toUpperCase()}_${name.replace(/-/g, "_").toUpperCase()}`;
+  `SECRET_${namespace.replace(/[.-]/g, "_").toUpperCase()}_${name.replace(/-/g, "_").toUpperCase()}`;
 
 export const lookupEnv = (namespace: string, name: string): string | undefined => {
   const key = `${namespace}/${name}`;
