@@ -880,10 +880,13 @@ describe("Bun native API verification", () => {
 			await db`INSERT INTO items VALUES ('beta', 2)`;
 			const rows: { name: string; count: number }[] =
 				await db`SELECT * FROM items ORDER BY name`;
-			expect(rows[0].name).toBe("alpha");
-			expect(rows[0].count).toBe(1);
-			expect(rows[1].name).toBe("beta");
-			expect(rows[1].count).toBe(2);
+			const row0 = rows[0];
+			const row1 = rows[1];
+			if (!row0 || !row1) throw new Error("missing rows");
+			expect(row0.name).toBe("alpha");
+			expect(row0.count).toBe(1);
+			expect(row1.name).toBe("beta");
+			expect(row1.count).toBe(2);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

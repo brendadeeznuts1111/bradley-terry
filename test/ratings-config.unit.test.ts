@@ -9,22 +9,24 @@ import { SecretClient, SecretError } from "../src/secrets";
 
 // Test double that returns predictable secrets for each service/name pair.
 const TestSecretsLive = Layer.succeed(SecretClient, {
-	get: (service: string, name: string) => {
+	get: (namespace: string, name: string) => {
 		const secrets: Record<string, string> = {
 			[`${NAMESPACE.ratings.massey}:api-key`]: "test-api-key-123",
 			[`${NAMESPACE.ratings.db}:sqlite-path`]: "/tmp/test-ratings.sqlite",
 			[`${NAMESPACE.ratings.db}:encryption-passphrase`]: "test-passphrase-456",
 		};
-		const value = secrets[`${service}:${name}`];
+		const value = secrets[`${namespace}:${name}`];
 		if (value) return Effect.succeed(value);
 		return Effect.fail(
 			new SecretError({
-				service,
+				namespace,
 				name,
 				cause: "missing in test double",
 			}),
 		);
 	},
+	set: () => Effect.succeed(undefined),
+	delete: () => Effect.succeed(false),
 });
 
 describe("RatingsConfig Layer", () => {
@@ -45,14 +47,16 @@ describe("RatingsConfig Layer", () => {
 
 	it("fails with SecretError when a secret is missing", async () => {
 		const EmptySecretsLive = Layer.succeed(SecretClient, {
-			get: (service: string, name: string) =>
+			get: (namespace: string, name: string) =>
 				Effect.fail(
 					new SecretError({
-						service,
+						namespace,
 						name,
 						cause: "missing",
 					}),
 				),
+			set: () => Effect.succeed(undefined),
+			delete: () => Effect.succeed(false),
 		});
 
 		const program = Effect.gen(function* () {

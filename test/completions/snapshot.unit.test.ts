@@ -33,12 +33,21 @@ function parseMatrixHeader(content: string): HeaderParts {
 		throw new Error(`Unable to parse matrix header: ${line}`);
 	}
 
+	const m1 = match[1];
+	const m2 = match[2];
+	const m3 = match[3];
+	const m4 = match[4];
+	const m5 = match[5];
+	if (!m1 || !m2 || !m3 || !m4 || !m5) {
+		throw new Error("malformed matrix header");
+	}
+
 	return {
-		source: match[1],
-		schema: match[2],
-		bunVersion: match[3],
-		revision: match[4],
-		hash: match[5],
+		source: m1,
+		schema: m2,
+		bunVersion: m3,
+		revision: m4,
+		hash: m5,
 	};
 }
 

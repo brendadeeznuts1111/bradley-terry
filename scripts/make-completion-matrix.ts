@@ -170,7 +170,7 @@ function resolvePmPath(path: string): CommandEntry | undefined {
 	const parts = path.split(" ");
 	let target: CommandEntry | undefined = typedData.commands.pm;
 	for (let i = 1; i < parts.length; i++) {
-		target = target?.subcommands?.[parts[i]];
+		target = target?.subcommands?.[parts[i] ?? ""];
 	}
 	return target;
 }
@@ -246,7 +246,7 @@ const topLevelRows = Object.entries(typedData.commands)
 	});
 
 // ── Build PM rows ───────────────────────────────────────────────
-const pmRows = collectPmRows(typedData.commands.pm).map((row) => {
+const pmRows = collectPmRows(typedData.commands.pm as CommandEntry).map((row) => {
 	const target = resolvePmPath(row.path);
 	const reqPos = (target?.positionalArgs || []).filter(
 		(a) => a.required,

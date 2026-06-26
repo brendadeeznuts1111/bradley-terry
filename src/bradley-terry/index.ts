@@ -166,7 +166,7 @@ function fitMM(
 	for (const m of matches) {
 		const wi = getOrThrow(entityIndex, m.winner);
 		const li = getOrThrow(entityIndex, m.loser);
-		wins[wi] += m.weight;
+		wins[wi] = (wins[wi] ?? 0) + m.weight;
 		const oppMap = getOrThrow(opponents, wi);
 		oppMap.set(li, (oppMap.get(li) ?? 0) + m.weight);
 		const oppMapL = getOrThrow(opponents, li);
@@ -186,24 +186,24 @@ function fitMM(
 			const oppMap = getOrThrow(opponents, i);
 			let denominator = 0;
 			for (const [j, n_ij] of oppMap) {
-				denominator += n_ij / (strengths[i] + strengths[j]);
+				denominator += n_ij / ((strengths[i] ?? 1.0) + (strengths[j] ?? 1.0));
 			}
 			if (denominator > 0) {
-				newStrengths[i] = wins[i] / denominator;
+				newStrengths[i] = (wins[i] ?? 0) / denominator;
 			} else {
 				// No matchups for this entity — keep at 1.0
-				newStrengths[i] = strengths[i];
+				newStrengths[i] = strengths[i] ?? 1.0;
 			}
 		}
 
 		// Check convergence
 		let maxDelta = 0;
 		for (let i = 0; i < n; i++) {
-			const delta = Math.abs(newStrengths[i] - strengths[i]);
+			const delta = Math.abs((newStrengths[i] ?? 1.0) - (strengths[i] ?? 1.0));
 			if (delta > maxDelta) maxDelta = delta;
 		}
 
-		for (let i = 0; i < n; i++) strengths[i] = newStrengths[i];
+		for (let i = 0; i < n; i++) strengths[i] = newStrengths[i] ?? 1.0;
 		lastDelta = maxDelta;
 
 		if (maxDelta < config.tolerance) {
@@ -217,15 +217,15 @@ function fitMM(
 	for (const m of matches) {
 		const wi = getOrThrow(entityIndex, m.winner);
 		const li = getOrThrow(entityIndex, m.loser);
-		const sW = strengths[wi];
-		const sL = strengths[li];
+		const sW = strengths[wi] ?? 0;
+		const sL = strengths[li] ?? 0;
 		if (sW > 0 && sL > 0) {
 			logLikelihood += m.weight * (Math.log(sW) - Math.log(sW + sL));
 		}
 	}
 
 	return {
-		ratings: new Map(entities.map((e, i) => [e, strengths[i]])),
+		ratings: new Map(entities.map((e, i) => [e, strengths[i] ?? 1.0] as [string, number])),
 		iterations: iter,
 		convergenceDelta: lastDelta,
 		logLikelihood,

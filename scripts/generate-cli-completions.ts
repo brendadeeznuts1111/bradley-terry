@@ -224,8 +224,8 @@ function parseFlag(line: string): FlagInfo | null {
 	// Flexible fallback: split on 2+ spaces to separate flags from description
 	const flexibleMatch = line.match(/^\s*(.+?)\s{2,}(.+)$/);
 	if (flexibleMatch) {
-		const flagPart = flexibleMatch[1].trim();
-		const description = flexibleMatch[2].trim();
+		const flagPart = (flexibleMatch[1] ?? "").trim();
+		const description = (flexibleMatch[2] ?? "").trim();
 
 		// Parse the flag part: could be "-h, --help", "--flag=<val>", "--flag", "-h"
 		const tokens = flagPart.split(/[,\s]+/).filter(Boolean);
@@ -265,30 +265,45 @@ function extractFlagFromMatch(
 	_line: string,
 ): FlagInfo | null {
 	let shortName: string | undefined;
-	let longName: string;
+	let longName: string | undefined;
 	let valueSpec: string | undefined;
-	let description: string;
+	let description: string | undefined;
 
 	if (match.length === 5) {
-		[, shortName, longName, valueSpec, description] = match;
+		shortName = match[1] || undefined;
+		longName = match[2];
+		valueSpec = match[3] || undefined;
+		description = match[4] || "";
 	} else if (match.length === 4) {
-		if (match[1].startsWith("-") && match[1].length === 2) {
-			[, shortName, longName, description] = match;
-		} else if (match[2].startsWith("<")) {
-			[, longName, valueSpec, description] = match;
+		const m1 = match[1] ?? "";
+		const m2 = match[2] ?? "";
+		if (m1.startsWith("-") && m1.length === 2) {
+			shortName = m1;
+			longName = m2;
+			description = match[3] ?? "";
+		} else if (m2.startsWith("<")) {
+			longName = m1;
+			valueSpec = m2;
+			description = match[3] ?? "";
 		} else {
-			[, longName, description] = match;
+			longName = m1;
+			description = m2;
 		}
 	} else if (match.length === 3) {
-		if (match[1].length === 2) {
-			[, shortName, description] = match;
-			longName = shortName.replace("-", "--");
+		const m1 = match[1] ?? "";
+		if (m1.length === 2) {
+			shortName = m1;
+			longName = m1.replace("-", "--");
+			description = match[2] ?? "";
 		} else {
-			[, longName, description] = match;
+			longName = m1;
+			description = match[2] ?? "";
 		}
 	} else {
 		return null;
 	}
+
+	if (!longName || !description) return null;
 
 	return buildFlagInfo(longName, shortName, valueSpec, description);
 }
@@ -338,7 +353,7 @@ function buildFlagInfo(
 		/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/,
 	);
 	if (defaultMatch) {
-		defaultValue = cleanDefaultValue(defaultMatch[1]);
+		defaultValue = cleanDefaultValue(defaultMatch[1] ?? "");
 	}
 
 	// Look for choices/enums
@@ -346,7 +361,7 @@ function buildFlagInfo(
 		/(?:One of|Valid (?:orders?|values?|options?)):?\s*"?([^"]+)"?/,
 	);
 	if (choicesMatch) {
-		choices = choicesMatch[1]
+		choices = (choicesMatch[1] ?? "")
 			.split(/[,\s]+/)
 			.map((s) => s.replace(/[",]/g, "").trim())
 			.filter(Boolean);
@@ -356,7 +371,7 @@ function buildFlagInfo(
 	if (!choices) {
 		const possibleMatch = description.match(/Possible values:\s*(.+?)(?:\.|$)/);
 		if (possibleMatch) {
-			choices = possibleMatch[1]
+			choices = (possibleMatch[1] ?? "")
 				.split(/[,\s]+/)
 				.map((s) => s.replace(/["'()]/g, "").trim())
 				.filter((s) => s && !s.startsWith("default"));
@@ -562,7 +577,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	for (const [key, _label] of Object.entries(subcommands)) {
 		try {
 			const result = spawnSync({
-				cmd: [bunExe(), "getcompletes", key === "packages" ? "a" : key[0]],
+				cmd: [bunExe(), "getcompletes", key === "packages" ? "a" : (key[0] ?? "?")],
 				stdout: "pipe",
 				stderr: "pipe",
 				cwd,
@@ -576,7 +591,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 			}
 		} catch {
 			console.warn(
-				`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`,
+				`⚠️  \`bun getcompletes ${key[0] ?? "?"}\` failed — omitting from completions.`,
 			);
 		}
 	}
@@ -591,7 +606,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	// Only include subcommands that actually worked
 	const commands: Record<string, string> = {};
 	for (const key of working) {
-		commands[key] = subcommands[key];
+		commands[key] = key;
 	}
 
 	console.log(
@@ -649,7 +664,9 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 			// Try to match "bun pm <sub> <nested>  <desc>" (2+ spaces before desc)
 			const nestedTopMatch = line.match(/^\s+bun pm (\S+)\s+(\S+)\s{2,}(.+)$/);
 			if (nestedTopMatch) {
-				const [, parentName, nestedName, nestedDesc] = nestedTopMatch;
+				const parentName = nestedTopMatch[1] ?? "";
+				const nestedName = nestedTopMatch[2] ?? "";
+				const nestedDesc = nestedTopMatch[3] ?? "";
 				if (!parentName.startsWith("-") && parentName !== "pm") {
 					// Ensure parent exists
 					if (!subcommands[parentName]) {
@@ -697,14 +714,15 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 
 			const topMatch = line.match(/^\s+bun (?:pm )?(\S+)(?:\s+(.+))?$/);
 			if (topMatch) {
-				const [, name, description = ""] = topMatch;
+				const name = topMatch[1] ?? "";
+				const description = topMatch[2]?.trim() ?? "";
 				if (name.startsWith("-") || name === "pm") continue;
 
 				// Don't overwrite if already created by a nested-top-level match
 				if (!subcommands[name]) {
 					subcommands[name] = {
 						name,
-						description: description.trim(),
+						description,
 						flags: [],
 						positionalArgs: [],
 						subcommands: {},
@@ -721,15 +739,15 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 		// or "  └ -g                        print the global path to bin folder"
 		const nestedMatch = line.match(/^\s*[├└]\s+(.+)$/);
 		if (nestedMatch && currentSub) {
-			const nestedContent = nestedMatch[1];
+			const nestedContent = nestedMatch[1] ?? "";
 			// Split on 2+ spaces to separate name from description
 			const parts = nestedContent.split(/\s{2,}/);
-			const namePart = parts[0].trim();
+			const namePart = (parts[0] ?? "").trim();
 			const descPart = parts.slice(1).join("  ").trim();
 
 			if (namePart.startsWith("--")) {
 				// Long flag
-				const flagName = namePart.replace(/^--/, "").split("=")[0];
+				const flagName = namePart.replace(/^--/, "").split("=")[0] ?? "";
 				currentSub.flags = currentSub.flags || [];
 				currentSub.flags.push({
 					name: flagName,
@@ -748,7 +766,9 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 				});
 			} else {
 				// Nested subcommand (e.g., "get [key ...]")
-				const nestedName = namePart.split(/\s/)[0];
+				const nestedName = namePart.split(/\s/)[0] ?? "";
+
+				if (!nestedName) continue;
 
 				// Skip if this is a duplicate of an existing positional arg
 				// (e.g., "increment" appears as both [increment] positional and ├ increment)
@@ -811,6 +831,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
+		if (!line) continue;
 		const trimmed = line.trim();
 
 		// Extract command description (usually the first non-usage line)
@@ -829,7 +850,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 		if (trimmed.startsWith("Alias:")) {
 			const aliasMatch = trimmed.match(/Alias:\s*(.+)/);
 			if (aliasMatch) {
-				command.aliases = aliasMatch[1]
+				command.aliases = (aliasMatch[1] ?? "")
 					.split(/[,\s]+/)
 					.map((a) => a.trim())
 					.filter(Boolean)
@@ -985,7 +1006,8 @@ function getMainCommands(cwd: string): string[] {
 			// Extract command name (first word after whitespace)
 			const match = line.match(/^\s+(\w+)/);
 			if (match) {
-				commands.push(match[1]);
+				const cmdName = match[1];
+				if (cmdName) commands.push(cmdName);
 			}
 		}
 	}
@@ -1159,8 +1181,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	}
 	// Remove undefined entries
 	for (const cmd of Object.keys(documentedDefaults)) {
-		for (const key of Object.keys(documentedDefaults[cmd])) {
-			if (!documentedDefaults[cmd][key]) delete documentedDefaults[cmd][key];
+		const entry = documentedDefaults[cmd];
+		if (!entry) continue;
+		for (const key of Object.keys(entry)) {
+			if (!entry[key]) delete entry[key];
 		}
 	}
 
@@ -1474,7 +1498,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		};
 		for (const [sub, args] of Object.entries(pkgArgs)) {
 			const subcommand = pmPkg.subcommands[sub];
-			if (subcommand && subcommand.positionalArgs.length === 0) {
+			if (subcommand && (subcommand.positionalArgs?.length ?? 0) === 0) {
 				subcommand.positionalArgs = args;
 			}
 		}
@@ -1484,7 +1508,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	// From --help: "patch, minor, major, prepatch, preminor, premajor, prerelease, from-git, or a specific version"
 	const pmVersion = commands.pm?.subcommands?.version;
 	if (pmVersion) {
-		for (const arg of pmVersion.positionalArgs) {
+		for (const arg of pmVersion.positionalArgs ?? []) {
 			if (arg.name === "increment" && !arg.choices) {
 				arg.choices = [
 					"patch",

@@ -30,7 +30,7 @@ function parseKeyValue(stdout: string): Map<string, string> {
 }
 
 describe("One-liner cookbook", () => {
-	for (const entry of oneLiners as OneLiner[]) {
+	for (const entry of oneLiners as unknown as OneLiner[]) {
 		test(entry.name, async () => {
 			const flags = entry.spawnFlags ?? [];
 			const proc = Bun.spawn(["bun", ...flags, "-e", entry.command], {

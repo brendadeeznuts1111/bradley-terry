@@ -108,8 +108,10 @@ describe("cli-completions generator", () => {
 		expect(data.globalFlags.length).toBeGreaterThan(0);
 
 		// Each core command must have a flags array (even if empty for some)
-		for (const cmd of requiredCommands) {
-			expect(Array.isArray(data.commands[cmd].flags)).toBe(true);
+		for (const commandName of requiredCommands) {
+			const cmdEntry = data.commands[commandName];
+			if (!cmdEntry) throw new Error(`missing command: ${commandName}`);
+			expect(Array.isArray(cmdEntry.flags)).toBe(true);
 		}
 
 		// Version metadata
@@ -205,16 +207,21 @@ describe("cli-completions generator", () => {
 
 		const data = runScript(scriptCwd, outputDir);
 
-		expect(data.commands.add.examples).toContain("bun add preact");
-		expect(data.commands.add.examples).toContain("bun add --dev @types/react");
-		expect(data.commands.run.examples).toContain("bun run index.js");
-		expect(data.commands.run.examples).toContain("bun run --bun vite");
-		expect(data.commands.test.examples).toContain("bun test --timeout 20");
-		expect(data.commands.test.examples).toContain("bun test --dots");
-		expect(data.commands.test.examples).toContain(
+		const add = data.commands.add;
+		const run = data.commands.run;
+		const testCmd = data.commands.test;
+		const build = data.commands.build;
+		if (!add || !run || !testCmd || !build) throw new Error("missing command");
+		expect(add.examples).toContain("bun add preact");
+		expect(add.examples).toContain("bun add --dev @types/react");
+		expect(run.examples).toContain("bun run index.js");
+		expect(run.examples).toContain("bun run --bun vite");
+		expect(testCmd.examples).toContain("bun test --timeout 20");
+		expect(testCmd.examples).toContain("bun test --dots");
+		expect(testCmd.examples).toContain(
 			"bun test --preload ./test-setup.ts",
 		);
-		expect(data.commands.build.examples).toContain(
+		expect(build.examples).toContain(
 			"bun build ./index.tsx --outdir ./out",
 		);
 	});
@@ -227,7 +234,9 @@ describe("cli-completions generator", () => {
 
 		const data = runScript(scriptCwd, outputDir);
 
-		const testFlags = data.commands.test.flags as Array<{
+		const testCmd2 = data.commands.test;
+		if (!testCmd2) throw new Error("missing test command");
+		const testFlags = testCmd2.flags as Array<{
 			name: string;
 			defaultValue?: string;
 		}>;

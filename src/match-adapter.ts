@@ -29,7 +29,7 @@ export const MatchAdapter = {
 	 * Convert a single validated MatchRow into a branded Match.
 	 * Performs light business logic for winner/loser derivation.
 	 */
-	fromMatchRow: (row: MatchRow): Effect.Effect<Match, never> =>
+	fromMatchRow: (row: MatchRow): Effect.Effect<Match, unknown> =>
 		Effect.gen(function* () {
 			const homeTeam = row.home_team as EntityId;
 			const awayTeam = row.away_team as EntityId;
@@ -73,7 +73,7 @@ export const MatchAdapter = {
 	loadMatchesForBT: (
 		dbPath: string,
 		opts: GetMatchesOptions = {},
-	): Effect.Effect<readonly Match[], BradleyTerryError> =>
+	): Effect.Effect<readonly Match[], unknown> =>
 		Effect.gen(function* () {
 			const rows = yield* SqliteLoader.getMatches(dbPath, opts);
 

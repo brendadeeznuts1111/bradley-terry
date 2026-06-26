@@ -14,6 +14,7 @@ const largeMatchSetArb = fc.array(
 
 test("fit 50k matches under 1.5 seconds", async () => {
 	const matches = await fc.sample(largeMatchSetArb, 1)[0];
+	if (!matches) throw new Error("no match sample generated");
 
 	const start = performance.now();
 

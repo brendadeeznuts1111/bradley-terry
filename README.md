@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-330%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-339%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
@@ -147,11 +147,12 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-330 tests across 21 files:
+339 tests across 22 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
 | `test/bun-api/bun-file.test.ts` | 22 |  |
+| `test/bun-api/bunfig.test.ts` | 9 |  |
 | `test/bun-api/color.test.ts` | 16 |  |
 | `test/bun-api/dns.test.ts` | 6 |  |
 | `test/bun-api/glob.test.ts` | 12 |  |

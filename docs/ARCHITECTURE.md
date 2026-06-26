@@ -515,7 +515,6 @@ Add new one-liners to `one-liners.json` and run `bun run cookbook` to verify.
 
 ## References
 
-
 ### HTTP Server
 
 Source: <https://bun.com/docs/api/http>

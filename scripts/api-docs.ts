@@ -92,7 +92,8 @@ function slugify(name: string): string {
 
 function extractTitle(content: string, fallback: string): string {
 	const match = content.match(/^#\s+(.+)$/m);
-	return match?.[1].trim() ?? fallback;
+	const title = match?.[1];
+	return title?.trim() ?? fallback;
 }
 
 function extractMarkdownCodeBlocks(content: string): CodeBlock[] {
@@ -101,8 +102,8 @@ function extractMarkdownCodeBlocks(content: string): CodeBlock[] {
 		/```(typescript|ts|javascript|js|tsx|jsx)(?:\s+[^\n]*)?\n([\s\S]*?)```/g;
 	let match: RegExpExecArray | null = regex.exec(content);
 	while (match !== null) {
-		const language = match[1].toLowerCase();
-		const code = match[2].trim();
+		const language = match[1]?.toLowerCase() ?? "";
+		const code = match[2]?.trim() ?? "";
 		if (code && RUNNABLE_LANGUAGES.has(language)) {
 			blocks.push({ language, code });
 		}
@@ -118,8 +119,9 @@ function extractHtmlCodeBlocks(html: string): CodeBlock[] {
 		/<pre[^>]*class="shiki[^"]*"[^>]*\slanguage="([^"]+)"[^>]*>([\s\S]*?)<\/pre>/g;
 	let preMatch: RegExpExecArray | null = preRegex.exec(html);
 	while (preMatch !== null) {
-		const language = preMatch[1].toLowerCase();
-		const text = preMatch[2]
+		const language = preMatch[1]?.toLowerCase() ?? "";
+		const raw = preMatch[2] ?? "";
+		const text = raw
 			.replace(/<[^>]+>/g, "")
 			.replace(/&lt;/g, "<")
 			.replace(/&gt;/g, ">")
@@ -142,9 +144,25 @@ function extractCodeBlocks(content: string): CodeBlock[] {
 	return extractHtmlCodeBlocks(content);
 }
 
-function transpiles(code: string): boolean {
+function loaderForLanguage(language: string): "ts" | "tsx" | "js" | "jsx" {
+	switch (language) {
+		case "javascript":
+		case "js":
+			return "js";
+		case "jsx":
+			return "jsx";
+		case "tsx":
+			return "tsx";
+		case "typescript":
+		case "ts":
+		default:
+			return "ts";
+	}
+}
+
+function transpiles(code: string, language: string): boolean {
 	try {
-		new Bun.Transpiler({ loader: "ts" }).transformSync(code);
+		new Bun.Transpiler({ loader: loaderForLanguage(language) }).transformSync(code);
 		return true;
 	} catch {
 		return false;
@@ -161,8 +179,9 @@ function escapeForTemplateLiteral(code: string): string {
 function generateTestFile(name: string, codeBlocks: CodeBlock[]): string {
 	const slug = slugify(name);
 	const tests = codeBlocks
-		.map(({ code }, index) => {
+		.map(({ code, language }, index) => {
 			const escaped = escapeForTemplateLiteral(code);
+			const loader = loaderForLanguage(language);
 			return `
 	test("${slug} example ${index + 1} transpiles without error", () => {
 		const code = \`${escaped}\`;
@@ -222,8 +241,7 @@ async function processDoc({ url, name }: ApiDoc): Promise<number> {
 	console.log(`Found ${codeBlocks.length} code blocks.`);
 
 	codeBlocks = codeBlocks.filter((block) => {
-		const escaped = escapeForTemplateLiteral(block.code);
-		if (transpiles(escaped)) return true;
+		if (transpiles(block.code, block.language)) return true;
 		console.log(`Skipping example that fails to transpile.`);
 		return false;
 	});

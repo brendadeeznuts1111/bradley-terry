@@ -31,8 +31,8 @@ function extractTotalCounts(
 	const match = output.match(/Ran (\d+) tests across (\d+) files?/);
 	if (!match) return null;
 	return {
-		tests: Number.parseInt(match[1], 10),
-		files: Number.parseInt(match[2], 10),
+		tests: Number.parseInt(match[1] ?? "0", 10),
+		files: Number.parseInt(match[2] ?? "0", 10),
 	};
 }
 

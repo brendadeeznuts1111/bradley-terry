@@ -25,15 +25,18 @@ describe("mm-invariants", () => {
 
 					for (let i = 0; i < sampled.length; i++) {
 						for (let j = i + 1; j < sampled.length; j++) {
+							const e1 = sampled[i];
+							const e2 = sampled[j];
+							if (!e1 || !e2) continue;
 							const p1 = await predictWinProbability(
 								fitResult.ratings,
-								sampled[i],
-								sampled[j],
+								e1,
+								e2,
 							);
 							const p2 = await predictWinProbability(
 								fitResult.ratings,
-								sampled[j],
-								sampled[i],
+								e2,
+								e1,
 							);
 
 							expect(p1 + p2).toBeCloseTo(1, 10);
