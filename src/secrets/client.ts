@@ -54,7 +54,7 @@ export const BunSecretsLive = Layer.effect(
 		set: (namespace, name, value) =>
 			Effect.tryPromise({
 				try: () =>
-					Bun.secrets?.set({ service: namespace, name }, value) ??
+					Bun.secrets?.set({ service: namespace, name, value }) ??
 					Promise.reject(new Error("Bun.secrets unavailable")),
 				catch: (cause) => new SecretError({ cause, namespace, name }),
 			}),

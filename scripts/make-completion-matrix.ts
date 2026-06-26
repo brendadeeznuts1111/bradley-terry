@@ -529,7 +529,7 @@ console.log(`✅ Wrote ${DYNAMIC_SOURCES_PATH}`);
 // ── Optional gzip backup ────────────────────────────────────────
 if (flags.backup || Bun.env.BUN_COMPLETION_BACKUP === "1") {
 	const backupPath = `${JSON_PATH}.gz`;
-	const compressed = Bun.gzipSync(new TextEncoder().encode(rawJson));
+	const compressed = Bun.gzipSync(rawJson);
 	await Bun.write(backupPath, compressed);
 	console.log(
 		`📦 Compressed backup: ${backupPath} (${compressed.length} bytes)`,
@@ -713,8 +713,8 @@ if (Bun.env.BUN_COMPLETION_UDP_BROADCAST === "1") {
 			hash: jsonHash,
 			version: liveBunVersion,
 		}),
-		"255.255.255.255",
 		9123,
+		"255.255.255.255",
 	);
 	udp.close();
 	console.log("📻 UDP broadcast sent");

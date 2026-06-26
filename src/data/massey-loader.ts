@@ -64,7 +64,7 @@ function parseMasseyLine(line: string): Partial<MatchRow> {
 		...(a ? { away_team: a } : {}),
 		winner_idx: Number(parts[2]) > Number(parts[3]) ? 0 : 1,
 		loser_idx: Number(parts[2]) > Number(parts[3]) ? 1 : 0,
-		date: d || new Date().toISOString().split("T")[0],
+		date: d || new Date().toISOString().slice(0, 10),
 	};
 }
 

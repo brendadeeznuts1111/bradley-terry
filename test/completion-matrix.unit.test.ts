@@ -547,7 +547,7 @@ describe("Bun native API verification", () => {
 	test("gzipSync compresses and gunzipSync decompresses", () => {
 		const original = "compress this string".repeat(50);
 		const encoded = new TextEncoder().encode(original);
-		const compressed = Bun.gzipSync(encoded);
+		const compressed = Bun.gzipSync(original);
 		const decompressed = Bun.gunzipSync(compressed);
 
 		expect(compressed.length).toBeLessThan(encoded.length);
@@ -557,7 +557,7 @@ describe("Bun native API verification", () => {
 	test("zstdCompressSync compresses and zstdDecompressSync decompresses", () => {
 		const original = "compress this string".repeat(50);
 		const encoded = new TextEncoder().encode(original);
-		const compressed = Bun.zstdCompressSync(encoded);
+		const compressed = Bun.zstdCompressSync(original);
 		const decompressed = Bun.zstdDecompressSync(compressed);
 
 		expect(compressed.length).toBeLessThan(encoded.length);
@@ -567,7 +567,7 @@ describe("Bun native API verification", () => {
 	test("zstdCompress and zstdDecompress roundtrip asynchronously", async () => {
 		const original = "async zstd roundtrip".repeat(40);
 		const encoded = new TextEncoder().encode(original);
-		const compressed = await Bun.zstdCompress(encoded);
+		const compressed = await Bun.zstdCompress(original);
 		const decompressed = await Bun.zstdDecompress(compressed);
 
 		expect(compressed.length).toBeLessThan(encoded.length);
@@ -577,7 +577,7 @@ describe("Bun native API verification", () => {
 	test("deflateSync compresses and inflateSync decompresses", () => {
 		const original = "deflate me cap'n".repeat(50);
 		const encoded = new TextEncoder().encode(original);
-		const compressed = Bun.deflateSync(encoded);
+		const compressed = Bun.deflateSync(original);
 		const decompressed = Bun.inflateSync(compressed);
 
 		expect(compressed.length).toBeLessThan(encoded.length);
@@ -812,9 +812,19 @@ describe("Bun native API verification", () => {
 		sink.start({ stream: true });
 		sink.write("chunk1");
 		const first = sink.flush();
+		if (typeof first === "number") {
+			throw new Error(
+				"ArrayBufferSink.flush() returned a byte count in streaming mode",
+			);
+		}
 		expect(new TextDecoder().decode(first)).toBe("chunk1");
 		sink.write("chunk2");
 		const second = sink.flush();
+		if (typeof second === "number") {
+			throw new Error(
+				"ArrayBufferSink.flush() returned a byte count in streaming mode",
+			);
+		}
 		expect(new TextDecoder().decode(second)).toBe("chunk2");
 		sink.end();
 	});

@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 /**
  * api-docs — scaffold Bun native API docs and tests from bun-types MDX.
  *
@@ -19,7 +18,7 @@ import { join } from "node:path";
  */
 import { mkdir } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import * as ts from "typescript";
 
 const require = createRequire(import.meta.url);
@@ -74,24 +73,38 @@ const API_DOC_TYPE_SOURCES: Record<string, TypeSource[]> = {
 	"runtime/http/server": [
 		{ file: "serve.d.ts", keywords: ["serve", "Serve", "Server", "WebSocket"] },
 	],
-	"runtime/file-io": [{ file: "bun.d.ts", keywords: ["file", "BunFile", "fileURLToPath"] }],
+	"runtime/file-io": [
+		{ file: "bun.d.ts", keywords: ["file", "BunFile", "fileURLToPath"] },
+	],
 	"runtime/glob": [{ file: "bun.d.ts", keywords: ["Glob"] }],
 	"runtime/child-process": [
-		{ file: "bun.d.ts", keywords: ["spawn", "Shell", "Subprocess", "SpawnOptions", "spawnSync"] },
+		{
+			file: "bun.d.ts",
+			keywords: ["spawn", "Shell", "Subprocess", "SpawnOptions", "spawnSync"],
+		},
 	],
 	"runtime/sqlite": [
 		{ file: "sqlite.d.ts", keywords: ["Database", "Statement", "SQLite"] },
 	],
 	"runtime/hashing": [
-		{ file: "bun.d.ts", keywords: ["CryptoHasher", "hash", "password", "bcrypt", "argon2"] },
+		{
+			file: "bun.d.ts",
+			keywords: ["CryptoHasher", "hash", "password", "bcrypt", "argon2"],
+		},
 	],
 	"runtime/transpiler": [{ file: "bun.d.ts", keywords: ["Transpiler"] }],
-	"runtime/color": [{ file: "bun.d.ts", keywords: ["Color", "color", "gradient"] }],
-	"runtime/semver": [{ file: "bun.d.ts", keywords: ["Semver", "semver", "SemVer"] }],
+	"runtime/color": [
+		{ file: "bun.d.ts", keywords: ["Color", "color", "gradient"] },
+	],
+	"runtime/semver": [
+		{ file: "bun.d.ts", keywords: ["Semver", "semver", "SemVer"] },
+	],
 	"runtime/http/websockets": [
 		{ file: "serve.d.ts", keywords: ["WebSocket", "ServerWebSocket"] },
 	],
-	"runtime/networking/udp": [{ file: "bun.d.ts", keywords: ["udpSocket", "UDP"] }],
+	"runtime/networking/udp": [
+		{ file: "bun.d.ts", keywords: ["udpSocket", "UDP"] },
+	],
 	"runtime/networking/dns": [{ file: "bun.d.ts", keywords: ["dns"] }],
 };
 
@@ -150,10 +163,7 @@ function extractTypeSignatures(
 	return matches.join("\n\n");
 }
 
-function getTypeSignaturesForDoc(
-	bunTypesRoot: string,
-	slug: string,
-): string {
+function getTypeSignaturesForDoc(bunTypesRoot: string, slug: string): string {
 	const sources = API_DOC_TYPE_SOURCES[slug];
 	if (!sources || sources.length === 0) return "";
 
@@ -465,8 +475,7 @@ async function processDoc(
 	const archPath = "docs/ARCHITECTURE.md";
 	let arch = readFileSync(archPath, "utf8");
 	const displayTitle =
-		parseFrontmatterTitle(loaded.raw, name) ||
-		extractTitle(loaded.body, name);
+		parseFrontmatterTitle(loaded.raw, name) || extractTitle(loaded.body, name);
 	const newSection = generateArchSection(
 		name,
 		displayTitle,
@@ -476,13 +485,21 @@ async function processDoc(
 		codeBlocks,
 		typeSignatures,
 	);
-	const markerPattern = new RegExp(
-		`\\n<!-- api-docs:${fileSlug} -->[\\s\\S]*?<!-- /api-docs:${fileSlug} -->`,
-		"g",
-	);
-	if (markerPattern.test(arch)) {
-		arch = arch.replace(markerPattern, newSection);
-		console.log(`Replaced existing section in ${archPath}`);
+	const openMarker = `\n<!-- api-docs:${fileSlug} -->`;
+	const closeMarker = `<!-- /api-docs:${fileSlug} -->`;
+	const openIndex = arch.indexOf(openMarker);
+	if (openIndex !== -1) {
+		const closeIndex = arch.indexOf(closeMarker, openIndex + openMarker.length);
+		if (closeIndex !== -1) {
+			arch =
+				arch.slice(0, openIndex) +
+				newSection +
+				arch.slice(closeIndex + closeMarker.length);
+			console.log(`Replaced existing section in ${archPath}`);
+		} else {
+			arch += newSection;
+			console.log(`Appended new section to ${archPath}`);
+		}
 	} else {
 		arch += newSection;
 		console.log(`Appended new section to ${archPath}`);
