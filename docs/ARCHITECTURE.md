@@ -412,10 +412,16 @@ leverages Bun's performance-optimized primitives.
 | API | Usage |
 |-----|-------|
 | `Bun.serve(opts)` | HTTP server |
+| `server.port` | Assigned port (`0` requests an ephemeral port) |
+| `server.stop()` | Gracefully stop the server |
+| `server.ref()` / `server.unref()` | Control event-loop retention |
+| `server.fetch(req)` | In-process request handler (testing) |
 | `Bun.WebSocket` | WebSocket support |
 | `Bun.dns` | DNS resolution |
 | `Bun.connect(opts)` | TCP/UDP connections |
 | `Bun.udpSocket(opts)` | UDP socket creation |
+
+The `Bun.serve` API is used by the HTTP ratings service layer. A server started with `port: 0` binds to an ephemeral port; `server.port` reflects the actual port and `server.stop()` shuts it down.
 
 ### Inspection & debugging
 | API | Usage |
@@ -441,9 +447,11 @@ leverages Bun's performance-optimized primitives.
 | `db.transaction(fn)` | Higher-order transaction with auto BEGIN/COMMIT/ROLLBACK |
 | `using db = new Database(...)` | Auto-close via Disposable |
 
-### Versioning
+### Versioning & runtime info
 | API | Usage |
 |-----|-------|
+| `Bun.version` | Runtime semver string (e.g. `1.4.0`) |
+| `Bun.revision` | Runtime commit hash (e.g. `452139e36...`) |
 | `Bun.semver.satisfies(version, range)` | Semver range checking (drift gate) |
 | `Bun.semver.order(a, b)` | Version comparison |
 

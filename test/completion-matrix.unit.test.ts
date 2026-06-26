@@ -956,4 +956,14 @@ describe("Bun native API verification", () => {
 		server.stop();
 		expect(server.port).toBe(0);
 	});
+
+	test("Bun.version exposes the runtime semver", () => {
+		expect(typeof Bun.version).toBe("string");
+		expect(Bun.version).toMatch(/^\d+\.\d+\.\d+/);
+	});
+
+	test("Bun.revision exposes the runtime commit hash", () => {
+		expect(typeof Bun.revision).toBe("string");
+		expect(Bun.revision.length).toBeGreaterThan(5);
+	});
 });
