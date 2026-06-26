@@ -74,5 +74,35 @@
 		"command": "process.stdin.setEncoding('utf-8'); let d = ''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => console.log('stdin', d.trim()));",
 		"stdin": "42\n",
 		"expect": { "stdin": "42" }
+	},
+	{
+		"name": "deflate compression roundtrip",
+		"command": "const d='deflate-test'.repeat(20); const e=new TextEncoder().encode(d); const c=Bun.deflateSync(e); const u=new TextDecoder().decode(Bun.inflateSync(c)); console.log('ok', u===d); console.log('ratio', (c.length/e.length).toFixed(2));",
+		"expect": { "ok": "true", "ratio": "0\\.\\d+" }
+	},
+	{
+		"name": "zstd compression with level",
+		"command": "const d='zstd-test'.repeat(30); const e=new TextEncoder().encode(d); const c=Bun.zstdCompressSync(e,{level:6}); console.log('ok', new TextDecoder().decode(Bun.zstdDecompressSync(c))===d);",
+		"expect": { "ok": "true" }
+	},
+	{
+		"name": "HTML entity escaping",
+		"command": "console.log('amp', Bun.escapeHTML('a & b')); console.log('lt', Bun.escapeHTML('<x>')); console.log('qt', Bun.escapeHTML('\"hi\"'));",
+		"expect": { "amp": "a &amp; b", "lt": "&lt;x&gt;", "qt": "&quot;hi&quot;" }
+	},
+	{
+		"name": "deepEquals structural comparison",
+		"command": "const a={x:[1,{y:2}]}; console.log('eq', Bun.deepEquals(a,{x:[1,{y:2}]})); console.log('neq', Bun.deepEquals(a,{x:[1,{y:3}]})); console.log('strict', Bun.deepEquals({},{a:undefined},true));",
+		"expect": { "eq": "true", "neq": "false", "strict": "false" }
+	},
+	{
+		"name": "peek synchronous promise inspection",
+		"command": "const p=Promise.resolve(42); console.log('val', Bun.peek(p)); console.log('stat', Bun.peek.status(p));",
+		"expect": { "val": "42", "stat": "fulfilled" }
+	},
+	{
+		"name": "resolveSync module resolution",
+		"command": "const p=Bun.resolveSync('bun:sqlite', import.meta.dir); console.log('ok', typeof p==='string' && p.length>0);",
+		"expect": { "ok": "true" }
 	}
 ]

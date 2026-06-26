@@ -499,6 +499,12 @@ asserts the output matches expected patterns.
 | 12 | sleep async delay | `Bun.sleep` |
 | 13 | `--smol` memory-constrained run | `bun --smol` |
 | 14 | stdin pipe via `bun run -` | `bun run -` |
+| 15 | deflate compression roundtrip | `Bun.deflateSync`, `inflateSync` |
+| 16 | zstd compression with level | `Bun.zstdCompressSync` |
+| 17 | HTML entity escaping | `Bun.escapeHTML` |
+| 18 | deepEquals structural comparison | `Bun.deepEquals` |
+| 19 | peek synchronous promise inspection | `Bun.peek`, `peek.status` |
+| 20 | resolveSync module resolution | `Bun.resolveSync` |
 
 Add new one-liners to `one-liners.json` and run `bun run cookbook` to verify.
 

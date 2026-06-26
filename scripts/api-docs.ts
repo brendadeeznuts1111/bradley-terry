@@ -22,9 +22,33 @@ interface Args {
 	name: string;
 }
 
-function parseArgs(): Args {
+interface ApiDoc {
+	url: string;
+	name: string;
+}
+
+const API_DOC_REGISTRY: ApiDoc[] = [
+	{ url: "https://bun.com/docs/api/http", name: "HTTP Server" },
+	{ url: "https://bun.com/docs/api/bun", name: "Runtime Info" },
+	{ url: "https://bun.com/docs/api/file", name: "Bun File" },
+	{ url: "https://bun.com/docs/api/glob", name: "Glob" },
+	{ url: "https://bun.com/docs/api/spawn", name: "Spawn" },
+	{ url: "https://bun.com/docs/api/sqlite", name: "SQLite" },
+	{ url: "https://bun.com/docs/api/crypto", name: "Crypto" },
+	{ url: "https://bun.com/docs/api/password", name: "Password" },
+	{ url: "https://bun.com/docs/api/hashing", name: "Hashing" },
+	{ url: "https://bun.com/docs/api/transpiler", name: "Transpiler" },
+	{ url: "https://bun.com/docs/api/color", name: "Color" },
+	{ url: "https://bun.com/docs/api/semver", name: "Semver" },
+	{ url: "https://bun.com/docs/api/web-sockets", name: "WebSockets" },
+	{ url: "https://bun.com/docs/api/udp", name: "UDP" },
+	{ url: "https://bun.com/docs/api/dns", name: "DNS" },
+];
+
+function parseArgs(): { mode: "single"; args: Args } | { mode: "all" } {
 	let url: string | undefined;
 	let name: string | undefined;
+	let all = false;
 
 	for (let i = 0; i < Bun.argv.length; i++) {
 		if (Bun.argv[i] === "--url" && Bun.argv[i + 1]) {
@@ -33,15 +57,20 @@ function parseArgs(): Args {
 		} else if (Bun.argv[i] === "--name" && Bun.argv[i + 1]) {
 			name = Bun.argv[i + 1];
 			i++;
+		} else if (Bun.argv[i] === "--all") {
+			all = true;
 		}
 	}
 
+	if (all) return { mode: "all" };
 	if (!url || !name) {
-		console.error("Usage: bun run api-docs --url <url> --name <name>");
+		console.error(
+			"Usage: bun run api-docs --url <url> --name <name>  OR  bun run api-docs --all",
+		);
 		process.exit(1);
 	}
 
-	return { url, name };
+	return { mode: "single", args: { url, name } };
 }
 
 function slugify(name: string): string {
@@ -123,9 +152,8 @@ ${codeBlocks[0] ?? "// No code examples found"}
 `;
 }
 
-async function main(): Promise<number> {
-	const { url, name } = parseArgs();
-	console.log(`Fetching ${url}...`);
+async function processDoc({ url, name }: ApiDoc): Promise<number> {
+	console.log(`\nFetching ${url}...`);
 
 	const response = await fetch(url);
 	if (!response.ok) {
@@ -154,7 +182,20 @@ async function main(): Promise<number> {
 	writeFileSync(archPath, arch);
 	console.log(`Updated ${archPath}`);
 
-	console.log("Updating README test counts...");
+	return 0;
+}
+
+async function main(): Promise<number> {
+	const parsed = parseArgs();
+	const docs = parsed.mode === "all" ? API_DOC_REGISTRY : [parsed.args];
+
+	let exitCode = 0;
+	for (const doc of docs) {
+		const result = await processDoc(doc);
+		if (result !== 0) exitCode = result;
+	}
+
+	console.log("\nUpdating README test counts...");
 	const result = Bun.spawnSync({
 		cmd: ["bun", "run", "update-readme-test-counts"],
 		stdout: "inherit",
@@ -166,7 +207,7 @@ async function main(): Promise<number> {
 	}
 
 	console.log("Done.");
-	return 0;
+	return exitCode;
 }
 
 process.exit(await main());
