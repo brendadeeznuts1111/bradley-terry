@@ -768,13 +768,18 @@
           "required": false,
           "multiple": false,
           "type": "string",
-          "completionType": "none"
+          "completionType": "package"
         }
       ],
       "subcommands": {},
       "examples": [
         "bun install",
-        "bun install --production"
+        "bun install --production",
+        "bun install react",
+        "bun install react@19.1.1",
+        "bun install --global cowsay",
+        "bun install --filter './packages/pkg-a'",
+        "bun install --linker isolated"
       ],
       "usage": "Usage: bun install [flags] @",
       "aliases": [

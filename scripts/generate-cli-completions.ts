@@ -1332,7 +1332,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		publish: { dist: "file" },
 		init: { folder: "directory" },
 		patch: { flags: "package" },
-		install: { flags: "none" },
+		install: { flags: "package" },
 		audit: { flags: "none" },
 	};
 	for (const [cmd, argTypes] of Object.entries(completionTypeMap)) {
@@ -1343,6 +1343,28 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 				(!arg.completionType || arg.completionType === "none")
 			) {
 				arg.completionType = argTypes[arg.name];
+			}
+		}
+	}
+
+	// Add documented examples not present in --help output.
+	const documentedExamples: Record<string, string[]> = {
+		install: [
+			"bun install react",
+			"bun install react@19.1.1",
+			"bun install --global cowsay",
+			"bun install --filter './packages/pkg-a'",
+			"bun install --linker isolated",
+		],
+	};
+	for (const [cmd, examples] of Object.entries(documentedExamples)) {
+		if (!commands[cmd]) continue;
+		const existing = new Set(commands[cmd].examples);
+		for (const example of examples) {
+			if (!existing.has(example)) {
+				commands[cmd].examples.push(example);
+				existing.add(example);
+				console.log(`📝 Adding documented example: ${cmd} ${example}`);
 			}
 		}
 	}

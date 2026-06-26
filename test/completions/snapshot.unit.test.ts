@@ -245,14 +245,14 @@ describe("Snapshot contracts", () => {
 			expect(match[1]).toBe("1.1.0"); // schema
 			expect(match[2]).toBe("1.4.0"); // bunVersion
 			expect(match[3]).toBe("1.4.0-canary.1+452139e36"); // revision
-			expect(match[4]).toBe("592ad0f0cb65"); // hash (12 chars)
+			expect(match[4]).toBe("19826aa88899"); // hash (12 chars)
 		});
 
 		test("header rejects malformed formats", () => {
 			const badHeaders = [
 				"Generated from completions/bun-cli.json (schema v1.1.0, Bun 1.4.0)", // missing backticks, revision, hash
 				"Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, revision 452139e36)", // missing hash
-				"Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, hash `592ad0f0cb65`).", // missing revision
+				"Generated from `completions/bun-cli.json` (schema v1.1.0, Bun 1.4.0, hash `19826aa88899`).", // missing revision
 			];
 
 			const headerPattern =
