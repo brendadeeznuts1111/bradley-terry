@@ -124,6 +124,10 @@ function purposeForFile(file: string): string {
 			"Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError`",
 		"test/integration/cli-completions.test.ts":
 			"CLI completions generator integration tests",
+		"test/ratings-config.unit.test.ts":
+			"Effect `RatingsConfig` layer and `SecretClient` integration",
+		"test/bun-api/one-liners.test.ts":
+			"Curated `bun -e` one-liners executed as living API specifications",
 	};
 	return purposes[file] ?? "";
 }

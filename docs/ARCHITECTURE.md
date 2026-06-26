@@ -477,6 +477,31 @@ The `Bun.serve` API is used by the HTTP ratings service layer. A server started 
 | `Bun.env` / `process.env` | Auto-loaded .env with variable expansion |
 | `Bun.Archive` (≥1.4.0) | Create/extract tar.gz archives |
 
+## One-Liner Cookbook
+
+Curated `bun -e` one-liners that demonstrate Bun APIs. Run via `bun run cookbook`.
+Each one-liner is a living specification — the test suite executes every one and
+asserts the output matches expected patterns.
+
+| # | One-liner | APIs demonstrated |
+|---|-----------|-------------------|
+| 1 | HTTP server on ephemeral port | `Bun.serve`, `port: 0` |
+| 2 | File write and read | `Bun.write`, `Bun.file` |
+| 3 | Runtime version and revision | `Bun.version`, `Bun.revision` |
+| 4 | Password hashing and verification | `Bun.password.hashSync`, `verifySync` |
+| 5 | SHA-256 hashing | `Bun.CryptoHasher` |
+| 6 | gzip compression roundtrip | `Bun.gzipSync`, `gunzipSync` |
+| 7 | TOML parsing | `Bun.TOML.parse` |
+| 8 | Environment variable access | `Bun.env` |
+| 9 | nanoseconds timing | `Bun.nanoseconds`, `Bun.sleepSync` |
+| 10 | UUIDv7 generation | `Bun.randomUUIDv7` |
+| 11 | stringWidth CJK measurement | `Bun.stringWidth` |
+| 12 | sleep async delay | `Bun.sleep` |
+| 13 | `--smol` memory-constrained run | `bun --smol` |
+| 14 | stdin pipe via `bun run -` | `bun run -` |
+
+Add new one-liners to `one-liners.json` and run `bun run cookbook` to verify.
+
 ## References
 
 - Hunter, D. R. (2004). *MM algorithms for generalized Bradley-Terry models.*

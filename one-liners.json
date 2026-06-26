@@ -1,0 +1,78 @@
+[
+	{
+		"name": "HTTP server on ephemeral port",
+		"command": "const s = Bun.serve({ port: 0, fetch: () => new Response('ok') }); console.log('port', s.port); console.log('stop_len', s.stop.length); s.stop();",
+		"expect": { "port": "\\d+", "stop_len": "1" }
+	},
+	{
+		"name": "File write and read",
+		"command": "const path = '/tmp/bun-oneliner-test.txt'; await Bun.write(path, 'hello from bun'); console.log('content', await Bun.file(path).text()); require('fs').unlinkSync(path);",
+		"expect": { "content": "hello from bun" }
+	},
+	{
+		"name": "Runtime version and revision",
+		"command": "console.log('version', Bun.version); console.log('rev_len', Bun.revision.length);",
+		"expect": { "version": "\\d+\\.\\d+\\.\\d+", "rev_len": "\\d+" }
+	},
+	{
+		"name": "Password hashing and verification",
+		"command": "const h = Bun.password.hashSync('s3cret'); console.log('hash_prefix', h.substring(0, 5)); console.log('verify_ok', Bun.password.verifySync('s3cret', h)); console.log('verify_bad', Bun.password.verifySync('wrong', h));",
+		"expect": {
+			"hash_prefix": "\\$.+",
+			"verify_ok": "true",
+			"verify_bad": "false"
+		}
+	},
+	{
+		"name": "SHA-256 hashing",
+		"command": "const h = new Bun.CryptoHasher('sha256').update('bradley-terry').digest('hex'); console.log('sha256', h.substring(0, 12)); console.log('len', h.length);",
+		"expect": { "sha256": "[0-9a-f]{12}", "len": "64" }
+	},
+	{
+		"name": "gzip compression roundtrip",
+		"command": "const data = new TextEncoder().encode('compress me '.repeat(10)); const c = Bun.gzipSync(data); const d = Bun.gunzipSync(c); console.log('ratio', (c.length / data.length).toFixed(2)); console.log('matches', new TextDecoder().decode(d) === 'compress me '.repeat(10));",
+		"expect": { "ratio": "0\\.\\d+", "matches": "true" }
+	},
+	{
+		"name": "TOML parsing",
+		"command": "const toml = 'name = \\\"bt\\\"\\n[settings]\\nport = 3000'; const obj = Bun.TOML.parse(toml); console.log('name', obj.name); console.log('port', obj.settings.port);",
+		"expect": { "name": "bt", "port": "3000" }
+	},
+	{
+		"name": "Environment variable access",
+		"command": "process.env.BT_ONELINER_TEST = 'yes'; console.log('env', Bun.env.BT_ONELINER_TEST); console.log('noenv', Bun.env.BT_ONELINER_MISSING || 'undefined');",
+		"expect": { "env": "yes", "noenv": "undefined" }
+	},
+	{
+		"name": "nanoseconds timing",
+		"command": "const a = Bun.nanoseconds(); Bun.sleepSync(1); const b = Bun.nanoseconds(); console.log('delta_gt_0', (b - a) > 0); console.log('type', typeof a === 'number' ? 'number' : 'other');",
+		"expect": { "delta_gt_0": "true", "type": "number" }
+	},
+	{
+		"name": "UUIDv7 generation",
+		"command": "const id = Bun.randomUUIDv7(); console.log('len', id.length); console.log('version_char', id[14]); console.log('format', /^[0-9a-f-]+$/.test(id));",
+		"expect": { "len": "36", "version_char": "7", "format": "true" }
+	},
+	{
+		"name": "stringWidth CJK measurement",
+		"command": "console.log('ascii', Bun.stringWidth('hello')); console.log('cjk', Bun.stringWidth('你好')); console.log('emoji', Bun.stringWidth('🚀'));",
+		"expect": { "ascii": "5", "cjk": "4", "emoji": "2" }
+	},
+	{
+		"name": "sleep async delay",
+		"command": "const start = Date.now(); await Bun.sleep(50); console.log('slept_ms_ge', Date.now() - start >= 40);",
+		"expect": { "slept_ms_ge": "true" }
+	},
+	{
+		"name": "bun --smol memory-constrained run",
+		"command": "console.log('smol_ok', true);",
+		"spawnFlags": ["--smol"],
+		"expect": { "smol_ok": "true" }
+	},
+	{
+		"name": "bun run - stdin pipe",
+		"command": "process.stdin.setEncoding('utf-8'); let d = ''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => console.log('stdin', d.trim()));",
+		"stdin": "42\n",
+		"expect": { "stdin": "42" }
+	}
+]
