@@ -151,6 +151,96 @@ The MM algorithm is O(iterations × matches) per fit. On an M-series Mac:
 Float64 typed arrays are used for strengths and win counts to avoid GC pressure
 on large match sets.
 
+## Bun-native API inventory
+
+This project uses Bun's built-in APIs exclusively — no Node.js polyfills or
+third-party equivalents. The strategy keeps the dependency footprint small and
+leverages Bun's performance-optimized primitives.
+
+### I/O & File system
+| API | Usage |
+|-----|-------|
+| `Bun.file(path)` | Read artifacts (JSON, Markdown, CSV, HTML) |
+| `Bun.write(path, content)` | Write generated artifacts |
+| `Bun.file(path).text()` | Streaming text read |
+| `Bun.readableStreamToText(stream)` | Stream → text conversion |
+
+### Hashing & cryptography
+| API | Usage |
+|-----|-------|
+| `Bun.CryptoHasher("sha256"/"sha512")` | JSON drift hashing, content integrity |
+| `Bun.hash(content)` | Fast content-addressable hashing |
+
+### Compression
+| API | Usage |
+|-----|-------|
+| `Bun.gzipSync(data)` | Compress for storage/transport |
+| `Bun.gunzipSync(data)` | Decompress for processing |
+
+### Text & formatting
+| API | Usage |
+|-----|-------|
+| `Bun.escapeHTML(str)` | HTML artifact generation |
+| `Bun.stringWidth(str)` | CJK/emoji-aware column alignment in markdown tables |
+
+### Data utilities
+| API | Usage |
+|-----|-------|
+| `Bun.deepEquals(a, b)` | Structural equality in tests |
+| `Bun.peek(promise)` | Synchronous inspection of resolved promises |
+| `Bun.env` | Environment variable access |
+| `Bun.version` / `Bun.revision` | Runtime version introspection |
+| `Bun.main` | Entrypoint path resolution |
+| `Bun.which(cmd)` | Binary lookup |
+| `Bun.sleep(ms)` | Async delay |
+| `Bun.nanoseconds()` | High-precision timing |
+| `Bun.randomUUIDv7()` | Time-ordered UUID generation for history tables |
+
+### Parsing & serialization
+| API | Usage |
+|-----|-------|
+| `Bun.TOML.parse(str)` | TOML configuration parsing |
+| `Bun.JSONC.parse(str)` | JSONC (JSON with comments) parsing |
+
+### Path resolution
+| API | Usage |
+|-----|-------|
+| `Bun.fileURLToPath(url)` | Convert file:// URLs to OS paths |
+| `Bun.pathToFileURL(path)` | Cross-platform path → file:// URL conversion |
+| `Bun.resolveSync(specifier, from)` | Module specifier resolution |
+
+### Glob & process
+| API | Usage |
+|-----|-------|
+| `Bun.Glob(pattern)` | File globbing for artifact discovery |
+| `Bun.spawn(cmd, opts)` | Child process spawning |
+
+### Network & serving
+| API | Usage |
+|-----|-------|
+| `Bun.serve(opts)` | HTTP server |
+| `Bun.WebSocket` | WebSocket support |
+| `Bun.dns` | DNS resolution |
+| `Bun.connect(opts)` | TCP/UDP connections |
+| `Bun.udpSocket(opts)` | UDP socket creation |
+
+### Inspection & debugging
+| API | Usage |
+|-----|-------|
+| `Bun.inspect(obj)` | Structured object inspection |
+| `Bun.inspect.table(rows)` | Tabular console output |
+
+### Versioning
+| API | Usage |
+|-----|-------|
+| `Bun.semver.satisfies(version, range)` | Semver range checking (drift gate) |
+| `Bun.semver.order(a, b)` | Version comparison |
+
+### Markdown (unstable, validation only)
+| API | Usage |
+|-----|-------|
+| `Bun.markdown.html(md, opts)` | Validate markdown structure (not used in production output) |
+
 ## References
 
 - Hunter, D. R. (2004). *MM algorithms for generalized Bradley-Terry models.*
