@@ -1,0 +1,92 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Snapshot contracts DYNAMIC_SOURCES.json schema contract full schema with dynamic value matchers 1`] = `
+{
+  "blake2b256": Any<String>,
+  "bunVersion": "1.4.0",
+  "generatedAt": Any<String>,
+  "hmac": Any<String>,
+  "jsonHash": Any<String>,
+  "revision": StringMatching /^1\\.4\\.0/,
+  "schema": "1.1.0",
+  "sha256": Any<String>,
+  "sha512": Any<String>,
+  "sources": {
+    "add": {
+      "completes": [
+        "registry_packages",
+      ],
+      "provider": "getcompletes",
+      "providerArgs": [
+        "a",
+      ],
+    },
+    "bare_bun": {
+      "completes": [
+        "files",
+        "scripts",
+        "binaries",
+      ],
+      "provider": null,
+      "providerArgs": null,
+    },
+    "build": {
+      "completes": [
+        "files",
+      ],
+      "provider": "getcompletes",
+      "providerArgs": [
+        "j",
+      ],
+    },
+    "create": {
+      "completes": [
+        "templates",
+      ],
+      "provider": null,
+      "templateDir": "$BUN_INSTALL/create",
+    },
+    "remove": {
+      "completes": [
+        "installed_packages",
+      ],
+      "provider": "getcompletes",
+      "providerArgs": [
+        "a",
+      ],
+    },
+    "run": {
+      "completes": [
+        "scripts",
+        "files",
+        "binaries",
+      ],
+      "provider": "getcompletes",
+      "providerArgs": [
+        "s",
+        "b",
+        "j",
+      ],
+    },
+    "test": {
+      "completes": [
+        "files",
+      ],
+      "provider": "getcompletes",
+      "providerArgs": [
+        "j",
+      ],
+    },
+  },
+}
+`;
+
+exports[`Snapshot contracts COMPLETION_MATRIX.md header format header object with dynamic value matchers 1`] = `
+{
+  "bunVersion": "1.4.0",
+  "hash": Any<String>,
+  "revision": StringMatching /^1\\.4\\.0/,
+  "schema": "1.1.0",
+  "source": "completions/bun-cli.json",
+}
+`;

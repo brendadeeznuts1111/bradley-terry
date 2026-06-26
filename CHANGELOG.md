@@ -1,4 +1,70 @@
+# Changelog
+
+## Unreleased
+
+- `GET /ready` readiness probe (503 when DB unavailable); `/health` is liveness-only
+- `GET /metrics` Prometheus counters; `X-Request-Id` on all responses
+- Refresh mutex (409 `RefreshInProgress`); SQLite transactions for `storeBT`
+- `REFRESH_TOKEN` auth on manual refresh; Massey fetch timeout + retry
+- Graceful shutdown with in-flight request drain (`SHUTDOWN_TIMEOUT_MS`)
+- `Dockerfile` + `docs/DEPLOYMENT.md`
+
+## Unreleased
+
+- Bun runtime alignment: `Bun.env`, `Bun.file`, `Bun.revision`, `server.pendingRequests` on `/metrics`
+- `docs/BUN_RUNTIME.md` — maps service to [bun.com/docs/runtime](https://bun.com/docs/runtime)
+- Graceful `await server.stop()`; `server.url` startup log; `hostname: 0.0.0.0`
+
+## v0.3.33
+
+- Effect HTTP service on `main`: MasseyClient, RatingsDB, BTCompute, 4 data routes + health
+- `src/secrets/` — SecretClient with Bun/env/vault backends, TTL entries
+- OpenAPI 3.1 at `GET /openapi.json` and `GET /openapi.yaml`
+- Structured JSON request logging (`REQUEST_LOG`, default on)
+- Per-IP rate limit on `POST /api/ratings/refresh` (default 5 req / 60s)
+- `bt_ratings_history` snapshots, ManagedRuntime, CORS, auto-refresh scheduler
+- `AGENTS.md`, `docs/MERGE.md`, `docs/ARCHITECTURE.md`, `docs/API.md`, `.env.example`
+- BTCompute wired to production `BradleyTerry` MM fitter (v0.3.32 core)
+- 40 tests in `tests/` (154 total with core suite)
+
+## v0.3.32
+
+- **Core engine implemented** — `src/bradley-terry/index.ts` MM fitter with
+  `BradleyTerry` service + `BradleyTerryLive` layer (was a 0-LOC placeholder)
+- Union-Find graph connectivity, time decay, three output scales
+  (arithmetic / geometric / elo400), log-likelihood reporting
+- Property tests: mm-invariants, graph-connectivity, error-handling (6 tests)
+- Benchmarks: 50k matches in 87ms (target <1.5s), 5k in 3ms, 25k in 8ms
+- Bun macros for embedding git commit hash in bench output
+- **Bun CLI completion matrix pipeline** — generate `completions/bun-cli.json`,
+  `COMPLETION_MATRIX.md`, and `DYNAMIC_SOURCES.json` with drift checks
+- **Shell completions** — generate bash/zsh/fish scripts from `bun-cli.json`
+- **Snapshot contracts** for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, and
+  `COMPLETION_MATRIX.md` header format
+- **Bun-native API coverage** in tests: `Bun.semver` version gate, `Bun.markdown`
+  structural validation, `Bun.stringWidth` table alignment, `Bun.randomUUIDv7`
+  history IDs, `Bun.pathToFileURL` cross-platform path resolution
+- **Repository cleanup** — root TypeScript files moved into `src/`, one-line
+  placeholder stubs removed, duplicate git macros combined into
+  `src/utils/git-commit.ts`, `MatchRowSchema` added to `src/schema.ts`
+- Repo hygiene: `.editorconfig`, `.gitattributes`, `CODEOWNERS`, `.gitignore`
+- Pinned `effect@3.21.4`, `@types/bun@1.3.14`; added `fast-check@4.8.0`
+- Full README + ARCHITECTURE rewrite
+
+## v0.3.1
+
+- EntityId branding in `FitResult` and all tagged errors
+- `match-adapter.ts` — SQLite MatchRow → BT Match pipeline
+- `massey-loader.ts` — Effect Stream-based Massey CSV loader
+
+## v0.3.0
+
+- Barrel exports, import path standardization
+- Cascade integration layer
+- README badges + release assets
+
 ## v0.2.7
+
 - Massey FIFA CSV importer + backtesting
 - Documentation overhaul
 - All previous increments documented.

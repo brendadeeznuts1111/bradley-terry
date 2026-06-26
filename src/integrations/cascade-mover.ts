@@ -1,1 +1,0 @@
-// Enhanced with getDelta consumer and risk flag logic for |delta| > 0.15

@@ -1,0 +1,124 @@
+#!/usr/bin/env bun
+// Bun-native file I/O, hashing, and path resolution via Bun.file() / Bun.CryptoHasher / Bun.pathToFileURL
+// https://bun.com/docs/runtime/file-io
+// https://bun.com/docs/runtime/hashing
+
+import { join } from "node:path";
+
+const ROOT = join(import.meta.dirname, "..");
+
+const JSON_PATH = Bun.pathToFileURL(join(ROOT, "completions/bun-cli.json")).pathname;
+const BUNFIG_PATH = Bun.pathToFileURL(join(ROOT, "completions/bunfig-settings.json")).pathname;
+const MATRIX_PATH = Bun.pathToFileURL(join(ROOT, "completions/COMPLETION_MATRIX.md")).pathname;
+const DYNAMIC_SOURCES_PATH = Bun.pathToFileURL(
+	join(ROOT, "completions/DYNAMIC_SOURCES.json"),
+).pathname;
+
+const rawJson = await Bun.file(JSON_PATH).text();
+const jsonHash = new Bun.CryptoHasher("sha256").update(rawJson).digest("hex").slice(0, 12);
+const matrixContent = await Bun.file(MATRIX_PATH).text();
+const jsonData = JSON.parse(rawJson);
+
+let failed = false;
+
+// Check 0: Running Bun version meets the pipeline minimum
+const MIN_BUN_VERSION = "1.4.0";
+if (!Bun.semver.satisfies(Bun.version, `>=${MIN_BUN_VERSION}`)) {
+	console.error(
+		`❌ Bun version drift: running Bun ${Bun.version} is older than required ${MIN_BUN_VERSION}`,
+	);
+	failed = true;
+}
+
+// Check 1: Matrix contains current JSON hash
+if (!matrixContent.includes(jsonHash)) {
+	console.error(`❌ Drift detected: ${JSON_PATH} hash (${jsonHash}) not found in matrix`);
+	failed = true;
+}
+
+// Check 2: Matrix version matches JSON version
+if (!matrixContent.includes(`schema v${jsonData.version}`)) {
+	console.error(`❌ Version drift: expected schema v${jsonData.version} in matrix header`);
+	failed = true;
+}
+
+if (jsonData.bunVersion && !matrixContent.includes(`Bun ${jsonData.bunVersion}`)) {
+	console.error(`❌ Bun version drift: expected Bun ${jsonData.bunVersion} in matrix header`);
+	failed = true;
+}
+
+// Check 3: DYNAMIC_SOURCES.json hash matches
+const dynamicSources = JSON.parse(await Bun.file(DYNAMIC_SOURCES_PATH).text());
+if (dynamicSources.jsonHash !== jsonHash) {
+	console.error(
+		`❌ DYNAMIC_SOURCES drift: ${DYNAMIC_SOURCES_PATH} hash (${dynamicSources.jsonHash}) does not match ${JSON_PATH} hash (${jsonHash})`,
+	);
+	failed = true;
+}
+
+// Check 4: Every top-level command in JSON has a matrix row
+const jsonCommands = Object.keys(jsonData.commands);
+const matrixCommandMatches = [...matrixContent.matchAll(/^\| (\w+)(?: \(|\s+\|)/gm)];
+const matrixCommands = matrixCommandMatches.map((m) => m[1]);
+const missing = jsonCommands.filter((c) => !matrixCommands.includes(c));
+
+if (missing.length) {
+	console.error(`❌ Missing commands in matrix: ${missing.join(", ")}`);
+	failed = true;
+}
+
+interface CommandEntry {
+	aliases?: string[];
+}
+
+// Check 5: No "bun" alias parser leak in JSON
+for (const [cmdName, cmd] of Object.entries(jsonData.commands) as [string, CommandEntry][]) {
+	if (cmd.aliases?.includes("bun")) {
+		console.error(`❌ Parser leak: "bun" appears as an alias of "${cmdName}"`);
+		failed = true;
+	}
+}
+
+// Check 6: bunfig-settings.json exists and hash is recorded in the matrix
+if (!(await Bun.file(BUNFIG_PATH).exists())) {
+	console.error(`❌ Missing ${BUNFIG_PATH}; run bun run completions:bunfig`);
+	failed = true;
+} else {
+	const rawBunfig = await Bun.file(BUNFIG_PATH).text();
+	const bunfigHash = new Bun.CryptoHasher("sha256").update(rawBunfig).digest("hex").slice(0, 12);
+	if (!matrixContent.includes(bunfigHash)) {
+		console.error(
+			`❌ Bunfig drift: expected bunfig-json hash \`${bunfigHash}\` in matrix; re-run bun run completions:matrix`,
+		);
+		failed = true;
+	}
+}
+
+// Check 7: All matrix rows share the same drift hash as the JSON
+const matrixDriftHashes = [...matrixContent.matchAll(/^\|.*\|\s*([a-f0-9]{12})\s*\|$/gm)].map(
+	(m) => m[1],
+);
+const uniqueDriftHashes = new Set(matrixDriftHashes);
+
+if (matrixDriftHashes.length === 0) {
+	console.error(`❌ Drift hash drift: no drift hashes found in matrix rows`);
+	failed = true;
+} else if (uniqueDriftHashes.size !== 1) {
+	console.error(
+		`❌ Drift hash drift: matrix rows contain multiple drift hashes (${[...uniqueDriftHashes].join(
+			", ",
+		)})`,
+	);
+	failed = true;
+} else if (matrixDriftHashes[0] !== jsonHash) {
+	console.error(
+		`❌ Drift hash drift: matrix drift hash (${matrixDriftHashes[0]}) does not match ${JSON_PATH} hash (${jsonHash})`,
+	);
+	failed = true;
+}
+
+if (failed) {
+	process.exit(1);
+}
+
+console.log(`✅ Completion matrix aligned with ${JSON_PATH} (${jsonHash})`);

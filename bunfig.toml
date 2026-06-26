@@ -1,0 +1,23 @@
+[install]
+# Override machine defaults to allow lockfile generation locally.
+# CI uses `bun ci` which enforces a frozen lockfile.
+frozenLockfile = false
+saveTextLockfile = true
+
+[test]
+# Prevent test discovery from scanning non-test directories and fixtures.
+pathIgnorePatterns = ["test/fixtures/**", "test/__snapshots__/**", "vendor/**"]
+# Keep shared helpers and benchmarks out of coverage reports.
+coveragePathIgnorePatterns = ["test/support/**", "**/*.bench.ts"]
+# By default show all results; CI can pass --only-failures to reduce noise.
+onlyFailures = false
+
+[test.reporter]
+# Emit JUnit XML for CI dashboards.
+junit = "test-results.xml"
+
+[run]
+# Use Bun's shell for cross-platform script consistency.
+shell = "bun"
+# Suppress "Running..." echo in CI logs.
+silent = true
