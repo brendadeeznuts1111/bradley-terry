@@ -5312,20 +5312,13 @@
     },
     {
       "name": "install",
+      "shortName": "i",
       "description": "Configure auto-install behavior. One of \"auto\" (default, auto-installs when no node_modules), \"fallback\" (missing packages only), \"force\" (always).",
       "hasValue": true,
       "valueType": "string",
       "choices": [
         "auto"
       ],
-      "required": false,
-      "multiple": false
-    },
-    {
-      "name": "i",
-      "shortName": "i",
-      "description": "Auto-install dependencies during execution. Equivalent to --install=fallback.",
-      "hasValue": false,
       "required": false,
       "multiple": false
     },
