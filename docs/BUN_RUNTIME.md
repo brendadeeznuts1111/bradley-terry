@@ -2,6 +2,18 @@
 
 How **@platform/bradley-terry** uses the [Bun runtime](https://bun.com/docs/runtime). Pin: `packageManager: bun@1.4.0`.
 
+## Version & upgrades
+
+| Action | Command |
+|--------|---------|
+| Check version | `bun --version` |
+| Latest canary | `bun upgrade --canary` |
+| Back to stable | `bun upgrade --stable` |
+
+Upgrades are channel-sticky: a canary install keeps upgrading on canary until you run `--stable`. See [Bun upgrade guide](https://bun.com/docs/guides/util/upgrade) and [switch back to stable](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable).
+
+Completions artifacts record the running revision (e.g. `1.4.0-canary.1+…` in `completions/DYNAMIC_SOURCES.json`). Regenerate only on Bun **≥ 1.4.0**; do not run `bun upgrade --stable` before stable 1.4.0 ships if you need a clean `check:full`.
+
 ## HTTP server
 
 | Bun API | Our usage | Doc |

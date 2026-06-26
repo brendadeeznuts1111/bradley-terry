@@ -2,6 +2,29 @@
 
 Guide for agents working on this repo. Stack: **Bun 1.4+**, **Effect 3.21**, **bun:sqlite**.
 
+## Bun version
+
+Pin: `packageManager: bun@1.4.0` in `package.json`. Verify before `completions:regen` or `check:full`:
+
+```bash
+bun --version   # must be >= 1.4.0
+```
+
+**Canary vs stable:** If Bun 1.4.0 is not yet on the stable channel, install or upgrade via canary:
+
+```bash
+bun upgrade --canary
+# or: curl -fsSL https://bun.sh/install | bash -s canary
+```
+
+After canary work, switch back to the latest stable release:
+
+```bash
+bun upgrade --stable
+```
+
+See [Switch back to stable](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable). **Note:** until stable reaches 1.4.0, `bun upgrade --stable` downgrades below this repo's pin (e.g. 1.3.14) — stay on canary for completions regen and snapshot tests here.
+
 ## Commands
 
 ```bash
