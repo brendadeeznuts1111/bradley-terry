@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { handleRequest } from "../src/server/handlers.js";
+import { resetMetrics } from "../src/server/metrics.js";
 import { resetRateLimits } from "../src/server/rate-limit.js";
+import { resetRefreshLock } from "../src/server/refresh-lock.js";
 import { disposeAppRuntime } from "../src/server/runtime.js";
+import { resetInFlightTracking } from "../src/server/shutdown.js";
 
 const sampleMassey = {
 	teams: [
@@ -26,8 +29,12 @@ describe("HTTP handleRequest", () => {
 	afterEach(async () => {
 		globalThis.fetch = originalFetch;
 		resetRateLimits();
+		resetRefreshLock();
+		resetMetrics();
+		resetInFlightTracking();
 		delete process.env.REFRESH_RATE_LIMIT;
 		delete process.env.REFRESH_RATE_WINDOW;
+		delete process.env.REFRESH_TOKEN;
 		await disposeAppRuntime();
 	});
 
@@ -54,12 +61,21 @@ describe("HTTP handleRequest", () => {
 		expect(res.headers.get("Access-Control-Allow-Origin")).toBeDefined();
 	});
 
-	it("GET /health includes db checks", async () => {
+	it("GET /health returns liveness", async () => {
 		const res = await handleRequest(new Request("http://localhost/health"));
 		expect(res.status).toBe(200);
 		const body = await res.json();
+		expect(body.status).toBe("ok");
+		expect(body.appVersion).toBeDefined();
+		expect(res.headers.get("X-Request-Id")).toBeTruthy();
+	});
+
+	it("GET /ready includes db checks", async () => {
+		const res = await handleRequest(new Request("http://localhost/ready"));
+		expect(res.status).toBe(200);
+		const body = await res.json();
 		expect(body.checks.db).toBe("ok");
-		expect(body.checks.secretsBackend).toBe("env");
+		expect(body.status).toBe("ready");
 	});
 
 	it("GET /openapi.json returns OpenAPI document", async () => {
@@ -103,7 +119,7 @@ describe("HTTP handleRequest", () => {
 		expect(body).toHaveLength(2);
 		expect(body[0]?.rating).toBeGreaterThan(0);
 
-		const health = await handleRequest(new Request("http://localhost/health"));
+		const health = await handleRequest(new Request("http://localhost/ready"));
 		const healthBody = await health.json();
 		expect(healthBody.checks.teamCount).toBe(2);
 		expect(healthBody.checks.lastUpdated).toBeDefined();

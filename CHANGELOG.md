@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- `GET /ready` readiness probe (503 when DB unavailable); `/health` is liveness-only
+- `GET /metrics` Prometheus counters; `X-Request-Id` on all responses
+- Refresh mutex (409 `RefreshInProgress`); SQLite transactions for `storeBT`
+- `REFRESH_TOKEN` auth on manual refresh; Massey fetch timeout + retry
+- Graceful shutdown with in-flight request drain (`SHUTDOWN_TIMEOUT_MS`)
+- `Dockerfile` + `docs/DEPLOYMENT.md`
+
 ## v0.3.33
 
 - Effect HTTP service on `main`: MasseyClient, RatingsDB, BTCompute, 4 data routes + health

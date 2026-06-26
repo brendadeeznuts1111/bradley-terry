@@ -6,7 +6,7 @@ Guide for agents working on this repo. Stack: **Bun 1.4+**, **Effect 3.21**, **b
 
 ```bash
 bun install
-bun test                    # 154 tests (40 in tests/, 114 in test/)
+bun test                    # 46 tests in tests/ (154+ total)
 bun run ci                  # test + lint
 bun run start               # HTTP server :3000
 bun run dev                 # watch mode
@@ -55,15 +55,19 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/health` | Liveness + DB checks |
+| GET | `/health` | Liveness (always 200) |
+| GET | `/ready` | Readiness — DB checks (503 when not ready) |
+| GET | `/metrics` | Prometheus counters |
 | GET | `/openapi.json` | OpenAPI 3.1 JSON |
 | GET | `/openapi.yaml` | OpenAPI 3.1 YAML |
 | GET | `/api/ratings/bt` | Current BT ratings (`?sport=&season=`) |
 | GET | `/api/ratings/history` | Snapshots with `snapshotAt` |
 | POST | `/api/ratings/refresh` | Massey → BT → SQLite; **rate-limited per IP** |
 
-**Logging:** JSON lines to stdout per request (`REQUEST_LOG`, default on).  
-**Rate limit:** `REFRESH_RATE_LIMIT=5`, `REFRESH_RATE_WINDOW=60` (per client IP on refresh only).
+**Logging:** JSON lines with `requestId` per request (`REQUEST_LOG`, default on).  
+**Rate limit:** `REFRESH_RATE_LIMIT=5`, `REFRESH_RATE_WINDOW=60` (per client IP on refresh only).  
+**Refresh auth:** `REFRESH_TOKEN` (Bearer or `X-Refresh-Token`).  
+**Deploy:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), `Dockerfile`.
 
 ## Testing conventions
 

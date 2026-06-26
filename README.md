@@ -33,7 +33,9 @@ bun run start          # http://localhost:3000
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Service health, DB stats, secrets backend |
+| `GET` | `/health` | Liveness probe (always 200) |
+| `GET` | `/ready` | Readiness probe (503 when DB unavailable) |
+| `GET` | `/metrics` | Prometheus metrics |
 | `GET` | `/openapi.json` | OpenAPI 3.1 document (JSON) |
 | `GET` | `/openapi.yaml` | OpenAPI 3.1 document (YAML) |
 | `GET` | `/api/ratings/bt` | Current BT ratings (`?sport=&season=`) |

@@ -23,6 +23,7 @@ describe("request-log", () => {
 	it("formats structured JSON log lines", () => {
 		const line = formatRequestLog({
 			ts: "2026-06-26T00:00:00.000Z",
+			requestId: "req-1",
 			method: "GET",
 			path: "/health",
 			status: 200,
@@ -31,6 +32,7 @@ describe("request-log", () => {
 		});
 		expect(JSON.parse(line)).toEqual({
 			ts: "2026-06-26T00:00:00.000Z",
+			requestId: "req-1",
 			method: "GET",
 			path: "/health",
 			status: 200,
@@ -43,6 +45,7 @@ describe("request-log", () => {
 		const spy = spyOn(console, "log").mockImplementation(() => {});
 		logRequest({
 			ts: "2026-06-26T00:00:00.000Z",
+			requestId: "req-2",
 			method: "POST",
 			path: "/api/ratings/refresh",
 			status: 202,
