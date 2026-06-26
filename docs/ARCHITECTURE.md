@@ -146,6 +146,7 @@ Tagged, typed, catchable. Zigzag overlays connect services → errors → `catch
 | `MasseyTeam` | team id, name, conference |
 | `MasseyData` | teams, schedule, results |
 | `BTRating` | `teamID`, `teamName`, `rating`, `confidence`, `rank` |
+| `BTRatingHistory` | `BTRating` + `snapshotAt` |
 | `MasseySchedule` | match rows, dates |
 | `BTRequest` | `sport`, `season` query params |
 
@@ -216,6 +217,27 @@ Tagged, typed, catchable. Zigzag overlays connect services → errors → `catch
 | **Credentials** | `SecretClient` (channel-swappable) | `com.bradley-terry.massey` / `api-token` |
 
 `Bun.secrets` provides **data-namespace isolation** between modules (MasseyClient cannot read DB passphrase). It does **not** provide kernel/process isolation on the same OS user.
+
+### `Bun.secrets` API
+
+Typed in `src/types/bun-secrets.d.ts` (matches Bun runtime):
+
+```typescript
+interface SecretsOptions {
+  service: string;  // reverse-domain namespace, e.g. com.bradley-terry.massey
+  name: string;     // short key, e.g. api-token
+}
+
+interface Secrets {
+  get(options: SecretsOptions): Promise<string | null>;
+  set(options: SecretsOptions, value: string): Promise<void>;
+  delete(options: SecretsOptions): Promise<boolean>;
+}
+```
+
+`SecretClient` mirrors this surface as Effect programs (`get` / `set` / `delete`). Only the **bun** backend implements `set` and `delete`; env/vault backends return `SecretUnsupportedError` for writes.
+
+`SecretKey` (`src/service/secret-key.ts`) is the shared `{ service, name }` type used by the CLI and `SecretClient`.
 
 ### Channel annotations
 

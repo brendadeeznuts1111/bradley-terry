@@ -41,4 +41,23 @@ describe("SecretClient", () => {
     delete process.env.MASSEY_API_TOKEN;
     delete process.env.SECRETS_BACKEND;
   });
+
+  it("rejects set/delete on env backend", async () => {
+    process.env.SECRETS_BACKEND = "env";
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const secrets = yield* SecretClient;
+        return yield* secrets
+          .set(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME, "x")
+          .pipe(Effect.either);
+      }).pipe(Effect.provide(EnvSecretsLive))
+    );
+
+    expect(result._tag).toBe("Left");
+    if (result._tag === "Left") {
+      expect(result.left._tag).toBe("SecretUnsupportedError");
+    }
+    delete process.env.SECRETS_BACKEND;
+  });
 });

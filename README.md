@@ -2,7 +2,7 @@
 
 Effect TS + Bun ratings service with Bradley-Terry MLE, Massey ingestion, and SQLite persistence.
 
-![Bun](https://img.shields.io/badge/Bun-1.3+-brightgreen) ![Effect](https://img.shields.io/badge/Effect-3.21-blue) ![Tests](https://img.shields.io/badge/Tests-11%20passing-brightgreen)
+![Bun](https://img.shields.io/badge/Bun-1.3+-brightgreen) ![Effect](https://img.shields.io/badge/Effect-3.21-blue) ![Tests](https://img.shields.io/badge/Tests-12%20passing-brightgreen)
 
 ## Quick start
 

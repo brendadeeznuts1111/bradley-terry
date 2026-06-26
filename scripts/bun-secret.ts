@@ -9,6 +9,7 @@
  *   bun scripts/bun-secret.ts delete com.bradley-terry.massey api-token
  */
 import { decodeSecretEntry, encodeSecretEntry } from "../src/service/secret-entry.js";
+import { formatSecretKey, secretKey } from "../src/service/secret-key.js";
 
 const [command, service, name, value, ...rest] = process.argv.slice(2);
 
@@ -18,6 +19,8 @@ if (!command || !service || !name) {
   );
   process.exit(1);
 }
+
+const key = secretKey(service, name);
 
 const ttlFlag = rest.indexOf("--ttl");
 const ttlSeconds =
@@ -30,13 +33,13 @@ async function main() {
       process.exit(1);
     }
     const payload = encodeSecretEntry(value, ttlSeconds);
-    await Bun.secrets.set({ service, name }, payload);
-    console.log(`set ${service}/${name}${ttlSeconds ? ` (ttl ${ttlSeconds}s)` : ""}`);
+    await Bun.secrets.set(key, payload);
+    console.log(`set ${formatSecretKey(key)}${ttlSeconds ? ` (ttl ${ttlSeconds}s)` : ""}`);
     return;
   }
 
   if (command === "get") {
-    const raw = await Bun.secrets.get({ service, name });
+    const raw = await Bun.secrets.get(key);
     if (raw === null) {
       console.log("(not found)");
       process.exit(1);
@@ -44,7 +47,7 @@ async function main() {
     const decoded = decodeSecretEntry(raw);
     if (decoded === null) {
       console.log("(expired)");
-      await Bun.secrets.delete({ service, name });
+      await Bun.secrets.delete(key);
       process.exit(1);
     }
     console.log(decoded);
@@ -52,7 +55,7 @@ async function main() {
   }
 
   if (command === "delete") {
-    const deleted = await Bun.secrets.delete({ service, name });
+    const deleted = await Bun.secrets.delete(key);
     console.log(deleted ? "deleted" : "not found");
     return;
   }

@@ -1,5 +1,9 @@
 import { Context, Data, Effect, Layer } from "effect";
-import { decodeSecretEntry } from "./secret-entry.js";
+import { decodeSecretEntry, encodeSecretEntry } from "./secret-entry.js";
+import { formatSecretKey, type SecretKey, secretKey } from "./secret-key.js";
+
+export type { SecretKey } from "./secret-key.js";
+export { secretKey, formatSecretKey } from "./secret-key.js";
 
 export class SecretError extends Data.TaggedError("SecretError")<{
   readonly cause: unknown;
@@ -17,11 +21,29 @@ export class SecretExpiredError extends Data.TaggedError("SecretExpiredError")<{
   readonly name: string;
 }> {}
 
+export class SecretUnsupportedError extends Data.TaggedError("SecretUnsupportedError")<{
+  readonly operation: "set" | "delete";
+  readonly backend: string;
+}> {}
+
 export interface SecretClientApi {
+  /** `Bun.secrets.get` — returns decoded plaintext; TTL JSON entries honored. */
   readonly get: (
     service: string,
     name: string
   ) => Effect.Effect<string, SecretError | SecretNotFoundError | SecretExpiredError>;
+  /** `Bun.secrets.set` — stores value (optionally TTL-wrapped JSON). Bun backend only. */
+  readonly set: (
+    service: string,
+    name: string,
+    value: string,
+    ttlSeconds?: number
+  ) => Effect.Effect<void, SecretError | SecretUnsupportedError>;
+  /** `Bun.secrets.delete` — returns whether a key existed. Bun backend only. */
+  readonly delete: (
+    service: string,
+    name: string
+  ) => Effect.Effect<boolean, SecretError | SecretUnsupportedError>;
 }
 
 export class SecretClient extends Context.Tag("SecretClient")<
@@ -34,49 +56,104 @@ export const MASSEY_SECRET_NAME = "api-token";
 export const DB_SECRET_SERVICE = "com.bradley-terry.db";
 export const DB_SECRET_NAME = "encryption-passphrase";
 
-const envLookup = (service: string, name: string): string | undefined => {
+export const MASSEY_SECRET_KEY = secretKey(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME);
+export const DB_SECRET_KEY = secretKey(DB_SECRET_SERVICE, DB_SECRET_NAME);
+
+const toKey = (service: string, name: string): SecretKey => ({ service, name });
+
+const envLookup = (key: SecretKey): string | undefined => {
   const known: Record<string, string | undefined> = {
-    [`${MASSEY_SECRET_SERVICE}:${MASSEY_SECRET_NAME}`]: process.env.MASSEY_API_TOKEN,
-    [`${DB_SECRET_SERVICE}:${DB_SECRET_NAME}`]: process.env.DB_ENCRYPTION_KEY,
+    [formatSecretKey(MASSEY_SECRET_KEY)]: process.env.MASSEY_API_TOKEN,
+    [formatSecretKey(DB_SECRET_KEY)]: process.env.DB_ENCRYPTION_KEY,
   };
-  if (known[`${service}:${name}`]) return known[`${service}:${name}`];
-  const slug = `SECRET_${service.replace(/\./g, "_").toUpperCase()}_${name.replace(/-/g, "_").toUpperCase()}`;
-  return process.env[slug];
+  const slug = `SECRET_${key.service.replace(/\./g, "_").toUpperCase()}_${key.name.replace(/-/g, "_").toUpperCase()}`;
+  return known[formatSecretKey(key)] ?? process.env[slug];
 };
 
-const getFromBun = (service: string, name: string) =>
+const decodeOrFail = (key: SecretKey, raw: string) =>
+  Effect.gen(function* () {
+    const decoded = decodeSecretEntry(raw);
+    if (decoded === null) {
+      return yield* Effect.fail(
+        new SecretExpiredError({ service: key.service, name: key.name })
+      );
+    }
+    return decoded;
+  });
+
+const getFromBun = (key: SecretKey) =>
   Effect.gen(function* () {
     if (typeof Bun === "undefined" || !Bun.secrets) {
-      return yield* Effect.fail(new SecretNotFoundError({ service, name }));
+      return yield* Effect.fail(
+        new SecretNotFoundError({ service: key.service, name: key.name })
+      );
     }
     const value = yield* Effect.tryPromise({
-      try: () => Bun.secrets.get({ service, name }),
-      catch: (cause) => new SecretError({ cause, service, name }),
+      try: () => Bun.secrets.get(key),
+      catch: (cause) =>
+        new SecretError({ cause, service: key.service, name: key.name }),
     });
     if (value === null || value === "") {
-      return yield* Effect.fail(new SecretNotFoundError({ service, name }));
+      return yield* Effect.fail(
+        new SecretNotFoundError({ service: key.service, name: key.name })
+      );
     }
-    const decoded = decodeSecretEntry(value);
-    if (decoded === null) {
-      return yield* Effect.fail(new SecretExpiredError({ service, name }));
-    }
-    return decoded;
+    return yield* decodeOrFail(key, value);
   });
 
-const getFromEnv = (service: string, name: string) =>
+const setInBun = (key: SecretKey, value: string, ttlSeconds?: number) =>
   Effect.gen(function* () {
-    const value = envLookup(service, name);
-    if (!value) {
-      return yield* Effect.fail(new SecretNotFoundError({ service, name }));
+    if (typeof Bun === "undefined" || !Bun.secrets) {
+      return yield* Effect.fail(
+        new SecretError({
+          cause: new Error("Bun.secrets is not available"),
+          service: key.service,
+          name: key.name,
+        })
+      );
     }
-    const decoded = decodeSecretEntry(value);
-    if (decoded === null) {
-      return yield* Effect.fail(new SecretExpiredError({ service, name }));
-    }
-    return decoded;
+    const payload = encodeSecretEntry(value, ttlSeconds);
+    yield* Effect.tryPromise({
+      try: () => Bun.secrets.set(key, payload),
+      catch: (cause) =>
+        new SecretError({ cause, service: key.service, name: key.name }),
+    });
   });
 
-const getFromVault = (service: string, name: string) =>
+const deleteFromBun = (key: SecretKey) =>
+  Effect.gen(function* () {
+    if (typeof Bun === "undefined" || !Bun.secrets) {
+      return yield* Effect.fail(
+        new SecretError({
+          cause: new Error("Bun.secrets is not available"),
+          service: key.service,
+          name: key.name,
+        })
+      );
+    }
+    return yield* Effect.tryPromise({
+      try: () => Bun.secrets.delete(key),
+      catch: (cause) =>
+        new SecretError({ cause, service: key.service, name: key.name }),
+    });
+  });
+
+const getFromEnv = (key: SecretKey) =>
+  Effect.gen(function* () {
+    const value = envLookup(key);
+    if (!value) {
+      return yield* Effect.fail(
+        new SecretNotFoundError({ service: key.service, name: key.name })
+      );
+    }
+    return yield* decodeOrFail(key, value);
+  });
+
+const unsupported =
+  (operation: "set" | "delete", backend: string) =>
+  Effect.fail(new SecretUnsupportedError({ operation, backend }));
+
+const getFromVault = (key: SecretKey) =>
   Effect.gen(function* () {
     const addr = process.env.VAULT_ADDR;
     const token = process.env.VAULT_TOKEN;
@@ -84,24 +161,25 @@ const getFromVault = (service: string, name: string) =>
       return yield* Effect.fail(
         new SecretError({
           cause: new Error("VAULT_ADDR and VAULT_TOKEN required"),
-          service,
-          name,
+          service: key.service,
+          name: key.name,
         })
       );
     }
 
-    const url = `${addr.replace(/\/$/, "")}/v1/secret/data/${service}/${name}`;
+    const url = `${addr.replace(/\/$/, "")}/v1/secret/data/${key.service}/${key.name}`;
     const response = yield* Effect.tryPromise({
       try: () => fetch(url, { headers: { "X-Vault-Token": token } }),
-      catch: (cause) => new SecretError({ cause, service, name }),
+      catch: (cause) =>
+        new SecretError({ cause, service: key.service, name: key.name }),
     });
 
     if (!response.ok) {
       return yield* Effect.fail(
         new SecretError({
           cause: new Error(`Vault HTTP ${response.status}`),
-          service,
-          name,
+          service: key.service,
+          name: key.name,
         })
       );
     }
@@ -109,48 +187,70 @@ const getFromVault = (service: string, name: string) =>
     const body = (yield* Effect.tryPromise({
       try: () =>
         response.json() as Promise<{ data?: { data?: { value?: string } } }>,
-      catch: (cause) => new SecretError({ cause, service, name }),
+      catch: (cause) =>
+        new SecretError({ cause, service: key.service, name: key.name }),
     })) as { data?: { data?: { value?: string } } };
 
     const value = body.data?.data?.value;
     if (!value) {
-      return yield* Effect.fail(new SecretNotFoundError({ service, name }));
+      return yield* Effect.fail(
+        new SecretNotFoundError({ service: key.service, name: key.name })
+      );
     }
     return value;
   });
 
+const bunClient: SecretClientApi = {
+  get: (service, name) => getFromBun(toKey(service, name)),
+  set: (service, name, value, ttlSeconds) =>
+    setInBun(toKey(service, name), value, ttlSeconds),
+  delete: (service, name) => deleteFromBun(toKey(service, name)),
+};
+
+const envClient: SecretClientApi = {
+  get: (service, name) => getFromEnv(toKey(service, name)),
+  set: () => unsupported("set", "env"),
+  delete: () => unsupported("delete", "env"),
+};
+
+const vaultClient: SecretClientApi = {
+  get: (service, name) => getFromVault(toKey(service, name)),
+  set: () => unsupported("set", "vault"),
+  delete: () => unsupported("delete", "vault"),
+};
+
+const autoClient: SecretClientApi = {
+  get: (service, name) =>
+    getFromEnv(toKey(service, name)).pipe(
+      Effect.catchTag("SecretNotFoundError", () =>
+        getFromBun(toKey(service, name))
+      )
+    ),
+  set: (service, name, value, ttlSeconds) =>
+    setInBun(toKey(service, name), value, ttlSeconds),
+  delete: (service, name) => deleteFromBun(toKey(service, name)),
+};
+
 /** Local dev: OS IPC (Keychain / libsecret / Credential Manager) */
-export const BunSecretsLive = Layer.succeed(SecretClient, {
-  get: getFromBun,
-});
+export const BunSecretsLive = Layer.succeed(SecretClient, bunClient);
 
 /** CI/CD: process environment (ephemeral, per-job isolation) */
-export const EnvSecretsLive = Layer.succeed(SecretClient, {
-  get: getFromEnv,
-});
+export const EnvSecretsLive = Layer.succeed(SecretClient, envClient);
 
 /** Production: HTTPS to Vault */
-export const VaultSecretsLive = Layer.succeed(SecretClient, {
-  get: getFromVault,
-});
+export const VaultSecretsLive = Layer.succeed(SecretClient, vaultClient);
 
 /** auto: env → bun.secrets; vault/ci/bun forced via SECRETS_BACKEND */
-export const SecretClientAutoLive = Layer.succeed(SecretClient, {
-  get: (service, name) => {
-    const backend = process.env.SECRETS_BACKEND ?? "auto";
-    if (backend === "vault") return getFromVault(service, name);
-    if (backend === "env") return getFromEnv(service, name);
-    if (backend === "bun") return getFromBun(service, name);
-    return getFromEnv(service, name).pipe(
-      Effect.catchTag("SecretNotFoundError", () => getFromBun(service, name))
-    );
-  },
-});
+export const SecretClientAutoLive = Layer.succeed(SecretClient, autoClient);
+
+const clientForBackend = (backend: string): SecretClientApi => {
+  if (backend === "vault") return vaultClient;
+  if (backend === "env") return envClient;
+  if (backend === "bun") return bunClient;
+  return autoClient;
+};
 
 export const resolveSecretClientLive = (): Layer.Layer<SecretClient> => {
   const backend = process.env.SECRETS_BACKEND ?? "auto";
-  if (backend === "vault") return VaultSecretsLive;
-  if (backend === "env") return EnvSecretsLive;
-  if (backend === "bun") return BunSecretsLive;
-  return SecretClientAutoLive;
+  return Layer.succeed(SecretClient, clientForBackend(backend));
 };
