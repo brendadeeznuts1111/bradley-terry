@@ -4,6 +4,7 @@ import { describe, expect, setSystemTime, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
+import { SQL } from "bun";
 import { Effect } from "effect";
 import {
 	type CompletionData,
@@ -795,5 +796,123 @@ describe("Bun native API verification", () => {
 			),
 		);
 		expect(result).toBeNull();
+	});
+
+	test("ArrayBufferSink builds a buffer incrementally", () => {
+		const sink = new Bun.ArrayBufferSink();
+		sink.start();
+		sink.write("hello ");
+		sink.write("world");
+		const result = sink.end();
+		expect(new TextDecoder().decode(result)).toBe("hello world");
+	});
+
+	test("ArrayBufferSink streaming mode flushes incrementally", () => {
+		const sink = new Bun.ArrayBufferSink();
+		sink.start({ stream: true });
+		sink.write("chunk1");
+		const first = sink.flush();
+		expect(new TextDecoder().decode(first)).toBe("chunk1");
+		sink.write("chunk2");
+		const second = sink.flush();
+		expect(new TextDecoder().decode(second)).toBe("chunk2");
+		sink.end();
+	});
+
+	test("Bun.file writer supports incremental writes", () => {
+		const dir = mkdtempSync(join(os.tmpdir(), "bt-sink-"));
+		const path = join(dir, "sink.txt");
+		try {
+			const sink = Bun.file(path).writer();
+			sink.write("line 1\n");
+			sink.write("line 2\n");
+			sink.flush();
+			sink.write("line 3");
+			sink.end();
+
+			const content = require("node:fs").readFileSync(path, "utf-8");
+			expect(content).toBe("line 1\nline 2\nline 3");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("Bun.file.json parses JSON directly", async () => {
+		const dir = mkdtempSync(join(os.tmpdir(), "bt-json-"));
+		const path = join(dir, "data.json");
+		try {
+			await Bun.write(path, JSON.stringify({ ok: true, n: 42 }));
+			const data = await Bun.file(path).json();
+			expect(data).toEqual({ ok: true, n: 42 });
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("Glob.match validates a path against the pattern", () => {
+		const glob = new Bun.Glob("completions/*.json");
+		expect(glob.match("completions/bun-cli.json")).toBe(true);
+		expect(glob.match("completions/COMPLETION_MATRIX.md")).toBe(false);
+		expect(glob.match("scripts/check.ts")).toBe(false);
+	});
+
+	test("Transpiler transformSync converts TS to JS", () => {
+		const t = new Bun.Transpiler({ loader: "ts" });
+		const js = t.transformSync("const x: number = 1;");
+		expect(js).toContain("const x");
+		expect(js).not.toContain(": number");
+	});
+
+	test("Bun.color converts CSS named colors to hex and number", () => {
+		expect(Bun.color("red", "hex")).toBe("#ff0000");
+		expect(Bun.color("blue", "number")).toBe(255);
+		expect(Bun.color("#00ff88", "hex")).toBe("#00ff88");
+		expect(Bun.color("rgb(255, 0, 0)", "number")).toBe(16711680);
+	});
+
+	test("bun:sql tagged template queries SQLite", async () => {
+		const dir = mkdtempSync(join(os.tmpdir(), "bt-sql-"));
+		const path = join(dir, "test.db");
+		try {
+			const db = new SQL(`sqlite://${path}`);
+			await db`CREATE TABLE items (name TEXT, count INTEGER)`;
+			await db`INSERT INTO items VALUES ('alpha', 1)`;
+			await db`INSERT INTO items VALUES ('beta', 2)`;
+			const rows: { name: string; count: number }[] =
+				await db`SELECT * FROM items ORDER BY name`;
+			expect(rows[0].name).toBe("alpha");
+			expect(rows[0].count).toBe(1);
+			expect(rows[1].name).toBe("beta");
+			expect(rows[1].count).toBe(2);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("Worker spawns and exchanges messages", async () => {
+		const code = `self.onmessage = (e) => { self.postMessage(e.data * 2); };`;
+		const blob = new Blob([code], { type: "application/javascript" });
+		const url = URL.createObjectURL(blob);
+
+		const result = await new Promise<number>((resolve) => {
+			const worker = new Worker(url);
+			worker.onmessage = (e) => {
+				resolve(e.data as number);
+				worker.terminate();
+			};
+			worker.postMessage(21);
+		});
+		expect(result).toBe(42);
+	});
+
+	test("Bun.spawn kill terminates a child process", async () => {
+		const proc = Bun.spawn(["sleep", "60"], {
+			stdout: "ignore",
+			stderr: "ignore",
+		});
+		expect(proc.killed).toBe(false);
+		proc.kill();
+		await proc.exited;
+		expect(proc.killed).toBe(true);
 	});
 });

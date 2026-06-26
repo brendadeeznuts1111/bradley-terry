@@ -321,9 +321,12 @@ leverages Bun's performance-optimized primitives.
 | `Bun.file(path)` | Read artifacts (JSON, Markdown, CSV, HTML) |
 | `Bun.write(path, content)` | Write generated artifacts |
 | `Bun.file(path).text()` | Streaming text read |
+| `Bun.file(path).json()` | Parse file as JSON directly |
+| `Bun.file(path).writer()` | Incremental FileSink for chunked writes |
 | `Bun.readableStreamToText(stream)` | Stream → text conversion |
 | `Bun.readableStreamToArrayBuffer(stream)` | Stream → ArrayBuffer conversion |
 | `Bun.readableStreamToBytes(stream)` | Stream → Uint8Array conversion |
+| `Bun.stdin` / `Bun.stdout` / `Bun.stderr` | Standard I/O as BunFile |
 
 ### Hashing & cryptography
 | API | Usage |
@@ -388,7 +391,22 @@ leverages Bun's performance-optimized primitives.
 | API | Usage |
 |-----|-------|
 | `Bun.Glob(pattern)` | File globbing for artifact discovery |
+| `Bun.Glob.match(path)` | Validate a path against the glob pattern |
 | `Bun.spawn(cmd, opts)` | Child process spawning |
+| `Bun.spawnSync(cmd, opts)` | Synchronous child process (macros, CLI tools) |
+
+### Transpiler & workers
+| API | Usage |
+|-----|-------|
+| `Bun.Transpiler({ loader })` | Programmatic TS/JSX transpilation |
+| `new Worker(url)` | Web Workers API with blob: URL support |
+| `Bun.color(input, format)` | Convert between CSS/hex/rgb/hsl/ANSI color formats |
+
+### SQL (bun:sql)
+| API | Usage |
+|-----|-------|
+| `new SQL(url)` | Unified tagged-template SQL client (PostgreSQL/MySQL/SQLite) |
+| `` db`SELECT ...` `` | Parameterized queries with auto-escaping |
 
 ### Network & serving
 | API | Usage |

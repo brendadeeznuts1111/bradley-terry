@@ -42,9 +42,13 @@ export const BunSecretsLive = Layer.effect(
 	Effect.sync(() => ({
 		get: (namespace, name) =>
 			Effect.tryPromise({
-				try: () =>
-					Bun.secrets?.get({ service: namespace, name }) ??
-					Promise.reject(new Error("Bun.secrets unavailable")),
+				try: async () => {
+					const value = await Bun.secrets?.get({ service: namespace, name });
+					if (value === null) {
+						throw new Error(`Secret not found: ${namespace}:${name}`);
+					}
+					return value;
+				},
 				catch: (cause) => new SecretError({ cause, namespace, name }),
 			}),
 		set: (namespace, name, value) =>
