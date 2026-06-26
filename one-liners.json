@@ -104,5 +104,30 @@
 		"name": "resolveSync module resolution",
 		"command": "const p=Bun.resolveSync('bun:sqlite', import.meta.dir); console.log('ok', typeof p==='string' && p.length>0);",
 		"expect": { "ok": "true" }
+	},
+	{
+		"name": "ArrayBufferSink incremental buffer",
+		"command": "const s=new Bun.ArrayBufferSink(); s.start(); s.write('hello'); s.write('world'); console.log('out', new TextDecoder().decode(s.end()));",
+		"expect": { "out": "helloworld" }
+	},
+	{
+		"name": "semver satisfies range check",
+		"command": "console.log('ok', Bun.semver.satisfies('1.4.0', '>=1.3.0')); console.log('no', Bun.semver.satisfies('1.3.6', '>=1.4.0'));",
+		"expect": { "ok": "true", "no": "false" }
+	},
+	{
+		"name": "semver order comparison",
+		"command": "console.log('lt', Bun.semver.order('1.3.0', '1.4.0')); console.log('gt', Bun.semver.order('2.0.0', '1.0.0')); console.log('eq', Bun.semver.order('1.0.0', '1.0.0'));",
+		"expect": { "lt": "-1", "gt": "1", "eq": "0" }
+	},
+	{
+		"name": "color hex and number conversion",
+		"command": "console.log('red_hex', Bun.color('red', 'hex')); console.log('blue_num', Bun.color('blue', 'number'));",
+		"expect": { "red_hex": "#ff0000", "blue_num": "255" }
+	},
+	{
+		"name": "Transpiler TS to JS",
+		"command": "const t=new Bun.Transpiler({loader:'ts'}); const js=t.transformSync('const x:number=1'); console.log('has_const', js.includes('const')); console.log('no_type', !js.includes(':number'));",
+		"expect": { "has_const": "true", "no_type": "true" }
 	}
 ]

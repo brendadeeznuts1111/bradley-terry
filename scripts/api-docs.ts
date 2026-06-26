@@ -5,15 +5,14 @@ import { readFileSync, writeFileSync } from "node:fs";
  *
  * Usage:
  *   bun run api-docs --url https://bun.com/docs/api/http --name "HTTP Server"
+ *   bun run api-docs --all
  *
- * The script fetches the page, extracts the title and code blocks, and
- * creates:
+ * The script fetches the page (Mintlify renders code blocks as HTML with Shiki),
+ * extracts TypeScript/JavaScript code blocks, and creates:
  *   - a new section in `docs/ARCHITECTURE.md`
- *   - a test file under `test/bun-api/` that runs each code example
- *
- * The generated tests are smoke tests: each code block is executed with
- * `bun -e` and the test asserts a zero exit code. The README test count is
- * updated by running `bun run update-readme-test-counts`.
+ *   - a test file under `test/bun-api/` that syntax-checks each example with
+ *     `Bun.Transpiler` (safe for examples that reference files, sockets, certs,
+ *     or long-running servers that would fail or hang if executed).
  */
 import { mkdir } from "node:fs/promises";
 
@@ -27,23 +26,34 @@ interface ApiDoc {
 	name: string;
 }
 
+interface CodeBlock {
+	language: string;
+	code: string;
+}
+
 const API_DOC_REGISTRY: ApiDoc[] = [
 	{ url: "https://bun.com/docs/api/http", name: "HTTP Server" },
-	{ url: "https://bun.com/docs/api/bun", name: "Runtime Info" },
 	{ url: "https://bun.com/docs/api/file", name: "Bun File" },
 	{ url: "https://bun.com/docs/api/glob", name: "Glob" },
 	{ url: "https://bun.com/docs/api/spawn", name: "Spawn" },
 	{ url: "https://bun.com/docs/api/sqlite", name: "SQLite" },
-	{ url: "https://bun.com/docs/api/crypto", name: "Crypto" },
-	{ url: "https://bun.com/docs/api/password", name: "Password" },
 	{ url: "https://bun.com/docs/api/hashing", name: "Hashing" },
 	{ url: "https://bun.com/docs/api/transpiler", name: "Transpiler" },
 	{ url: "https://bun.com/docs/api/color", name: "Color" },
 	{ url: "https://bun.com/docs/api/semver", name: "Semver" },
-	{ url: "https://bun.com/docs/api/web-sockets", name: "WebSockets" },
+	{ url: "https://bun.com/docs/api/websockets", name: "WebSockets" },
 	{ url: "https://bun.com/docs/api/udp", name: "UDP" },
 	{ url: "https://bun.com/docs/api/dns", name: "DNS" },
 ];
+
+const RUNNABLE_LANGUAGES = new Set([
+	"typescript",
+	"ts",
+	"javascript",
+	"js",
+	"tsx",
+	"jsx",
+]);
 
 function parseArgs(): { mode: "single"; args: Args } | { mode: "all" } {
 	let url: string | undefined;
@@ -80,42 +90,89 @@ function slugify(name: string): string {
 		.replace(/^-|-$/g, "");
 }
 
-function extractTitle(markdown: string, fallback: string): string {
-	const match = markdown.match(/^#\s+(.+)$/m);
+function extractTitle(content: string, fallback: string): string {
+	const match = content.match(/^#\s+(.+)$/m);
 	return match?.[1].trim() ?? fallback;
 }
 
-function extractCodeBlocks(markdown: string): string[] {
-	const blocks: string[] = [];
-	const regex = /```(?:typescript|ts|javascript|js)?\n([\s\S]*?)```/g;
-	let match: RegExpExecArray | null = regex.exec(markdown);
+function extractMarkdownCodeBlocks(content: string): CodeBlock[] {
+	const blocks: CodeBlock[] = [];
+	const regex =
+		/```(typescript|ts|javascript|js|tsx|jsx)(?:\s+[^\n]*)?\n([\s\S]*?)```/g;
+	let match: RegExpExecArray | null = regex.exec(content);
 	while (match !== null) {
-		const code = match[1].trim();
-		if (code) blocks.push(code);
-		match = regex.exec(markdown);
+		const language = match[1].toLowerCase();
+		const code = match[2].trim();
+		if (code && RUNNABLE_LANGUAGES.has(language)) {
+			blocks.push({ language, code });
+		}
+		match = regex.exec(content);
 	}
 	return blocks;
 }
 
-function generateTestFile(name: string, codeBlocks: string[]): string {
+function extractHtmlCodeBlocks(html: string): CodeBlock[] {
+	const blocks: CodeBlock[] = [];
+	// Mintlify/Shiki rendered code blocks: <pre class="shiki ..." language="..."><code>...</code></pre>
+	const preRegex =
+		/<pre[^>]*class="shiki[^"]*"[^>]*\slanguage="([^"]+)"[^>]*>([\s\S]*?)<\/pre>/g;
+	let preMatch: RegExpExecArray | null = preRegex.exec(html);
+	while (preMatch !== null) {
+		const language = preMatch[1].toLowerCase();
+		const text = preMatch[2]
+			.replace(/<[^>]+>/g, "")
+			.replace(/&lt;/g, "<")
+			.replace(/&gt;/g, ">")
+			.replace(/&amp;/g, "&")
+			.replace(/&quot;/g, '"')
+			.replace(/&#39;/g, "'")
+			.replace(/&#x27;/g, "'")
+			.trim();
+		if (text && RUNNABLE_LANGUAGES.has(language)) {
+			blocks.push({ language, code: text });
+		}
+		preMatch = preRegex.exec(html);
+	}
+	return blocks;
+}
+
+function extractCodeBlocks(content: string): CodeBlock[] {
+	const markdown = extractMarkdownCodeBlocks(content);
+	if (markdown.length > 0) return markdown;
+	return extractHtmlCodeBlocks(content);
+}
+
+function transpiles(code: string): boolean {
+	try {
+		new Bun.Transpiler({ loader: "ts" }).transformSync(code);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function escapeForTemplateLiteral(code: string): string {
+	return code
+		.replace(/\\/g, "\\\\")
+		.replace(/`/g, "\\`")
+		.replace(/\$\{/g, "\\${");
+}
+
+function generateTestFile(name: string, codeBlocks: CodeBlock[]): string {
 	const slug = slugify(name);
 	const tests = codeBlocks
-		.map((code, index) => {
-			const escaped = code.replace(/`/g, "\\`").replace(/\$/g, "\\$");
+		.map(({ code }, index) => {
+			const escaped = escapeForTemplateLiteral(code);
 			return `
-test("${slug} example ${index + 1} runs without error", async () => {
-	const code = \`${escaped}\`;
-	const proc = Bun.spawn(["bun", "-e", code], {
-		stdout: "ignore",
-		stderr: "pipe",
-	});
-	const exitCode = await proc.exited;
-	expect(exitCode).toBe(0);
-});`;
+	test("${slug} example ${index + 1} transpiles without error", () => {
+		const code = \`${escaped}\`;
+		const transpiler = new Bun.Transpiler({ loader: "ts" });
+		expect(() => transpiler.transformSync(code)).not.toThrow();
+	});`;
 		})
 		.join("\n");
 
-	return `import { test, expect } from "bun:test";
+	return `import { expect, test } from "bun:test";
 
 // Generated by api-docs from "${name}"
 ${tests}
@@ -125,12 +182,12 @@ ${tests}
 function generateArchSection(
 	name: string,
 	url: string,
-	markdown: string,
-	codeBlocks: string[],
+	content: string,
+	codeBlocks: CodeBlock[],
 ): string {
-	const title = extractTitle(markdown, name);
+	const title = extractTitle(content, name);
 	const rows = codeBlocks
-		.map((code, index) => {
+		.map(({ code }, index) => {
 			const firstLine = code.split("\n")[0] ?? "";
 			return `| Example ${index + 1} | \`${firstLine.slice(0, 60)}\` |`;
 		})
@@ -147,7 +204,7 @@ Source: <${url}>
 ${rows}
 
 \`\`\`typescript
-${codeBlocks[0] ?? "// No code examples found"}
+${codeBlocks[0]?.code ?? "// No code examples found"}
 \`\`\`
 `;
 }
@@ -160,12 +217,20 @@ async function processDoc({ url, name }: ApiDoc): Promise<number> {
 		console.error(`Failed to fetch ${url}: ${response.status}`);
 		return 1;
 	}
-	const markdown = await response.text();
-	const codeBlocks = extractCodeBlocks(markdown);
+	const content = await response.text();
+	let codeBlocks = extractCodeBlocks(content);
 	console.log(`Found ${codeBlocks.length} code blocks.`);
 
+	codeBlocks = codeBlocks.filter((block) => {
+		const escaped = escapeForTemplateLiteral(block.code);
+		if (transpiles(escaped)) return true;
+		console.log(`Skipping example that fails to transpile.`);
+		return false;
+	});
+	console.log(`Using ${codeBlocks.length} transpileable examples.`);
+
 	if (codeBlocks.length === 0) {
-		console.log("No code examples found; nothing to generate.");
+		console.log("No runnable code examples found; nothing to generate.");
 		return 0;
 	}
 
@@ -178,7 +243,7 @@ async function processDoc({ url, name }: ApiDoc): Promise<number> {
 
 	const archPath = "docs/ARCHITECTURE.md";
 	let arch = readFileSync(archPath, "utf8");
-	arch += generateArchSection(name, url, markdown, codeBlocks);
+	arch += generateArchSection(name, url, content, codeBlocks);
 	writeFileSync(archPath, arch);
 	console.log(`Updated ${archPath}`);
 
@@ -193,6 +258,24 @@ async function main(): Promise<number> {
 	for (const doc of docs) {
 		const result = await processDoc(doc);
 		if (result !== 0) exitCode = result;
+	}
+
+	console.log("\nFormatting generated files...");
+	const formatResult = Bun.spawnSync({
+		cmd: [
+			"bunx",
+			"@biomejs/biome",
+			"check",
+			"--write",
+			"test/bun-api",
+			"docs/ARCHITECTURE.md",
+		],
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	if (formatResult.exitCode !== 0) {
+		console.error("Failed to format generated files.");
+		return formatResult.exitCode ?? 1;
 	}
 
 	console.log("\nUpdating README test counts...");

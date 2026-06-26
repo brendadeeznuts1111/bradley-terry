@@ -505,12 +505,398 @@ asserts the output matches expected patterns.
 | 18 | deepEquals structural comparison | `Bun.deepEquals` |
 | 19 | peek synchronous promise inspection | `Bun.peek`, `peek.status` |
 | 20 | resolveSync module resolution | `Bun.resolveSync` |
+| 21 | ArrayBufferSink incremental buffer | `Bun.ArrayBufferSink` |
+| 22 | semver satisfies range check | `Bun.semver.satisfies` |
+| 23 | semver order comparison | `Bun.semver.order` |
+| 24 | color hex and number conversion | `Bun.color` |
+| 25 | Transpiler TS to JS | `Bun.Transpiler` |
 
 Add new one-liners to `one-liners.json` and run `bun run cookbook` to verify.
 
 ## References
 
-- Hunter, D. R. (2004). *MM algorithms for generalized Bradley-Terry models.*
-  The Annals of Statistics, 32(1), 384–406.
-- Bradley, R. A., & Terry, M. E. (1952). *Rank analysis of incomplete block
-  designs I. The method of paired comparisons.* Biometrika, 39, 324–345.
+
+### HTTP Server
+
+Source: <https://bun.com/docs/api/http>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import myReactSinglePageApp from "./index.html";` |
+| Example 2 | `Bun.serve({` |
+| Example 3 | `const server = Bun.serve({` |
+| Example 4 | `console.log(server.port); // 3000` |
+| Example 5 | `Bun.serve({` |
+| Example 6 | `Bun.serve({` |
+| Example 7 | `Bun.serve({` |
+| Example 8 | `import type { Serve } from "bun";` |
+| Example 9 | `const server = Bun.serve({` |
+| Example 10 | `const server = Bun.serve({` |
+| Example 11 | `// Don't keep process alive if server is the only thing runn` |
+| Example 12 | `const server = Bun.serve({` |
+| Example 13 | `const server = Bun.serve({` |
+| Example 14 | `Bun.serve({` |
+| Example 15 | `Bun.serve({` |
+| Example 16 | `require("http")` |
+| Example 17 | `interface Server extends Disposable {` |
+
+```typescript
+import myReactSinglePageApp from "./index.html";
+
+Bun.serve({
+  routes: {
+    "/": myReactSinglePageApp,
+  },
+});
+```
+
+
+### Bun File
+
+Source: <https://bun.com/docs/api/file>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const foo = Bun.file("foo.txt"); // relative to cwd` |
+| Example 2 | `const foo = Bun.file("foo.txt");` |
+| Example 3 | `Bun.file(1234);` |
+| Example 4 | `const notreal = Bun.file("notreal.txt");` |
+| Example 5 | `const notreal = Bun.file("notreal.json", { type: "applicatio` |
+| Example 6 | `Bun.stdin; // readonly` |
+| Example 7 | `await Bun.file("logs.json").delete();` |
+| Example 8 | `const input = Bun.file("input.txt");` |
+| Example 9 | `const encoder = new TextEncoder();` |
+| Example 10 | `const input = Bun.file("input.txt");` |
+| Example 11 | `const response = await fetch("https://bun.com");` |
+| Example 12 | `const file = Bun.file("output.txt");` |
+| Example 13 | `const file = Bun.file("output.txt");` |
+| Example 14 | `writer.flush(); // write buffer to disk` |
+| Example 15 | `const file = Bun.file("output.txt");` |
+| Example 16 | `writer.end();` |
+| Example 17 | `writer.unref();` |
+| Example 18 | `import { readdir } from "node:fs/promises";` |
+| Example 19 | `import { readdir } from "node:fs/promises";` |
+| Example 20 | `import { mkdir } from "node:fs/promises";` |
+| Example 21 | `// Usage` |
+| Example 22 | `interface Bun {` |
+
+```typescript
+const foo = Bun.file("foo.txt"); // relative to cwd
+foo.size; // number of bytes
+foo.type; // MIME type
+```
+
+
+### Glob
+
+Source: <https://bun.com/docs/api/glob>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import { Glob } from "bun";` |
+| Example 2 | `import { Glob } from "bun";` |
+| Example 3 | `class Glob {` |
+| Example 4 | `const glob = new Glob("???.ts");` |
+| Example 5 | `const glob = new Glob("*.ts");` |
+| Example 6 | `const glob = new Glob("**/*.ts");` |
+| Example 7 | `const glob = new Glob("ba[rz].ts");` |
+| Example 8 | `const glob = new Glob("ba[a-z][0-9][^4-9].ts");` |
+| Example 9 | `const glob = new Glob("{a,b,c}.ts");` |
+| Example 10 | `const glob = new Glob("!index.ts");` |
+| Example 11 | `const glob = new Glob("\\!index.ts");` |
+| Example 12 | `import { glob, globSync, promises } from "node:fs";` |
+
+```typescript
+import { Glob } from "bun";
+
+const glob = new Glob("**/*.ts");
+
+// Scans the current working directory and each of its sub-directories recursively
+for await (const file of glob.scan(".")) {
+  console.log(file); // => "index.ts"
+}
+```
+
+
+### Spawn
+
+Source: <https://bun.com/docs/api/spawn>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 2 | `const proc = Bun.spawn(["bun", "--version"], {` |
+| Example 3 | `const proc = Bun.spawn(["cat"], {` |
+| Example 4 | `const proc = Bun.spawn(["cat"], {` |
+| Example 5 | `const stream = new ReadableStream({` |
+| Example 6 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 7 | `const proc = Bun.spawn(["bun", "--version"], {` |
+| Example 8 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 9 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 10 | `const proc = Bun.spawn(["bun", "--version"]);` |
+| Example 11 | `const controller = new AbortController();` |
+| Example 12 | `// Kill the process after 5 seconds` |
+| Example 13 | `// Kill the process with SIGKILL after 5 seconds` |
+| Example 14 | `// Kill 'yes' after it emits over 100 bytes of output` |
+| Example 15 | `const child = Bun.spawn(["bun", "child.ts"], {` |
+| Example 16 | `const childProc = Bun.spawn(["bun", "child.ts"], {` |
+| Example 17 | `process.send("Hello from child as string");` |
+| Example 18 | `// send a string` |
+| Example 19 | `childProc.disconnect();` |
+| Example 20 | `const proc = Bun.spawn(["bash"], {` |
+| Example 21 | `// Write data to the terminal` |
+| Example 22 | `await using terminal = new Bun.Terminal({` |
+| Example 23 | `const proc = Bun.spawnSync(["echo", "hello"]);` |
+| Example 24 | `interface Bun {` |
+
+```typescript
+const proc = Bun.spawn(["bun", "--version"]);
+console.log(await proc.exited); // 0
+```
+
+
+### SQLite
+
+Source: <https://bun.com/docs/api/sqlite>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import { Database } from "bun:sqlite";` |
+| Example 2 | `import { Database } from "bun:sqlite";` |
+| Example 3 | `import { Database } from "bun:sqlite";` |
+| Example 4 | `import { Database } from "bun:sqlite";` |
+| Example 5 | `import { Database } from "bun:sqlite";` |
+| Example 6 | `import db from "./mydb.sqlite" with { type: "sqlite" };` |
+| Example 7 | `import { Database } from "bun:sqlite";` |
+| Example 8 | `const db = new Database();` |
+| Example 9 | `const db = new Database();` |
+| Example 10 | `import { Database } from "bun:sqlite";` |
+| Example 11 | `const olddb = new Database("mydb.sqlite");` |
+| Example 12 | `const query = db.query("SELECT * FROM users WHERE id = ?");` |
+| Example 13 | `// compile the prepared statement without caching` |
+| Example 14 | `db.run("PRAGMA journal_mode = WAL;");` |
+| Example 15 | `import { Database, constants } from "bun:sqlite";` |
+| Example 16 | `class Movie {` |
+| Example 17 | `const query = db.query("SELECT * FROM foo");` |
+| Example 18 | `const query = db.query("SELECT * FROM foo");` |
+| Example 19 | `const query = db.query("SELECT title, year FROM movies");` |
+| Example 20 | `import { Database } from "bun:sqlite";` |
+| Example 21 | `const query = db.query("SELECT * FROM foo WHERE bar = $bar")` |
+| Example 22 | `const query = db.query("SELECT ?1, ?2");` |
+| Example 23 | `import { Database } from "bun:sqlite";` |
+| Example 24 | `const insertCat = db.prepare("INSERT INTO cats (name) VALUES` |
+| Example 25 | `// setup` |
+| Example 26 | `insertCats(cats); // uses "BEGIN"` |
+| Example 27 | `import { Database } from "bun:sqlite";` |
+| Example 28 | `import { Database } from "bun:sqlite";` |
+| Example 29 | `import { Database, constants } from "bun:sqlite";` |
+| Example 30 | `class Database {` |
+
+```typescript
+import { Database } from "bun:sqlite";
+
+const db = new Database(":memory:");
+const query = db.query("select 'Hello world' as message;");
+query.get();
+```
+
+
+### Hashing
+
+Source: <https://bun.com/docs/api/hashing>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const password = "super-secure-pa$$word";` |
+| Example 2 | `const password = "super-secure-pa$$word";` |
+| Example 3 | `const password = "super-secure-pa$$word";` |
+| Example 4 | `const password = "super-secure-pa$$word";` |
+| Example 5 | `await Bun.password.hash("hello", {` |
+| Example 6 | `await Bun.password.hash("hello".repeat(100), {` |
+| Example 7 | `await Bun.password.hash("hello", {` |
+| Example 8 | `Bun.hash("some data here");` |
+| Example 9 | `const arr = new Uint8Array([1, 2, 3, 4]);` |
+| Example 10 | `Bun.hash("some data here", 1234);` |
+| Example 11 | `Bun.hash.wyhash("data", 1234); // equivalent to Bun.hash()` |
+| Example 12 | `const hasher = new Bun.CryptoHasher("sha256");` |
+| Example 13 | `const hasher = new Bun.CryptoHasher("sha256");` |
+| Example 14 | `hasher.update("hello world"); // defaults to utf8` |
+| Example 15 | `const hasher = new Bun.CryptoHasher("sha256");` |
+| Example 16 | `hasher.digest("base64");` |
+| Example 17 | `const arr = new Uint8Array(32);` |
+| Example 18 | `const hasher = new Bun.CryptoHasher("sha256", "secret-key");` |
+| Example 19 | `const hasher = new Bun.CryptoHasher("sha256", "secret-key");` |
+
+```typescript
+const password = "super-secure-pa$$word";
+
+const hash = await Bun.password.hash(password);
+// => $argon2id$v=19$m=65536,t=2,p=1$tFq+9AVr1bfPxQdh6E8DQRhEXg/M/SqYCNu6gVdRRNs$GzJ8PuBi+K+BVojzPfS5mjnC8OpLGtv8KJqF99eP6a4
+
+const isMatch = await Bun.password.verify(password, hash);
+// => true
+```
+
+
+### Transpiler
+
+Source: <https://bun.com/docs/api/transpiler>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const transpiler = new Bun.Transpiler({` |
+| Example 2 | `transpiler.transformSync("<div>hi!</div>", "tsx");` |
+| Example 3 | `const transpiler = new Bun.Transpiler({ loader: "jsx" });` |
+| Example 4 | `await transpiler.transform("<div>hi!</div>", "tsx");` |
+
+```typescript
+const transpiler = new Bun.Transpiler({
+  loader: "tsx", // "js" | "jsx" | "ts" | "tsx"
+});
+```
+
+
+### Color
+
+Source: <https://bun.com/docs/api/color>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `Bun.color("red", "css"); // "red"` |
+| Example 2 | `Bun.color("red", "ansi"); // "\u001b[38;2;255;0;0m"` |
+| Example 3 | `Bun.color("red", "ansi-16m"); // "\x1b[38;2;255;0;0m"` |
+| Example 4 | `Bun.color("red", "ansi-256"); // "\u001b[38;5;196m"` |
+| Example 5 | `Bun.color("red", "ansi-16"); // "\u001b[38;5;\tm"` |
+| Example 6 | `Bun.color("red", "number"); // 16711680` |
+| Example 7 | `type RGBAObject = {` |
+| Example 8 | `Bun.color("hsl(0, 0%, 50%)", "{rgba}"); // { r: 128, g: 128,` |
+| Example 9 | `Bun.color("hsl(0, 0%, 50%)", "{rgb}"); // { r: 128, g: 128, ` |
+| Example 10 | `// All values are 0 - 255` |
+| Example 11 | `Bun.color("hsl(0, 0%, 50%)", "[rgba]"); // [128, 128, 128, 2` |
+| Example 12 | `Bun.color("hsl(0, 0%, 50%)", "[rgb]"); // [128, 128, 128]` |
+| Example 13 | `Bun.color("hsl(0, 0%, 50%)", "hex"); // "#808080"` |
+| Example 14 | `Bun.color("hsl(0, 0%, 50%)", "HEX"); // "#808080"` |
+| Example 15 | `import { color } from "bun" with { type: "macro" };` |
+| Example 16 | `// client-side.ts` |
+
+```typescript
+Bun.color("red", "css"); // "red"
+Bun.color(0xff0000, "css"); // "#f000"
+Bun.color("#f00", "css"); // "red"
+Bun.color("#ff0000", "css"); // "red"
+Bun.color("rgb(255, 0, 0)", "css"); // "red"
+Bun.color("rgba(255, 0, 0, 1)", "css"); // "red"
+Bun.color("hsl(0, 100%, 50%)", "css"); // "red"
+Bun.color("hsla(0, 100%, 50%, 1)", "css"); // "red"
+Bun.color({ r: 255, g: 0, b: 0 }, "css"); // "red"
+Bun.color({ r: 255, g: 0, b: 0, a: 1 }, "css"); // "red"
+Bun.color([255, 0, 0], "css"); // "red"
+Bun.color([255, 0, 0, 255], "css"); // "red"
+```
+
+
+### Semver
+
+Source: <https://bun.com/docs/api/semver>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import { semver } from "bun";` |
+| Example 2 | `import { semver } from "bun";` |
+
+```typescript
+import { semver } from "bun";
+
+semver.satisfies("1.0.0", "^1.0.0"); // true
+semver.satisfies("1.0.0", "^1.0.1"); // false
+semver.satisfies("1.0.0", "~1.0.0"); // true
+semver.satisfies("1.0.0", "~1.0.1"); // false
+semver.satisfies("1.0.0", "1.0.0"); // true
+semver.satisfies("1.0.0", "1.0.1"); // false
+semver.satisfies("1.0.1", "1.0.0"); // false
+semver.satisfies("1.0.0", "1.0.x"); // true
+semver.satisfies("1.0.0", "1.x.x"); // true
+semver.satisfies("1.0.0", "x.x.x"); // true
+semver.satisfies("1.0.0", "1.0.0 - 2.0.0"); // true
+semver.satisfies("1.0.0", "1.0.0 - 1.0.1"); // true
+```
+
+
+### WebSockets
+
+Source: <https://bun.com/docs/api/websockets>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `Bun.serve({` |
+| Example 2 | `Bun.serve({` |
+| Example 3 | `Bun.serve({` |
+| Example 4 | `Bun.serve({` |
+| Example 5 | `type WebSocketData = {` |
+| Example 6 | `const socket = new WebSocket("ws://localhost:3000/chat");` |
+| Example 7 | `const server = Bun.serve({` |
+| Example 8 | `Bun.serve({` |
+| Example 9 | `ws.send("Hello world", true);` |
+| Example 10 | `Bun.serve({` |
+| Example 11 | `Bun.serve({` |
+| Example 12 | `const socket = new WebSocket("ws://localhost:3000");` |
+| Example 13 | `const socket = new WebSocket("ws://localhost:3000", {` |
+| Example 14 | `// message is received` |
+
+```typescript
+Bun.serve({
+  fetch(req, server) {
+    // upgrade the request to a WebSocket
+    if (server.upgrade(req)) {
+      return; // do not return a Response
+    }
+    return new Response("Upgrade failed", { status: 500 });
+  },
+  websocket: {}, // handlers
+});
+```
+
+
+### UDP
+
+Source: <https://bun.com/docs/api/udp>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `const socket = await Bun.udpSocket({});` |
+| Example 2 | `const socket = await Bun.udpSocket({` |
+| Example 3 | `socket.send("Hello, world!", 41234, "127.0.0.1");` |
+| Example 4 | `const socket = await Bun.udpSocket({});` |
+| Example 5 | `const socket = await Bun.udpSocket({` |
+| Example 6 | `const socket = await Bun.udpSocket({` |
+| Example 7 | `const socket = await Bun.udpSocket({});` |
+| Example 8 | `const socket = await Bun.udpSocket({});` |
+| Example 9 | `// Set TTL for multicast packets (number of network hops)` |
+| Example 10 | `socket.addSourceSpecificMembership("10.0.0.1", "232.0.0.1");` |
+
+```typescript
+const socket = await Bun.udpSocket({});
+console.log(socket.port); // assigned by the operating system
+```
+
+
+### DNS
+
+Source: <https://bun.com/docs/api/dns>
+
+| Example | First line |
+| ------- | ---------- |
+| Example 1 | `import * as dns from "node:dns";` |
+| Example 2 | `import { dns } from "bun";` |
+| Example 3 | `import { dns } from "bun";` |
+| Example 4 | `import { dns } from "bun";` |
+| Example 5 | `{` |
+| Example 6 | `import { dns } from "bun";` |
+
+```typescript
+import * as dns from "node:dns";
+
+const addrs = await dns.promises.resolve4("bun.com", { ttl: true });
+console.log(addrs);
+// => [{ address: "172.67.161.226", family: 4, ttl: 0 }, ...]
+```
