@@ -8,6 +8,7 @@ import {
 	classifyFlag,
 	cleanAliases,
 	inheritsGlobals,
+	makeCSV,
 	makeTable,
 } from "../../src/completions/completion-matrix";
 
@@ -52,9 +53,9 @@ describe("Snapshot contracts", () => {
 
 			expect(makeTable(rows)).toMatchInlineSnapshot(`
 "| Command | Flags |
-| --- | --- |
-| install | 41 |
-| build | 57 |"
+|---------|-------|
+| install | 41    |
+| build   | 57    |"
 `);
 		});
 
@@ -77,10 +78,10 @@ describe("Snapshot contracts", () => {
 			];
 
 			expect(makeTable(rows)).toMatchInlineSnapshot(`
-"| Command | Flags | Value flags | File I/O | PM |
-| --- | --- | --- | --- | --- |
-| install (i) | 41 | 15 | 2 | 18 |
-| build | 57 | 27 | 8 | 0 |"
+"| Command     | Flags | Value flags | File I/O | PM |
+|-------------|-------|-------------|----------|----|
+| install (i) | 41    | 15          | 2        | 18 |
+| build       | 57    | 27          | 8        | 0  |"
 `);
 		});
 
@@ -93,8 +94,8 @@ describe("Snapshot contracts", () => {
 
 			expect(makeTable(rows)).toMatchInlineSnapshot(`
 "| Description | Value |
-| --- | --- |
-| a | b | 1 |"
+|-------------|-------|
+| a | b       | 1     |"
 `);
 		});
 	});
@@ -312,6 +313,44 @@ describe("Snapshot contracts", () => {
 			expect(
 				Bun.semver.order(Bun.version, dynamicSources.bunVersion),
 			).toBeGreaterThanOrEqual(0);
+		});
+	});
+
+	// ── 1b. makeCSV inline snapshot ─────────────────────────────────
+	describe("makeCSV generation", () => {
+		test("produces stable 2-column CSV", () => {
+			const rows = [
+				{ Command: "install", Flags: 41 },
+				{ Command: "build", Flags: 57 },
+			];
+
+			expect(makeCSV(rows)).toMatchInlineSnapshot(`
+"Command,Flags
+install,41
+build,57"
+`);
+		});
+
+		test("quotes cells with commas and escapes embedded quotes", () => {
+			const rows = [
+				{ Description: "fast, reliable", Value: 1 },
+				{ Description: 'say "hello"', Value: 2 },
+			];
+
+			expect(makeCSV(rows)).toMatchInlineSnapshot(`
+"Description,Value
+"fast, reliable",1
+"say ""hello""",2"
+`);
+		});
+
+		test("handles empty rows gracefully", () => {
+			expect(makeCSV([])).toBe("");
+		});
+
+		test("coerces numbers to strings", () => {
+			const rows = [{ Metric: "Count", Value: 42 }];
+			expect(makeCSV(rows)).toContain("42");
 		});
 	});
 });

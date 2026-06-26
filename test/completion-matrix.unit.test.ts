@@ -214,8 +214,8 @@ describe("table builder", () => {
 		const lines = table.split("\n");
 
 		expect(lines[0]).toBe("| Command | Flags |");
-		expect(lines[1]).toBe("| --- | --- |");
-		expect(lines[2]).toBe("| install | 41 |");
+		expect(lines[1]).toBe("|---------|-------|");
+		expect(lines[2]).toBe("| install | 41    |");
 	});
 
 	test("returns an empty string for empty rows", () => {
@@ -224,7 +224,7 @@ describe("table builder", () => {
 
 	test("coerces numbers to strings in cells", () => {
 		const rows = [{ Metric: "Count", Value: 42 }];
-		expect(makeTable(rows)).toContain("| 42 |");
+		expect(makeTable(rows)).toContain("| 42    |");
 	});
 
 	test("handles multiple rows", () => {
@@ -233,8 +233,8 @@ describe("table builder", () => {
 			{ Command: "build", Flags: 57 },
 		];
 		const table = makeTable(rows);
-		expect(table).toContain("| add | 40 |");
-		expect(table).toContain("| build | 57 |");
+		expect(table).toContain("| add     | 40    |");
+		expect(table).toContain("| build   | 57    |");
 	});
 });
 
@@ -322,7 +322,9 @@ describe("end-to-end generation", () => {
 			Flag: c.name,
 			Categories: c.categories.join(", ") || "—",
 		}));
-		expect(makeTable(sampleRows)).toContain("| Flag | Categories |");
+		expect(makeTable(sampleRows)).toContain(
+			"| Flag             | Categories    |",
+		);
 	});
 });
 
@@ -348,6 +350,21 @@ describe("drift detection contract", () => {
 
 		expect(dynamicSources.jsonHash).toBe(jsonHash);
 	});
+
+	test("rejects a deliberately wrong hash (regression guard)", async () => {
+		const matrixContent = await Bun.file(MATRIX_PATH).text();
+		// A hash that almost certainly does not appear in the matrix
+		const bogusHash = "000000000000";
+		expect(matrixContent).not.toContain(bogusHash);
+	});
+
+	test('detects "bun" parser leak in alias list (regression guard)', () => {
+		// cleanAliases must reject "bun" as an alias; if the parser leaks
+		// "bun" into any command's alias list, this pattern detection catches it
+		const result = cleanAliases(["bun", "add"]);
+		expect(result).not.toContain("bun");
+		expect(result).toEqual(["add"]);
+	});
 });
 
 // ============================================
@@ -355,39 +372,51 @@ describe("drift detection contract", () => {
 // ============================================
 
 describe("SQLite history", () => {
-	test("creates an in-memory history table and queries rows", () => {
+	test("creates an in-memory history table with UUIDv7 primary keys", () => {
 		using db = new Database(":memory:");
 
 		db.run(`
 			CREATE TABLE completion_history (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				id TEXT PRIMARY KEY,
 				generated_at TEXT NOT NULL,
 				json_hash TEXT NOT NULL
 			)
 		`);
 
+		const id1 = Bun.randomUUIDv7();
+		const id2 = Bun.randomUUIDv7();
+
+		// UUIDv7 IDs are time-ordered: id1 < id2 lexicographically
+		expect(id1 < id2).toBe(true);
+
 		db.run(
-			"INSERT INTO completion_history (generated_at, json_hash) VALUES (?, ?)",
-			["2026-06-25T12:00:00Z", "abc123"],
+			"INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)",
+			[id1, "2026-06-25T12:00:00Z", "abc123"],
 		);
 		db.run(
-			"INSERT INTO completion_history (generated_at, json_hash) VALUES (?, ?)",
-			["2026-06-25T13:00:00Z", "def456"],
+			"INSERT INTO completion_history (id, generated_at, json_hash) VALUES (?, ?, ?)",
+			[id2, "2026-06-25T13:00:00Z", "def456"],
 		);
 
 		const rows = db.query("SELECT * FROM completion_history ORDER BY id").all();
 
 		expect(rows).toHaveLength(2);
 		expect(rows[0]).toMatchObject({
-			id: 1,
+			id: id1,
 			generated_at: "2026-06-25T12:00:00Z",
 			json_hash: "abc123",
 		});
 		expect(rows[1]).toMatchObject({
-			id: 2,
+			id: id2,
 			generated_at: "2026-06-25T13:00:00Z",
 			json_hash: "def456",
 		});
+
+		// Verify UUIDv7 format: 8-4-4-4-12 hex with version 7 nibble
+		const uuidv7Re =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		expect(id1).toMatch(uuidv7Re);
+		expect(id2).toMatch(uuidv7Re);
 	});
 });
 

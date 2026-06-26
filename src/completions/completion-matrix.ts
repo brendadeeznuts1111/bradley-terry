@@ -278,10 +278,29 @@ export function makeTable<T extends Record<string, string | number>>(
 ): string {
 	if (rows.length === 0) return "";
 	const cols = Object.keys(rows[0]);
-	const header = `| ${cols.join(" | ")} |`;
-	const sep = `|${cols.map(() => " --- ").join("|")}|`;
+
+	// Compute max visual width per column (Bun.stringWidth accounts for CJK/emoji)
+	const colWidths = cols.map((col) => {
+		const headerWidth = Bun.stringWidth(col);
+		const maxDataWidth = rows.reduce(
+			(max, r) => Math.max(max, Bun.stringWidth(String(r[col]))),
+			0,
+		);
+		return Math.max(headerWidth, maxDataWidth);
+	});
+
+	const padCell = (text: string, width: number): string => {
+		const visualWidth = Bun.stringWidth(text);
+		return text + " ".repeat(width - visualWidth);
+	};
+
+	const header = `| ${cols.map((c, i) => padCell(c, colWidths[i])).join(" | ")} |`;
+	const sep = `|${cols.map((_, i) => "-".repeat(colWidths[i] + 2)).join("|")}|`;
 	const body = rows
-		.map((r) => `| ${cols.map((c) => String(r[c])).join(" | ")} |`)
+		.map(
+			(r) =>
+				`| ${cols.map((c, i) => padCell(String(r[c]), colWidths[i])).join(" | ")} |`,
+		)
 		.join("\n");
 	return [header, sep, body].join("\n");
 }
