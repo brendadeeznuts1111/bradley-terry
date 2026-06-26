@@ -50,6 +50,16 @@ describe("Shell completion generator", () => {
 		expect(zsh).toContain("install:");
 	});
 
+	test("zsh completions expose choice values for enum-like flags", async () => {
+		const zsh = await Bun.file(`${SHELL_DIR}/bun.zsh`).text();
+		expect(zsh).toContain(
+			'--target[The intended execution environment for the bundle. "browser", "bun" or "node"]:target:(browser bun node)',
+		);
+		expect(zsh).toContain(
+			'--backend[Platform-specific optimizations for installing dependencies. Possible values: "clonefile" (default), "hardlink", "symlink", "copyfile"]:backend:(clonefile hardlink symlink copyfile)',
+		);
+	});
+
 	test("fish completions contain subcommand and flag completions", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
 		expect(fish).toContain("complete -c bun -f");

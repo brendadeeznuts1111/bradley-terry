@@ -36,6 +36,19 @@ function flagNames(flag: FlagEntry): string[] {
 	return names;
 }
 
+function zshFlagSpec(flag: FlagEntry, name: string): string {
+	const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
+	let spec = `'${name}[${desc}]'`;
+	if (flag.choices?.length) {
+		spec = spec.slice(0, -1); // remove closing quote
+		spec += `:${flag.name}:(${flag.choices.map(escapeShell).join(" ")})'`;
+	} else if (flag.hasValue) {
+		spec = spec.slice(0, -1); // remove closing quote
+		spec += `:${flag.name}:'`;
+	}
+	return spec;
+}
+
 function fishDynamicCompletion(type: string): string | undefined {
 	switch (type) {
 		case "package":
@@ -123,8 +136,7 @@ commands=(
 	script += `local -a global_flags\nglobal_flags=(\n`;
 	for (const flag of data.globalFlags) {
 		for (const f of flagNames(flag)) {
-			const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
-			script += `\t'${f}[${desc}]'\n`;
+			script += `\t${zshFlagSpec(flag, f)}\n`;
 		}
 	}
 	script += `)\n\n`;
@@ -140,8 +152,7 @@ commands=(
 		script += `\t\t\t\tcmd_flags=(\n`;
 		for (const flag of cmd.flags) {
 			for (const f of flagNames(flag)) {
-				const desc = escapeShell(flag.description?.split("\n")[0] ?? "");
-				script += `\t\t\t\t\t'${f}[${desc}]'\n`;
+				script += `\t\t\t\t\t${zshFlagSpec(flag, f)}\n`;
 			}
 		}
 		script += `\t\t\t\t)\n`;
