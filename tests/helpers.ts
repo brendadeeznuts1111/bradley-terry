@@ -5,6 +5,6 @@ import { setSystemTime } from "bun:test";
  * Call the returned function to restore real time.
  */
 export function seedDeterministicClock(date: Date = new Date("2024-01-01T00:00:00Z")): () => void {
-  setSystemTime(date);
-  return () => setSystemTime();
+	setSystemTime(date);
+	return () => setSystemTime();
 }

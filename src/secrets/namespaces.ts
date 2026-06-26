@@ -12,6 +12,6 @@ export const formatNamespace = (namespace: string, name: string): string => `${n
 
 /** Maps namespace+name → `Bun.secrets` `{ service, name }` options. */
 export const bunSecretsOptions = (namespace: string, name: string) => ({
-  service: namespace,
-  name,
+	service: namespace,
+	name,
 });

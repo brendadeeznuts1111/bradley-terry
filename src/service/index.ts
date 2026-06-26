@@ -5,10 +5,10 @@ import { MasseyClientLive } from "./massey-client.js";
 import { RatingsDBLive } from "./ratings-db.js";
 
 export const AppLive = Layer.mergeAll(
-  ConfigLive,
-  MasseyClientLive.pipe(Layer.provide(ConfigLive)),
-  RatingsDBLive.pipe(Layer.provide(ConfigLive)),
-  BTComputeLive,
+	ConfigLive,
+	MasseyClientLive.pipe(Layer.provide(ConfigLive)),
+	RatingsDBLive.pipe(Layer.provide(ConfigLive)),
+	BTComputeLive,
 );
 
 export * from "../secrets/index.js";
