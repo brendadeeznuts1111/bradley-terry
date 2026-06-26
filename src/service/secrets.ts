@@ -1,4 +1,5 @@
 import { Context, Data, Effect, Layer } from "effect";
+import { decodeSecretEntry } from "./secret-entry.js";
 
 export class SecretError extends Data.TaggedError("SecretError")<{
   readonly cause: unknown;
@@ -11,11 +12,16 @@ export class SecretNotFoundError extends Data.TaggedError("SecretNotFoundError")
   readonly name: string;
 }> {}
 
+export class SecretExpiredError extends Data.TaggedError("SecretExpiredError")<{
+  readonly service: string;
+  readonly name: string;
+}> {}
+
 export interface SecretClientApi {
   readonly get: (
     service: string,
     name: string
-  ) => Effect.Effect<string, SecretError | SecretNotFoundError>;
+  ) => Effect.Effect<string, SecretError | SecretNotFoundError | SecretExpiredError>;
 }
 
 export class SecretClient extends Context.Tag("SecretClient")<
@@ -50,7 +56,11 @@ const getFromBun = (service: string, name: string) =>
     if (value === null || value === "") {
       return yield* Effect.fail(new SecretNotFoundError({ service, name }));
     }
-    return value;
+    const decoded = decodeSecretEntry(value);
+    if (decoded === null) {
+      return yield* Effect.fail(new SecretExpiredError({ service, name }));
+    }
+    return decoded;
   });
 
 const getFromEnv = (service: string, name: string) =>
@@ -59,7 +69,11 @@ const getFromEnv = (service: string, name: string) =>
     if (!value) {
       return yield* Effect.fail(new SecretNotFoundError({ service, name }));
     }
-    return value;
+    const decoded = decodeSecretEntry(value);
+    if (decoded === null) {
+      return yield* Effect.fail(new SecretExpiredError({ service, name }));
+    }
+    return decoded;
   });
 
 const getFromVault = (service: string, name: string) =>

@@ -261,7 +261,19 @@ LAYER 1: SERVICES
 
 **Key insight:** The `SecretClient` API pattern (`service` + `name`) stays stable; only the channel changes from OS IPC to HTTPS. `RatingsConfigLive` does not change when swapping backends.
 
-### Namespace map
+### TTL entries + test clock
+
+Optional JSON entries in `Bun.secrets` / env support TTL via `encodeSecretEntry`:
+
+```bash
+bun scripts/bun-secret.ts set com.bradley-terry.massey api-token "key" --ttl 3600
+```
+
+`SecretClient` decodes TTL entries; expired secrets raise `SecretExpiredError`.
+
+Tests use `setSystemTime` from `bun:test` via `tests/helpers.ts` → `seedDeterministicClock()`.
+
+---
 
 | `service` | `name` | Consumer | Notes |
 |-----------|--------|----------|-------|

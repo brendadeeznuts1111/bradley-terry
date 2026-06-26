@@ -31,11 +31,21 @@ export const RatingsConfigLive = Layer.effect(
 
     const masseyApiKey = yield* secrets
       .get(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME)
-      .pipe(Effect.catchTag("SecretNotFoundError", () => Effect.succeed(null)));
+      .pipe(
+        Effect.catchTags({
+          SecretNotFoundError: () => Effect.succeed(null),
+          SecretExpiredError: () => Effect.succeed(null),
+        })
+      );
 
     const dbEncryptionKey = yield* secrets
       .get(DB_SECRET_SERVICE, DB_SECRET_NAME)
-      .pipe(Effect.catchTag("SecretNotFoundError", () => Effect.succeed(null)));
+      .pipe(
+        Effect.catchTags({
+          SecretNotFoundError: () => Effect.succeed(null),
+          SecretExpiredError: () => Effect.succeed(null),
+        })
+      );
 
     return {
       masseyUrl: process.env.MASSEY_URL ?? "https://masseyratings.com/data/json",

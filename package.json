@@ -8,6 +8,7 @@
     "start:example": "bun run examples/usage-complete.ts",
     "dev": "bun --watch src/server/index.ts",
     "test": "bun test",
+    "secret": "bun scripts/bun-secret.ts",
     "lint": "bunx @biomejs/biome check ."
   },
   "dependencies": {
