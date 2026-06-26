@@ -562,6 +562,17 @@ describe("Bun native API verification", () => {
 		expect(new TextDecoder().decode(buf)).toBe("hello world");
 	});
 
+	test("TOML.parse reads bunfig.toml install settings", async () => {
+		const content = await Bun.file(
+			join(import.meta.dir, "../bunfig.toml"),
+		).text();
+		const config = Bun.TOML.parse(content) as {
+			install: { frozenLockfile: boolean; saveTextLockfile: boolean };
+		};
+		expect(config.install.frozenLockfile).toBe(false);
+		expect(config.install.saveTextLockfile).toBe(true);
+	});
+
 	test("resolveSync resolves a relative module path", async () => {
 		const resolved = Bun.resolveSync("../package.json", import.meta.dir);
 		expect(resolved.endsWith("package.json")).toBe(true);

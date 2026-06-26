@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-87%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-88%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
 [![Bench](https://img.shields.io/badge/50k%20matches-87ms-success)](#benchmarks)
@@ -147,11 +147,11 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-87 tests across 7 files:
+88 tests across 7 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
-| `test/completion-matrix.unit.test.ts` | 47 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
+| `test/completion-matrix.unit.test.ts` | 48 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
 | `test/completions/snapshot.unit.test.ts` | 20 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
 | `test/completions/shell-completions.unit.test.ts` | 4 | Generated bash/zsh/fish shell completion scripts |
 | `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |

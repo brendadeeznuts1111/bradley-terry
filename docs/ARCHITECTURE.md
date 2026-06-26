@@ -203,7 +203,7 @@ leverages Bun's performance-optimized primitives.
 ### Parsing & serialization
 | API | Usage |
 |-----|-------|
-| `Bun.TOML.parse(str)` | TOML configuration parsing |
+| `Bun.TOML.parse(str)` | TOML configuration parsing (e.g., `bunfig.toml`) |
 | `Bun.JSONC.parse(str)` | JSONC (JSON with comments) parsing |
 
 ### Path resolution
