@@ -16,7 +16,12 @@ import {
 	ReadinessResponseSchema,
 	RefreshSummarySchema,
 } from "../service/schemas.js";
-import { incrementMetric, renderMetrics } from "./metrics.js";
+import {
+	bindServerMetrics,
+	incrementMetric,
+	renderMetrics,
+	type ServerMetrics,
+} from "./metrics.js";
 import {
 	allowedMethods,
 	conflictResponse,
@@ -34,7 +39,7 @@ import { releaseRefreshLock, tryAcquireRefreshLock } from "./refresh-lock.js";
 import { clientIp, withRequestLog } from "./request-log.js";
 import { getAppRuntime } from "./runtime.js";
 import { trackInFlight } from "./shutdown.js";
-import { APP_VERSION, GIT_COMMIT, RUNTIME_VERSION } from "./version.js";
+import { APP_VERSION, GIT_COMMIT, RUNTIME_REVISION, RUNTIME_VERSION } from "./version.js";
 
 const encodeJsonResponse = <A, I, R>(
 	schema: Schema.Schema<A, I, R>,
@@ -86,7 +91,7 @@ const collectHealthChecks = Effect.gen(function* () {
 			(s) =>
 				({
 					db: "ok" as const,
-					secretsBackend: process.env.SECRETS_BACKEND ?? "auto",
+					secretsBackend: Bun.env.SECRETS_BACKEND ?? "auto",
 					lastUpdated: s.lastUpdated ?? undefined,
 					teamCount: s.teamCount,
 				}) satisfies HealthChecks,
@@ -94,7 +99,7 @@ const collectHealthChecks = Effect.gen(function* () {
 		Effect.catchAll(() =>
 			Effect.succeed({
 				db: "error" as const,
-				secretsBackend: process.env.SECRETS_BACKEND ?? "auto",
+				secretsBackend: Bun.env.SECRETS_BACKEND ?? "auto",
 			} satisfies HealthChecks),
 		),
 	);
@@ -106,6 +111,7 @@ export const handleHealth = () =>
 			status: "ok" as const,
 			appVersion: APP_VERSION,
 			runtimeVersion: RUNTIME_VERSION,
+			runtimeRevision: RUNTIME_REVISION,
 			commit: GIT_COMMIT,
 			timestamp: Date.now(),
 		}),
@@ -185,13 +191,14 @@ export const handleRefresh = (): Promise<Response> => {
 		.finally(() => releaseRefreshLock());
 };
 
-export const handleRequest = (req: Request): Promise<Response> =>
-	trackInFlight(() =>
-		withRequestLog(req, () => {
+export const handleRequest = (req: Request, server?: ServerMetrics): Promise<Response> =>
+	trackInFlight(() => {
+		if (server) bindServerMetrics(server);
+		return withRequestLog(req, () => {
 			incrementMetric("http_requests_total");
 			return dispatchRequest(req);
-		}),
-	);
+		});
+	});
 
 const dispatchRequest = (req: Request): Promise<Response> => {
 	if (req.method === "OPTIONS") {

@@ -8,11 +8,9 @@ export type RequestLogEntry = {
 	readonly clientIp: string;
 };
 
-export const isRequestLogEnabled = (): boolean => {
-	const value = process.env.REQUEST_LOG;
-	if (value === undefined || value === "") return true;
-	return value !== "0" && value.toLowerCase() !== "false";
-};
+import { envFlag, envNumber, envString } from "../env.js";
+
+export const isRequestLogEnabled = (): boolean => envFlag("REQUEST_LOG", true);
 
 export const clientIp = (req: Request): string => {
 	const forwarded = req.headers.get("x-forwarded-for");

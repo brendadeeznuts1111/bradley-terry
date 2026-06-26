@@ -1,8 +1,7 @@
+import { envString } from "../env.js";
+
 /** Returns configured bearer token for POST /api/ratings/refresh, or null when auth is disabled. */
-export const parseRefreshToken = (): string | null => {
-	const token = process.env.REFRESH_TOKEN?.trim();
-	return token ? token : null;
-};
+export const parseRefreshToken = (): string | null => envString("REFRESH_TOKEN") ?? null;
 
 export const isRefreshAuthorized = (req: Request): boolean => {
 	const expected = parseRefreshToken();

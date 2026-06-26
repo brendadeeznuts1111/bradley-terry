@@ -58,6 +58,7 @@ export const LivenessResponseSchema = Schema.Struct({
 	status: Schema.Literal("ok"),
 	appVersion: Schema.String,
 	runtimeVersion: Schema.String,
+	runtimeRevision: Schema.String,
 	commit: Schema.String,
 	timestamp: Schema.Number,
 });

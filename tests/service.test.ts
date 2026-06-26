@@ -122,6 +122,7 @@ describe("HTTP handlers", () => {
 		expect(body.status).toBe("ok");
 		expect(body.appVersion).toBeDefined();
 		expect(body.runtimeVersion).toBeDefined();
+		expect(body.runtimeRevision).toBeDefined();
 	});
 
 	it("GET /ready returns dependency checks", async () => {

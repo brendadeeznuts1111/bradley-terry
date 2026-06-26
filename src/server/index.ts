@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { Effect } from "effect";
+import { envNumber } from "../env.js";
 import { ConfigLive, RatingsConfigTag } from "../service/config.js";
 import { handleRefresh, handleRequest } from "./handlers.js";
 import { isRefreshInFlight } from "./refresh-lock.js";
@@ -18,8 +19,11 @@ const config = Effect.runSync(
 mkdirSync(dirname(config.dbPath), { recursive: true });
 
 const server = Bun.serve({
+	hostname: "0.0.0.0",
 	port: config.port,
-	fetch: handleRequest,
+	fetch(req, srv) {
+		return handleRequest(req, srv);
+	},
 });
 
 const stopScheduler = startRefreshScheduler(config.interval, () => {
@@ -30,16 +34,12 @@ const stopScheduler = startRefreshScheduler(config.interval, () => {
 	return handleRefresh();
 });
 
-const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? "10000");
-
 const shutdown = async (signal: string) => {
 	console.log(`\n${signal} received — shutting down`);
 	stopScheduler();
-	server.stop();
+	await server.stop();
 
-	const drained = await waitForInFlight(
-		Number.isFinite(shutdownTimeoutMs) ? shutdownTimeoutMs : 10_000,
-	);
+	const drained = await waitForInFlight(envNumber("SHUTDOWN_TIMEOUT_MS", 10_000));
 	if (!drained) {
 		console.warn(`[shutdown] ${signal}: timed out waiting for in-flight requests`);
 	}
@@ -51,9 +51,7 @@ const shutdown = async (signal: string) => {
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
-console.log(
-	`Bradley-Terry v${APP_VERSION} (${GIT_COMMIT}) listening on http://localhost:${server.port}`,
-);
+console.log(`Bradley-Terry v${APP_VERSION} (${GIT_COMMIT}) listening on ${server.url}`);
 if (config.interval > 0) {
 	console.log(`Auto-refresh scheduled every ${config.interval}s (REFRESH_INTERVAL)`);
 }

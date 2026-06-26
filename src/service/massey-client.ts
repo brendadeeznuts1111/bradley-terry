@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Schedule, Schema } from "effect";
+import { envNumber } from "../env.js";
 import { RatingsConfigTag } from "./config.js";
 import { MasseyFetchError, SchemaDecodeError } from "./errors.js";
 import { type MasseyData, MasseyDataSchema } from "./schemas.js";
@@ -9,15 +10,9 @@ export interface MasseyClientApi {
 
 export class MasseyClient extends Context.Tag("MasseyClient")<MasseyClient, MasseyClientApi>() {}
 
-const parseTimeoutMs = (): number => {
-	const value = Number(process.env.MASSEY_TIMEOUT_MS ?? "30000");
-	return Number.isFinite(value) && value > 0 ? value : 30_000;
-};
+const parseTimeoutMs = (): number => envNumber("MASSEY_TIMEOUT_MS", 30_000);
 
-const parseRetryAttempts = (): number => {
-	const value = Number(process.env.MASSEY_RETRY_ATTEMPTS ?? "2");
-	return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 2;
-};
+const parseRetryAttempts = (): number => envNumber("MASSEY_RETRY_ATTEMPTS", 2);
 
 const fetchWithTimeout = (url: string, headers: Record<string, string>, timeoutMs: number) =>
 	Effect.tryPromise({

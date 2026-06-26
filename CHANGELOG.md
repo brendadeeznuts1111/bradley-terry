@@ -9,6 +9,12 @@
 - Graceful shutdown with in-flight request drain (`SHUTDOWN_TIMEOUT_MS`)
 - `Dockerfile` + `docs/DEPLOYMENT.md`
 
+## Unreleased
+
+- Bun runtime alignment: `Bun.env`, `Bun.file`, `Bun.revision`, `server.pendingRequests` on `/metrics`
+- `docs/BUN_RUNTIME.md` — maps service to [bun.com/docs/runtime](https://bun.com/docs/runtime)
+- Graceful `await server.stop()`; `server.url` startup log; `hostname: 0.0.0.0`
+
 ## v0.3.33
 
 - Effect HTTP service on `main`: MasseyClient, RatingsDB, BTCompute, 4 data routes + health
