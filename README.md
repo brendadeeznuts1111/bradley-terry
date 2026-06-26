@@ -45,7 +45,8 @@ bun run secret get com.bradley-terry.massey api-token
 ```
 src/
   bradley-terry/   # iterative MLE fit
-  service/         # Effect layers (MasseyClient, RatingsDB, BTCompute, SecretClient)
+  secrets/         # SecretClient + Bun/env/vault backends
+  service/         # Effect layers (MasseyClient, RatingsDB, BTCompute)
   server/          # Bun.serve HTTP handlers + shared runtime
 docs/
   ARCHITECTURE.md  # deep matrix architecture reference

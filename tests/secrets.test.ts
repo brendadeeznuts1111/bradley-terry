@@ -2,10 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { Effect, Layer } from "effect";
 import {
   EnvSecretsLive,
+  MASSEY_NAMESPACE,
   MASSEY_SECRET_NAME,
-  MASSEY_SECRET_SERVICE,
   SecretClient,
-} from "../src/service/secrets.js";
+} from "../src/secrets/index.js";
 import { RatingsConfigTag } from "../src/service/config.js";
 
 describe("SecretClient", () => {
@@ -18,8 +18,8 @@ describe("SecretClient", () => {
       Effect.gen(function* () {
         const secrets = yield* SecretClient;
         const masseyApiKey = yield* secrets
-          .get(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME)
-          .pipe(Effect.catchTag("SecretNotFoundError", () => Effect.succeed(null)));
+          .get(MASSEY_NAMESPACE, MASSEY_SECRET_NAME)
+          .pipe(Effect.catchTag("SecretError", () => Effect.succeed(null)));
         return {
           masseyUrl: "http://localhost",
           dbPath: ":memory:",
@@ -42,22 +42,18 @@ describe("SecretClient", () => {
     delete process.env.SECRETS_BACKEND;
   });
 
-  it("rejects set/delete on env backend", async () => {
+  it("no-ops set/delete on env backend (read-only CI)", async () => {
     process.env.SECRETS_BACKEND = "env";
 
-    const result = await Effect.runPromise(
+    await Effect.runPromise(
       Effect.gen(function* () {
         const secrets = yield* SecretClient;
-        return yield* secrets
-          .set(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME, "x")
-          .pipe(Effect.either);
+        yield* secrets.set(MASSEY_NAMESPACE, MASSEY_SECRET_NAME, "x");
+        const deleted = yield* secrets.delete(MASSEY_NAMESPACE, MASSEY_SECRET_NAME);
+        expect(deleted).toBe(false);
       }).pipe(Effect.provide(EnvSecretsLive))
     );
 
-    expect(result._tag).toBe("Left");
-    if (result._tag === "Left") {
-      expect(result.left._tag).toBe("SecretUnsupportedError");
-    }
     delete process.env.SECRETS_BACKEND;
   });
 });

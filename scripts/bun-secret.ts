@@ -8,19 +8,19 @@
  *   bun scripts/bun-secret.ts get com.bradley-terry.massey api-token
  *   bun scripts/bun-secret.ts delete com.bradley-terry.massey api-token
  */
-import { decodeSecretEntry, encodeSecretEntry } from "../src/service/secret-entry.js";
-import { formatSecretKey, secretKey } from "../src/service/secret-key.js";
+import { encodeSecretEntry, decodeSecretEntry } from "../src/secrets/entry.js";
+import { bunSecretsOptions, formatNamespace } from "../src/secrets/namespaces.js";
 
-const [command, service, name, value, ...rest] = process.argv.slice(2);
+const [command, namespace, name, value, ...rest] = process.argv.slice(2);
 
-if (!command || !service || !name) {
+if (!command || !namespace || !name) {
   console.error(
-    "Usage: bun-secret.ts <set|get|delete> <service> <name> [value] [--ttl seconds]"
+    "Usage: bun-secret.ts <set|get|delete> <namespace> <name> [value] [--ttl seconds]"
   );
   process.exit(1);
 }
 
-const key = secretKey(service, name);
+const key = bunSecretsOptions(namespace, name);
 
 const ttlFlag = rest.indexOf("--ttl");
 const ttlSeconds =
@@ -34,7 +34,7 @@ async function main() {
     }
     const payload = encodeSecretEntry(value, ttlSeconds);
     await Bun.secrets.set(key, payload);
-    console.log(`set ${formatSecretKey(key)}${ttlSeconds ? ` (ttl ${ttlSeconds}s)` : ""}`);
+    console.log(`set ${formatNamespace(namespace, name)}${ttlSeconds ? ` (ttl ${ttlSeconds}s)` : ""}`);
     return;
   }
 

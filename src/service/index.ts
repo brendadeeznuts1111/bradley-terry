@@ -12,9 +12,7 @@ export const AppLive = Layer.mergeAll(
 );
 
 export * from "./config.js";
-export * from "./secret-entry.js";
-export * from "./secret-key.js";
-export * from "./secrets.js";
+export * from "../secrets/index.js";
 export * from "./errors.js";
 export * from "./schemas.js";
 export * from "./massey-client.js";

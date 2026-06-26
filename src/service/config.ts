@@ -1,12 +1,12 @@
 import { Context, Effect, Layer } from "effect";
 import {
+  DB_NAMESPACE,
   DB_SECRET_NAME,
-  DB_SECRET_SERVICE,
+  MASSEY_NAMESPACE,
   MASSEY_SECRET_NAME,
-  MASSEY_SECRET_SERVICE,
   SecretClient,
   resolveSecretClientLive,
-} from "./secrets.js";
+} from "../secrets/index.js";
 
 export interface RatingsConfig {
   readonly masseyUrl: string;
@@ -30,22 +30,12 @@ export const RatingsConfigLive = Layer.effect(
     const secrets = yield* SecretClient;
 
     const masseyApiKey = yield* secrets
-      .get(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME)
-      .pipe(
-        Effect.catchTags({
-          SecretNotFoundError: () => Effect.succeed(null),
-          SecretExpiredError: () => Effect.succeed(null),
-        })
-      );
+      .get(MASSEY_NAMESPACE, MASSEY_SECRET_NAME)
+      .pipe(Effect.catchTag("SecretError", () => Effect.succeed(null)));
 
     const dbEncryptionKey = yield* secrets
-      .get(DB_SECRET_SERVICE, DB_SECRET_NAME)
-      .pipe(
-        Effect.catchTags({
-          SecretNotFoundError: () => Effect.succeed(null),
-          SecretExpiredError: () => Effect.succeed(null),
-        })
-      );
+      .get(DB_NAMESPACE, DB_SECRET_NAME)
+      .pipe(Effect.catchTag("SecretError", () => Effect.succeed(null)));
 
     return {
       masseyUrl: process.env.MASSEY_URL ?? "https://masseyratings.com/data/json",

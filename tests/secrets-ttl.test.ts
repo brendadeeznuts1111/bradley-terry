@@ -4,8 +4,8 @@ import {
   decodeSecretEntry,
   encodeSecretEntry,
   isSecretEntryExpired,
-} from "../src/service/secret-entry.js";
-import { EnvSecretsLive, SecretClient } from "../src/service/secrets.js";
+} from "../src/secrets/entry.js";
+import { EnvSecretsLive, SecretClient } from "../src/secrets/index.js";
 import { seedDeterministicClock } from "./helpers.js";
 
 describe("secret TTL entries", () => {
@@ -36,7 +36,7 @@ describe("secret TTL entries", () => {
     expect(isSecretEntryExpired(raw)).toBe(true);
   });
 
-  it("SecretClient env backend treats expired JSON entry as SecretExpiredError", async () => {
+  it("SecretClient env backend treats expired JSON entry as SecretError", async () => {
     resetClock = seedDeterministicClock(new Date("2024-06-01T00:00:00Z"));
     process.env.SECRETS_BACKEND = "env";
     process.env.MASSEY_API_TOKEN = encodeSecretEntry("ttl-token", 60);
@@ -57,7 +57,11 @@ describe("secret TTL entries", () => {
         return yield* client.get("com.bradley-terry.massey", "api-token");
       }).pipe(
         Effect.provide(EnvSecretsLive),
-        Effect.catchTag("SecretExpiredError", () => Effect.succeed("expired"))
+        Effect.catchTag("SecretError", (e) =>
+          e.cause instanceof Error && e.cause.message === "secret expired"
+            ? Effect.succeed("expired")
+            : Effect.fail(e)
+        )
       )
     );
     expect(result).toBe("expired");

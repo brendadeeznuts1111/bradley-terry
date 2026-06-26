@@ -216,28 +216,34 @@ Tagged, typed, catchable. Zigzag overlays connect services → errors → `catch
 | **Config** | `RatingsConfig` / env | `masseyUrl`, `dbPath`, `interval`, `port` |
 | **Credentials** | `SecretClient` (channel-swappable) | `com.bradley-terry.massey` / `api-token` |
 
+### `SecretClient` (`src/secrets/client.ts`)
+
+Channel-agnostic API — `namespace` maps to `Bun.secrets` `{ service: namespace, name }`:
+
+```typescript
+SecretClient.get(namespace, name)    // Effect<string, SecretError>
+SecretClient.set(namespace, name, value)
+SecretClient.delete(namespace, name)
+```
+
+| Environment | Backend | `get` | `set` / `delete` |
+|-------------|---------|-------|------------------|
+| Local dev | `Bun.secrets` | OS keychain IPC | Same |
+| CI/CD | `Bun.env` fallback | `process.env` / `SECRET_*` aliases | No-op (read-only) |
+| Production | Vault / AWS SM | HTTPS API | HTTPS API |
+
 `Bun.secrets` provides **data-namespace isolation** between modules (MasseyClient cannot read DB passphrase). It does **not** provide kernel/process isolation on the same OS user.
 
-### `Bun.secrets` API
+### `Bun.secrets` runtime API
 
-Typed in `src/types/bun-secrets.d.ts` (matches Bun runtime):
+Typed in `src/types/bun-secrets.d.ts`:
 
 ```typescript
 interface SecretsOptions {
-  service: string;  // reverse-domain namespace, e.g. com.bradley-terry.massey
-  name: string;     // short key, e.g. api-token
-}
-
-interface Secrets {
-  get(options: SecretsOptions): Promise<string | null>;
-  set(options: SecretsOptions, value: string): Promise<void>;
-  delete(options: SecretsOptions): Promise<boolean>;
+  service: string;  // SecretClient `namespace`
+  name: string;
 }
 ```
-
-`SecretClient` mirrors this surface as Effect programs (`get` / `set` / `delete`). Only the **bun** backend implements `set` and `delete`; env/vault backends return `SecretUnsupportedError` for writes.
-
-`SecretKey` (`src/service/secret-key.ts`) is the shared `{ service, name }` type used by the CLI and `SecretClient`.
 
 ### Channel annotations
 
@@ -262,13 +268,13 @@ LAYER 1: SERVICES
 └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
-### SecretClient abstraction (`src/service/secrets.ts`)
+### SecretClient abstraction (`src/secrets/`)
 
 `RatingsConfig` reads credentials through `SecretClient`, not directly from `Bun.secrets`. The Effect Layer stays channel-agnostic:
 
 | Implementation | `SECRETS_BACKEND` | Channel | Use case |
 |----------------|-------------------|---------|----------|
-| `SecretClientAutoLive` | `auto` (default) | env → OS IPC fallback | Local dev |
+| `AutoSecretsLive` | `auto` (default) | env → OS IPC fallback | Local dev |
 | `BunSecretsLive` | `bun` | OS IPC (Keychain / DBus / Cred Manager) | Local dev only |
 | `EnvSecretsLive` | `env` | Process environment | CI/CD (GitHub Secrets) |
 | `VaultSecretsLive` | `vault` | HTTPS/TCP to Vault | Production |
@@ -292,7 +298,7 @@ Optional JSON entries in `Bun.secrets` / env support TTL via `encodeSecretEntry`
 bun scripts/bun-secret.ts set com.bradley-terry.massey api-token "key" --ttl 3600
 ```
 
-`SecretClient` decodes TTL entries; expired secrets raise `SecretExpiredError`.
+`SecretClient` decodes TTL entries; expired secrets raise `SecretError` with `cause: "secret expired"`.
 
 Tests use `setSystemTime` from `bun:test` via `tests/helpers.ts` → `seedDeterministicClock()`.
 

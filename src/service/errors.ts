@@ -1,5 +1,5 @@
 import { Data } from "effect";
-import type { SecretError, SecretExpiredError, SecretNotFoundError } from "./secrets.js";
+import type { SecretError } from "../secrets/client.js";
 
 export class MasseyFetchError extends Data.TaggedError("MasseyFetchError")<{
   readonly cause: unknown;
@@ -26,9 +26,7 @@ export type ServiceError =
   | DBError
   | BTComputationError
   | SchemaDecodeError
-  | SecretError
-  | SecretNotFoundError
-  | SecretExpiredError;
+  | SecretError;
 
 const causeMessage = (cause: unknown, fallback: string): string =>
   cause instanceof Error ? cause.message : fallback;
@@ -41,12 +39,12 @@ export const serviceErrorStatus = (error: ServiceError): number => {
       return 400;
     case "BTComputationError":
       return 422;
-    case "SecretExpiredError":
-      return 401;
-    case "SecretNotFoundError":
-      return 503;
-    case "SecretError":
+    case "SecretError": {
+      const msg = causeMessage(error.cause, "");
+      if (msg.includes("expired")) return 401;
+      if (msg.includes("not found")) return 503;
       return 500;
+    }
   }
   return 500;
 };
@@ -78,22 +76,12 @@ export const serviceErrorBody = (
         error: error._tag,
         message: "Upstream response did not match expected Massey schema",
       };
-    case "SecretExpiredError":
-      return {
-        error: error._tag,
-        message: `Secret ${error.service}/${error.name} has expired`,
-      };
-    case "SecretNotFoundError":
-      return {
-        error: error._tag,
-        message: `Secret ${error.service}/${error.name} was not found`,
-      };
     case "SecretError":
       return {
         error: error._tag,
         message: causeMessage(
           error.cause,
-          `Failed to read secret ${error.service}/${error.name}`
+          `Failed to access secret ${error.namespace}/${error.name}`
         ),
       };
     default:
