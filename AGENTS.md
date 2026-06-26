@@ -23,7 +23,7 @@ Until stable reaches 1.4.0, `--stable` downgrades below this pin (e.g. 1.3.14). 
 
 ```bash
 bun install
-bun test                    # 172 tests across 23 files
+bun test                    # 174 tests across 23 files
 bun run ci                  # test + lint
 bun run start               # HTTP server :3000
 bun run dev                 # watch mode

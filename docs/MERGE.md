@@ -11,7 +11,7 @@ Guide for landing stacked PRs onto `main`.
 | **#13** | `cursor/preserving-work-backlog-884c` | Merged → `main` (SqliteLoader, doc drift guard, ARCHITECTURE sync) |
 | **#12** | `cursor/bradley-terry-docs-canvas-884c` | Merged (canvas lives in IDE `canvases/` path, not repo) |
 | **#15** | `cursor/bun-stable-upgrade-docs-884c` | Merged → `main` (canary ↔ stable upgrade docs) |
-| **#3** | `cursor/setup-dev-environment-fae3` | **Close manually** — superseded by `AGENTS.md` on `main` |
+| **#3** | `cursor/setup-dev-environment-fae3` | **Close manually on GitHub** — branch deleted; superseded by `AGENTS.md` on `main` |
 
 ### Post-merge fixes on `main`
 

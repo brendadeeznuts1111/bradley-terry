@@ -1,66 +1,27 @@
 import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { type EntityId } from "../src/schema";
 import { BradleyTerry, BradleyTerryLive } from "../src/bradley-terry";
 import { MatchAdapter } from "../src/match-adapter";
-import { MATCHES_TABLE_DDL, SqliteLoader } from "../src/repository/sqlite-loader";
-
-const tempDirs: string[] = [];
+import { SqliteLoader } from "../src/repository/sqlite-loader";
+import {
+	cleanupWagerFixtures,
+	createWagerFixtureDb,
+	createWagerFixtureFromSql,
+	trackWagerFixtureDir,
+} from "./helpers/wager-fixture";
 
 afterEach(() => {
-	for (const dir of tempDirs.splice(0)) {
-		rmSync(dir, { recursive: true, force: true });
-	}
+	cleanupWagerFixtures();
 });
-
-function createFixtureDb(
-	rows: Array<{
-		match_id?: string;
-		home_team: string;
-		away_team: string;
-		winner_idx: number;
-		loser_idx: number;
-		date: string;
-		sport?: string;
-		league?: string;
-		y?: number;
-	}>,
-): string {
-	const dir = mkdtempSync(join(tmpdir(), "bt-sqlite-loader-"));
-	tempDirs.push(dir);
-	const dbPath = join(dir, "wager.db");
-	const db = new Database(dbPath, { create: true });
-	db.exec(MATCHES_TABLE_DDL);
-
-	const insert = db.prepare(`
-		INSERT INTO matches (match_id, home_team, away_team, winner_idx, loser_idx, date, sport, league, y)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-
-	for (const row of rows) {
-		insert.run(
-			row.match_id ?? null,
-			row.home_team,
-			row.away_team,
-			row.winner_idx,
-			row.loser_idx,
-			row.date,
-			row.sport ?? null,
-			row.league ?? null,
-			row.y ?? null,
-		);
-	}
-
-	db.close();
-	return dbPath;
-}
 
 describe("SqliteLoader", () => {
 	it("returns decoded MatchRow records from a fixture DB", async () => {
-		const dbPath = createFixtureDb([
+		const dbPath = createWagerFixtureDb([
 			{
 				match_id: "m1",
 				home_team: "alpha",
@@ -88,8 +49,18 @@ describe("SqliteLoader", () => {
 		expect(rows[1].winner_idx).toBe(1);
 	});
 
+	it("loads committed Buckeye SQL fixture (wager-matches.sql)", async () => {
+		const dbPath = createWagerFixtureFromSql();
+		const rows = await Effect.runPromise(
+			SqliteLoader.getMatches(dbPath, { sport: "fbs", league: "ncaa" }),
+		);
+
+		expect(rows).toHaveLength(3);
+		expect(rows.map((r) => r.match_id)).toEqual(["buckeye-003", "buckeye-002", "buckeye-001"]);
+	});
+
 	it("filters by sport, league, since, and limit", async () => {
-		const dbPath = createFixtureDb([
+		const dbPath = createWagerFixtureDb([
 			{
 				home_team: "a",
 				away_team: "b",
@@ -134,7 +105,7 @@ describe("SqliteLoader", () => {
 
 	it("fails with SqliteLoaderError when matches table is missing", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "bt-sqlite-empty-"));
-		tempDirs.push(dir);
+		trackWagerFixtureDir(dir);
 		const dbPath = join(dir, "empty.db");
 		const db = new Database(dbPath, { create: true });
 		db.exec("CREATE TABLE other (id INTEGER)");
@@ -147,7 +118,7 @@ describe("SqliteLoader", () => {
 
 	it("initSchema creates the matches table on a fresh database", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "bt-sqlite-init-"));
-		tempDirs.push(dir);
+		trackWagerFixtureDir(dir);
 		const dbPath = join(dir, "fresh.db");
 
 		await Effect.runPromise(SqliteLoader.initSchema(dbPath));
@@ -156,7 +127,7 @@ describe("SqliteLoader", () => {
 	});
 
 	it("countMatches respects filters and limit cap", async () => {
-		const dbPath = createFixtureDb([
+		const dbPath = createWagerFixtureDb([
 			{
 				home_team: "a",
 				away_team: "b",
@@ -192,7 +163,7 @@ describe("SqliteLoader", () => {
 
 describe("SqliteLoader → MatchAdapter → BradleyTerry", () => {
 	it("fits ratings from SQLite fixture matches", async () => {
-		const dbPath = createFixtureDb([
+		const dbPath = createWagerFixtureDb([
 			{
 				home_team: "lakers",
 				away_team: "celtics",
@@ -231,5 +202,26 @@ describe("SqliteLoader → MatchAdapter → BradleyTerry", () => {
 
 		expect(fit.ratings.size).toBeGreaterThanOrEqual(3);
 		expect(fit.matchCount).toBe(3);
+	});
+
+	it("fits ratings from committed Buckeye SQL fixture", async () => {
+		const dbPath = createWagerFixtureFromSql();
+		const matches = await Effect.runPromise(
+			MatchAdapter.loadMatchesForBT(dbPath, { sport: "fbs" }),
+		);
+
+		const fit = await Effect.runPromise(
+			Effect.provide(
+				Effect.gen(function* () {
+					const bt = yield* BradleyTerry;
+					return yield* bt.fit([...matches]);
+				}),
+				BradleyTerryLive,
+			),
+		);
+
+		expect(fit.ratings.size).toBe(3);
+		expect(fit.matchCount).toBe(3);
+		expect(fit.ratings.has("ohio-state" as EntityId)).toBe(true);
 	});
 });

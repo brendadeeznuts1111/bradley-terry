@@ -1,12 +1,10 @@
 import { Effect, Schema } from "effect";
-import { type GetMatchesOptions, SqliteLoader } from "./repository/sqlite-loader";
 import {
-	type BradleyTerryError,
-	type EntityId,
-	type Match,
-	type MatchRow,
-	MatchSchema,
-} from "./schema";
+	type GetMatchesOptions,
+	SqliteLoader,
+	type SqliteLoaderError,
+} from "./repository/sqlite-loader";
+import { type EntityId, type Match, type MatchRow, MatchSchema } from "./schema";
 
 /**
  * MatchAdapter — SQLite (MatchRow) → Bradley-Terry (Match) pipeline
@@ -67,7 +65,7 @@ export const MatchAdapter = {
 	loadMatchesForBT: (
 		dbPath: string,
 		opts: GetMatchesOptions = {},
-	): Effect.Effect<readonly Match[], BradleyTerryError> =>
+	): Effect.Effect<readonly Match[], SqliteLoaderError> =>
 		Effect.gen(function* () {
 			const rows = yield* SqliteLoader.getMatches(dbPath, opts);
 

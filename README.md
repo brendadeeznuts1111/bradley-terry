@@ -2,7 +2,7 @@
 
 [![Bun](https://img.shields.io/badge/Bun-1.x-brightgreen)](https://bun.sh)
 [![Effect](https://img.shields.io/badge/Effect-3.21-blue)](https://effect.website)
-[![Tests](https://img.shields.io/badge/Tests-172%20pass-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-174%20pass-brightgreen)](#testing)
 [![BT Core](https://img.shields.io/badge/BT_Core-v0.3.32-success)](#api)
 [![HTTP](https://img.shields.io/badge/HTTP-Service-blue)](#http-service)
 [![Massey](https://img.shields.io/badge/Massey-Imported-success)](#project-layout)
@@ -231,7 +231,7 @@ Fails with `EntityNotFoundError` if either entity is not in `ratings`.
 bun test
 ```
 
-172 tests across 23 files:
+174 tests across 23 files:
 
 | File | Count | Purpose |
 | --- | --- | --- |
@@ -245,7 +245,7 @@ bun test
 | `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
 | `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
 | `test/ratings-config.unit.test.ts` | 2 |  |
-| `test/sqlite-loader.unit.test.ts` | 6 |  |
+| `test/sqlite-loader.unit.test.ts` | 8 |  |
 
 ## Updating snapshots
 
