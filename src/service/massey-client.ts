@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect";
-import { RatingsConfigTag, getApiToken } from "./config.js";
+import { RatingsConfigTag } from "./config.js";
 import { MasseyFetchError, SchemaDecodeError } from "./errors.js";
 import { MasseyDataSchema, type MasseyData } from "./schemas.js";
 
@@ -16,7 +16,7 @@ export const MasseyClientLive = Layer.effect(
 
     const fetch = () =>
       Effect.gen(function* () {
-        const token = yield* getApiToken(config).pipe(Effect.orElseSucceed(() => null));
+        const token = config.masseyApiKey;
 
         const response = yield* Effect.tryPromise({
           try: () =>

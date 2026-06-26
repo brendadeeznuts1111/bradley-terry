@@ -1,13 +1,13 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { RatingsConfigLive, RatingsConfigTag } from "../service/config.js";
+import { ConfigLive, RatingsConfigTag } from "../service/config.js";
 import { Effect } from "effect";
 import { handleRequest } from "./handlers.js";
 
 const config = Effect.runSync(
   Effect.gen(function* () {
     return yield* RatingsConfigTag;
-  }).pipe(Effect.provide(RatingsConfigLive))
+  }).pipe(Effect.provide(ConfigLive))
 );
 
 mkdirSync(dirname(config.dbPath), { recursive: true });

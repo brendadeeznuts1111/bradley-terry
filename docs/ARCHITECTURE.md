@@ -212,9 +212,61 @@ Tagged, typed, catchable. Zigzag overlays connect services → errors → `catch
 | Kind | Storage | Example |
 |------|---------|---------|
 | **Config** | `RatingsConfig` / env | `masseyUrl`, `dbPath`, `interval`, `port` |
-| **Credentials** | `Bun.secrets` (local) / vault (prod) | `com.bradley-terry.massey` / `api-token` |
+| **Credentials** | `SecretClient` (channel-swappable) | `com.bradley-terry.massey` / `api-token` |
 
 `Bun.secrets` provides **data-namespace isolation** between modules (MasseyClient cannot read DB passphrase). It does **not** provide kernel/process isolation on the same OS user.
+
+### Channel annotations
+
+```
+LAYER 0: CONFIGURATION (RatingsConfig)
+┌─────────────────────────────────────────────────────────────┐
+│  SecretClient.get({ service, name })                        │
+│  Channel: OS IPC | env | HTTPS (Vault) — swappable          │
+│  Isolation: data namespace (service + name)                 │
+│  NOT: process sandboxing (same OS user = theoretical read)  │
+└─────────────────────────────────────────────────────────────┘
+         ↓ plaintext injected into RatingsConfig via Effect.gen
+         ↓ Layer.provide
+LAYER 1: SERVICES
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ MasseyClient │  │  RatingsDB   │  │  BTCompute   │
+│ HTTPS/TCP    │  │  File I/O    │  │  In-memory   │
+│ (Bun.fetch)  │  │ (bun:sqlite) │  │  (pure fn)   │
+│ uses api-key │  │ uses dbPath  │  │  no secrets  │
+│ from config  │  │ + optional   │  │              │
+│              │  │ encrypt key  │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘
+```
+
+### SecretClient abstraction (`src/service/secrets.ts`)
+
+`RatingsConfig` reads credentials through `SecretClient`, not directly from `Bun.secrets`. The Effect Layer stays channel-agnostic:
+
+| Implementation | `SECRETS_BACKEND` | Channel | Use case |
+|----------------|-------------------|---------|----------|
+| `SecretClientAutoLive` | `auto` (default) | env → OS IPC fallback | Local dev |
+| `BunSecretsLive` | `bun` | OS IPC (Keychain / DBus / Cred Manager) | Local dev only |
+| `EnvSecretsLive` | `env` | Process environment | CI/CD (GitHub Secrets) |
+| `VaultSecretsLive` | `vault` | HTTPS/TCP to Vault | Production |
+
+### Production migration path
+
+| Environment | Secrets backend | Channel | Isolation guarantee |
+|-------------|-----------------|---------|---------------------|
+| Local dev | `Bun.secrets` via `SecretClient` | OS IPC | Data namespace (same user) |
+| CI/CD | `EnvSecretsLive` / `MASSEY_API_TOKEN` | Environment | Process-level (ephemeral job) |
+| Docker prod | AWS Secrets Manager / Vault | HTTPS/TCP | IAM policy + network ACL |
+| Kubernetes | K8s Secrets + Vault sidecar | HTTPS/TCP + mTLS | Service account + pod security |
+
+**Key insight:** The `SecretClient` API pattern (`service` + `name`) stays stable; only the channel changes from OS IPC to HTTPS. `RatingsConfigLive` does not change when swapping backends.
+
+### Namespace map
+
+| `service` | `name` | Consumer | Notes |
+|-----------|--------|----------|-------|
+| `com.bradley-terry.massey` | `api-token` | MasseyClient | Credential |
+| `com.bradley-terry.db` | `encryption-passphrase` | RatingsDB | Optional; `dbPath` stays in config |
 
 ---
 

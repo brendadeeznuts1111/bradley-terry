@@ -1,12 +1,22 @@
 import { Context, Effect, Layer } from "effect";
+import {
+  DB_SECRET_NAME,
+  DB_SECRET_SERVICE,
+  MASSEY_SECRET_NAME,
+  MASSEY_SECRET_SERVICE,
+  SecretClient,
+  resolveSecretClientLive,
+} from "./secrets.js";
 
 export interface RatingsConfig {
   readonly masseyUrl: string;
   readonly dbPath: string;
   readonly interval: number;
   readonly port: number;
-  readonly masseySecretService: string;
-  readonly masseySecretName: string;
+  /** Resolved at bootstrap via SecretClient (channel-agnostic) */
+  readonly masseyApiKey: string | null;
+  /** Optional sqlite encryption passphrase from isolated DB namespace */
+  readonly dbEncryptionKey: string | null;
 }
 
 export class RatingsConfigTag extends Context.Tag("RatingsConfig")<
@@ -14,39 +24,28 @@ export class RatingsConfigTag extends Context.Tag("RatingsConfig")<
   RatingsConfig
 >() {}
 
-export const RatingsConfigLive = Layer.succeed(RatingsConfigTag, {
-  get masseyUrl() {
-    return process.env.MASSEY_URL ?? "https://masseyratings.com/data/json";
-  },
-  get dbPath() {
-    return process.env.DB_PATH ?? "./data/ratings.db";
-  },
-  get interval() {
-    return Number(process.env.REFRESH_INTERVAL ?? "3600");
-  },
-  get port() {
-    return Number(process.env.PORT ?? "3000");
-  },
-  get masseySecretService() {
-    return process.env.MASSEY_SECRET_SERVICE ?? "com.bradley-terry.massey";
-  },
-  get masseySecretName() {
-    return process.env.MASSEY_SECRET_NAME ?? "api-token";
-  },
-});
+export const RatingsConfigLive = Layer.effect(
+  RatingsConfigTag,
+  Effect.gen(function* () {
+    const secrets = yield* SecretClient;
 
-export const getApiToken = (config: RatingsConfig) =>
-  Effect.tryPromise({
-    try: async () => {
-      const fromEnv = process.env.MASSEY_API_TOKEN;
-      if (fromEnv) return fromEnv;
-      if (typeof Bun !== "undefined" && Bun.secrets) {
-        return await Bun.secrets.get({
-          service: config.masseySecretService,
-          name: config.masseySecretName,
-        });
-      }
-      return null;
-    },
-    catch: (cause) => cause,
-  });
+    const masseyApiKey = yield* secrets
+      .get(MASSEY_SECRET_SERVICE, MASSEY_SECRET_NAME)
+      .pipe(Effect.catchTag("SecretNotFoundError", () => Effect.succeed(null)));
+
+    const dbEncryptionKey = yield* secrets
+      .get(DB_SECRET_SERVICE, DB_SECRET_NAME)
+      .pipe(Effect.catchTag("SecretNotFoundError", () => Effect.succeed(null)));
+
+    return {
+      masseyUrl: process.env.MASSEY_URL ?? "https://masseyratings.com/data/json",
+      dbPath: process.env.DB_PATH ?? "./data/ratings.db",
+      interval: Number(process.env.REFRESH_INTERVAL ?? "3600"),
+      port: Number(process.env.PORT ?? "3000"),
+      masseyApiKey,
+      dbEncryptionKey,
+    } satisfies RatingsConfig;
+  })
+);
+
+export const ConfigLive = Layer.provide(RatingsConfigLive, resolveSecretClientLive());
