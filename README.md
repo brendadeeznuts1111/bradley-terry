@@ -152,12 +152,12 @@ bun test
 | File | Count | Purpose |
 | --- | --- | --- |
 | `test/completion-matrix.unit.test.ts` | 54 | Completion matrix helpers: flag taxonomy, alias sanitizer, global inheritance, table builder, hash generation, end-to-end generation, drift detection, SQLite history, Bun native APIs |
-| `test/completions/snapshot.unit.test.ts` | 21 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
 | `test/completions/shell-completions.unit.test.ts` | 12 | Generated bash/zsh/fish shell completion scripts |
-| `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
-| `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
-| `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
+| `test/completions/snapshot.unit.test.ts` | 21 | Snapshot contracts for `makeTable`, `makeCSV`, `DYNAMIC_SOURCES.json`, `COMPLETION_MATRIX.md` header, and end-to-end artifact consistency |
 | `test/integration/cli-completions.test.ts` | 7 | CLI completions generator integration tests |
+| `test/property/error-handling.test.ts` | 7 | Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError` |
+| `test/property/graph-connectivity.test.ts` | 2 | `largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings |
+| `test/property/mm-invariants.test.ts` | 2 | Win probabilities symmetric and sum to 1; adding a win for A over B never decreases A's relative strength |
 
 ## Updating snapshots
 
