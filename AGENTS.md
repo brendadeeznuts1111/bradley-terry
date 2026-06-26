@@ -56,7 +56,9 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 | GET | `/health` | status, Bun.version, timestamp, DB checks |
 | GET | `/api/ratings/bt?sport=&season=` | current BT ratings |
 | GET | `/api/ratings/history` | snapshots with `snapshotAt` |
-| POST | `/api/ratings/refresh` | Massey → BT → SQLite |
+| POST | `/api/ratings/refresh` | Massey → BT → SQLite (rate-limited per IP) |
+
+Request logging: JSON lines to stdout (`REQUEST_LOG`). Rate limit defaults: 5 refresh calls / 60s per IP.
 
 ## Testing conventions
 

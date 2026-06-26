@@ -96,6 +96,7 @@ export const openApiDocument = {
 					"500": { $ref: "#/components/responses/DBError" },
 					"502": { $ref: "#/components/responses/MasseyFetchError" },
 					"503": { $ref: "#/components/responses/SecretError" },
+					"429": { $ref: "#/components/responses/RateLimitExceeded" },
 				},
 			},
 		},
@@ -212,6 +213,20 @@ export const openApiDocument = {
 			},
 			MasseyFetchError: {
 				description: "Upstream fetch failed",
+				content: {
+					"application/json": {
+						schema: { $ref: "#/components/schemas/ErrorResponse" },
+					},
+				},
+			},
+			RateLimitExceeded: {
+				description: "Too many refresh requests from this client IP",
+				headers: {
+					"Retry-After": {
+						schema: { type: "integer" },
+						description: "Seconds until the client may retry",
+					},
+				},
 				content: {
 					"application/json": {
 						schema: { $ref: "#/components/schemas/ErrorResponse" },

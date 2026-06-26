@@ -92,6 +92,21 @@ Structured errors use `{ "error": "<Tag>", "message": "..." }`.
 | 500 | `DBError` | SQLite failure |
 | 502 | `MasseyFetchError` | Upstream fetch failed |
 | 503 | `SecretError` | Secret not found |
+| 429 | `RateLimitExceeded` | Too many `POST /api/ratings/refresh` from same IP |
+
+## Request logging
+
+When `REQUEST_LOG` is enabled (default), each request emits one JSON line to stdout:
+
+```json
+{"ts":"2026-06-26T12:00:00.000Z","method":"GET","path":"/health","status":200,"durationMs":1.42,"clientIp":"127.0.0.1"}
+```
+
+Client IP is taken from `X-Forwarded-For` (first hop) or `X-Real-IP`.
+
+## Rate limiting
+
+`POST /api/ratings/refresh` is limited per client IP (default **5 requests / 60s**). Exceeding the limit returns **429** with `Retry-After` header. Set `REFRESH_RATE_LIMIT=0` to disable. The background scheduler is not rate-limited.
 
 ## curl examples
 

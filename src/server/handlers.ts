@@ -21,8 +21,11 @@ import {
 	jsonHeaders,
 	methodNotAllowedResponse,
 	optionsResponse,
+	rateLimitResponse,
 } from "./middleware.js";
 import { getOpenApiYaml, openApiDocument } from "./openapi.js";
+import { checkRateLimit, parseRateLimitConfig } from "./rate-limit.js";
+import { clientIp, withRequestLog } from "./request-log.js";
 import { getAppRuntime } from "./runtime.js";
 
 const encodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, value: A, status = 200) =>
@@ -131,7 +134,10 @@ export const handleRefresh = () =>
 		(summary) => encodeJsonResponse(RefreshSummarySchema, summary, 202),
 	);
 
-export const handleRequest = (req: Request): Promise<Response> => {
+export const handleRequest = (req: Request): Promise<Response> =>
+	withRequestLog(req, () => dispatchRequest(req));
+
+const dispatchRequest = (req: Request): Promise<Response> => {
 	if (req.method === "OPTIONS") {
 		return Promise.resolve(optionsResponse());
 	}
@@ -169,6 +175,13 @@ export const handleRequest = (req: Request): Promise<Response> => {
 		return handleGetHistory(sport, season);
 	}
 	if (req.method === "POST" && url.pathname === "/api/ratings/refresh") {
+		const rateLimit = parseRateLimitConfig();
+		if (rateLimit) {
+			const result = checkRateLimit(`refresh:${clientIp(req)}`, rateLimit);
+			if (!result.allowed) {
+				return Promise.resolve(rateLimitResponse(result.retryAfterSeconds));
+			}
+		}
 		return handleRefresh();
 	}
 
