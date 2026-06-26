@@ -2,6 +2,23 @@
 
 Guide for agents working on this repo. Stack: **Bun 1.4+**, **Effect 3.21**, **bun:sqlite**.
 
+## Bun version
+
+Pin: `packageManager: bun@1.4.0` in `package.json`. Verify before `completions:regen` or `check:full`:
+
+```bash
+bun --version   # must be >= 1.4.0
+```
+
+**Canary vs stable** ([upgrade guide](https://bun.com/docs/guides/util/upgrade#switch-back-to-stable)):
+
+```bash
+bun upgrade --canary   # back to 1.4.0 for this repo
+bun upgrade --stable   # when you're done with canary-only work elsewhere
+```
+
+Until stable reaches 1.4.0, `--stable` downgrades below this pin (e.g. 1.3.14). Stay on canary for `completions:regen` and `check:full`.
+
 ## Commands
 
 ```bash
