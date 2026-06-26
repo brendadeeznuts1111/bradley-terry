@@ -48,7 +48,7 @@ decay, multiple output scales, and a streaming Massey CSV loader.
 
 ## Layers
 
-### 1. Schema (`schema.ts`)
+### 1. Schema (`src/schema.ts`)
 
 The single source of truth for all domain types, built on Effect `Schema` and
 `Brand`:
@@ -93,13 +93,15 @@ Fails with `EntityNotFoundError` if either entity is missing.
 
 ### 3. Loaders
 
-**`massey-loader.ts`** — Effect `Stream`-based Massey CSV ingestion.
+**`src/data/massey-loader.ts`** — Effect `Stream`-based Massey CSV ingestion.
 `Stream.acquireRelease` opens the file, `Stream.fromAsyncIterable` reads lines
 with backpressure, `Stream.mapEffect` parses + validates each row against
 `MatchRowSchema`. Errors collapse to `MasseyLoaderError`.
 
-**`match-adapter.ts`** — SQLite `MatchRow` → BT `Match` pipeline. Bridges the
-persistent SQLite match store to the in-memory fitter input.
+**`src/match-adapter.ts`** — SQLite `MatchRow` → BT `Match` pipeline. Bridges the
+persistent SQLite match store to the in-memory fitter input. Depends on the
+`src/repository/sqlite-loader.ts` stub until the full SQLite repository is
+wired in.
 
 ### 4. Repository (`src/repository/`)
 

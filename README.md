@@ -184,7 +184,7 @@ bun run src/bench/bt-fit.bench.ts                  # 5k + 25k timed runs
 | 50k matches | 87ms | — | < 1500ms |
 
 The bench script embeds the current git commit hash via a Bun macro
-(`getGitCommitHash.ts`) and prints a clickable GitHub commit URL.
+(`src/utils/getGitCommitHash.ts`) and prints a clickable GitHub commit URL.
 
 ## Project layout
 
@@ -192,24 +192,26 @@ The bench script embeds the current git commit hash via a Bun macro
 bradley-terry/
 ├── src/
 │   ├── bradley-terry/index.ts   # Core MM fitter + Effect service
-│   ├── schema.ts                # FitResult schema + runtime helpers
-│   ├── repository/              # RatingsRepository (SQLite persistence)
+│   ├── schema.ts                # EntityId, Match, FitResult, errors (SSOT)
+│   ├── repository/              # RatingsRepository + sqlite-loader (SQLite persistence)
 │   ├── integrations/cascade-mover.ts  # Cascade signal generation
 │   ├── data/massey-loader.ts    # Streaming Massey CSV → MatchRow
-│   ├── bench/bt-fit.bench.ts    # 5k + 25k benchmark script
+│   ├── match-adapter.ts         # SQLite MatchRow → BT Match pipeline
+│   ├── bench/                   # Benchmark utilities and scripts
+│   │   ├── bt-fit.bench.ts      # 5k + 25k benchmark script
+│   │   └── benchmark-loader.ts  # runBench() timing utility
+│   ├── utils/                   # Bun macros and helpers
+│   │   ├── getGitCommitHash.ts  # Bun macro: embed HEAD hash at build time
+│   │   └── git-commit.ts        # Bun macro: GIT_COMMIT constant
 │   └── index.ts                 # Barrel export
 ├── test/
 │   ├── property/                # fast-check invariants (3 files)
 │   └── benchmark/               # 50k-match perf test
-├── schema.ts                    # EntityId, Match, FitResult, errors (SSOT)
-├── massey-loader.ts             # Root-level Massey loader (Effect Stream)
-├── match-adapter.ts             # SQLite MatchRow → BT Match pipeline
-├── benchmark-loader.ts          # runBench() timing utility
 ├── bradley-terry.ts             # Root re-export for test imports
-├── getGitCommitHash.ts          # Bun macro: embed HEAD hash at build time
-├── git-commit.ts                # Bun macro: GIT_COMMIT constant
 └── scripts/
-    └── generate-cli-completions.ts  # Bun CLI flag parser → completions/bun-cli.json
+    ├── generate-cli-completions.ts  # Bun CLI flag parser → completions/bun-cli.json
+    ├── make-completion-matrix.ts    # Generate COMPLETION_MATRIX.md artifacts
+    └── check-completion-drift.ts    # Verify generated artifacts are aligned
 ```
 
 ## References

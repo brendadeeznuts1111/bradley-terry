@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import fc from "fast-check";
 import { BradleyTerry, BradleyTerryLive } from "../../bradley-terry";
-import type { EntityId, Match } from "../../schema";
+import type { EntityId, Match } from "../../src/schema";
 
 export function entityArb(maxLength = 16): fc.Arbitrary<EntityId> {
 	return fc.string({ minLength: 3, maxLength }).map((s) => s as EntityId);

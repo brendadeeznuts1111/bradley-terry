@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { Cause, Effect } from "effect";
 import fc from "fast-check";
-import type { BradleyTerryError, EntityId } from "../../schema";
+import type { BradleyTerryError, EntityId } from "../../src/schema";
 import {
 	ConvergenceError,
 	DisconnectedGraphError,
 	EntityNotFoundError,
 	InsufficientDataError,
 	SelfMatchError,
-} from "../../schema";
+} from "../../src/schema";
 import { entityArb, fitEffect } from "../support/property";
 
 // ============================================
