@@ -262,7 +262,9 @@ export function inheritsGlobals(cmdName: string): boolean {
 
 export function makeTable<T extends Record<string, string | number>>(rows: T[]): string {
 	if (rows.length === 0) return "";
-	const cols = Object.keys(rows[0]);
+	const firstRow = rows[0];
+	if (!firstRow) return "";
+	const cols = Object.keys(firstRow);
 
 	// Compute max visual width per column (Bun.stringWidth accounts for CJK/emoji)
 	const colWidths = cols.map((col) => {
@@ -276,17 +278,19 @@ export function makeTable<T extends Record<string, string | number>>(rows: T[]):
 		return text + " ".repeat(width - visualWidth);
 	};
 
-	const header = `| ${cols.map((c, i) => padCell(c, colWidths[i])).join(" | ")} |`;
-	const sep = `|${cols.map((_, i) => "-".repeat(colWidths[i] + 2)).join("|")}|`;
+	const header = `| ${cols.map((c, i) => padCell(c, colWidths[i] ?? 0)).join(" | ")} |`;
+	const sep = `|${cols.map((_, i) => "-".repeat((colWidths[i] ?? 0) + 2)).join("|")}|`;
 	const body = rows
-		.map((r) => `| ${cols.map((c, i) => padCell(String(r[c]), colWidths[i])).join(" | ")} |`)
+		.map((r) => `| ${cols.map((c, i) => padCell(String(r[c]), colWidths[i] ?? 0)).join(" | ")} |`)
 		.join("\n");
 	return [header, sep, body].join("\n");
 }
 
 export function makeCSV<T extends Record<string, string | number>>(rows: T[]): string {
 	if (rows.length === 0) return "";
-	const cols = Object.keys(rows[0]);
+	const csvFirstRow = rows[0];
+	if (!csvFirstRow) return "";
+	const cols = Object.keys(csvFirstRow);
 	const quoteCsv = (v: string) => {
 		const s = String(v);
 		if (s.includes(",") || s.includes('"') || s.includes("\n")) {
@@ -310,7 +314,9 @@ export function makeHTML(
 	const esc = Bun.escapeHTML;
 	const makeTableHTML = (rows: Record<string, string | number>[], title: string) => {
 		if (!rows.length) return "";
-		const cols = Object.keys(rows[0]);
+		const htmlFirstRow = rows[0];
+		if (!htmlFirstRow) return "";
+		const cols = Object.keys(htmlFirstRow);
 		let html = `<h2>${esc(title)}</h2><table border="1" cellpadding="4"><thead><tr>`;
 		for (const c of cols) {
 			html += `<th>${esc(c)}</th>`;

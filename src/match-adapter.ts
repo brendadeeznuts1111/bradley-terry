@@ -24,7 +24,7 @@ export const MatchAdapter = {
 	 * Convert a single validated MatchRow into a branded Match.
 	 * Performs light business logic for winner/loser derivation.
 	 */
-	fromMatchRow: (row: MatchRow): Effect.Effect<Match, never> =>
+	fromMatchRow: (row: MatchRow): Effect.Effect<Match> =>
 		Effect.gen(function* () {
 			const homeTeam = row.home_team as EntityId;
 			const awayTeam = row.away_team as EntityId;

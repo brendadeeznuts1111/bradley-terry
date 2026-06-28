@@ -241,5 +241,5 @@ export const getOpenApiYaml = async (): Promise<string> => {
 	if (cachedYaml === undefined) {
 		cachedYaml = await openApiYamlFile.text();
 	}
-	return cachedYaml;
+	return cachedYaml ?? "";
 };
