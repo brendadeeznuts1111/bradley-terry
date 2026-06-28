@@ -33,7 +33,7 @@ describe("RatingsDB", () => {
 
 	it("reports stats after storing ratings", async () => {
 		const testDbPath = `/tmp/bt-stats-${Date.now()}.db`;
-		process.env.DB_PATH = testDbPath;
+		process.env["DB_PATH"] = testDbPath;
 
 		await Effect.runPromise(
 			Effect.gen(function* () {
@@ -62,7 +62,7 @@ describe("RatingsDB", () => {
 
 	it("stores and retrieves BT ratings", async () => {
 		const testDbPath = `/tmp/bt-test-${Date.now()}.db`;
-		process.env.DB_PATH = testDbPath;
+		process.env["DB_PATH"] = testDbPath;
 
 		const ratings = [
 			{
@@ -89,7 +89,7 @@ describe("RatingsDB", () => {
 
 	it("appends history rows on each storeBT", async () => {
 		const testDbPath = `/tmp/bt-history-${Date.now()}.db`;
-		process.env.DB_PATH = testDbPath;
+		process.env["DB_PATH"] = testDbPath;
 
 		const rating = {
 			teamID: "A",

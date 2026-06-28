@@ -14,8 +14,8 @@ describe("secret TTL entries", () => {
 	afterEach(() => {
 		resetClock?.();
 		resetClock = undefined;
-		delete process.env.MASSEY_API_TOKEN;
-		delete process.env.SECRETS_BACKEND;
+		delete process.env["MASSEY_API_TOKEN"];
+		delete process.env["SECRETS_BACKEND"];
 	});
 
 	it("encode/decode round-trips plain values", () => {
@@ -38,8 +38,8 @@ describe("secret TTL entries", () => {
 
 	it("SecretClient env backend treats expired JSON entry as SecretError", async () => {
 		resetClock = seedDeterministicClock(new Date("2024-06-01T00:00:00Z"));
-		process.env.SECRETS_BACKEND = "env";
-		process.env.MASSEY_API_TOKEN = encodeSecretEntry("ttl-token", 60);
+		process.env["SECRETS_BACKEND"] = "env";
+		process.env["MASSEY_API_TOKEN"] = encodeSecretEntry("ttl-token", 60);
 
 		const before = await Effect.runPromise(
 			Effect.gen(function* () {

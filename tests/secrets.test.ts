@@ -10,8 +10,8 @@ import { RatingsConfigTag } from "../src/service/config.js";
 
 describe("SecretClient", () => {
 	it("reads massey api token from env backend", async () => {
-		process.env.SECRETS_BACKEND = "env";
-		process.env.MASSEY_API_TOKEN = "test-token-123";
+		process.env["SECRETS_BACKEND"] = "env";
+		process.env["MASSEY_API_TOKEN"] = "test-token-123";
 
 		const ConfigTestLive = Layer.effect(
 			RatingsConfigTag,
@@ -38,12 +38,12 @@ describe("SecretClient", () => {
 		);
 
 		expect(config.masseyApiKey).toBe("test-token-123");
-		delete process.env.MASSEY_API_TOKEN;
-		delete process.env.SECRETS_BACKEND;
+		delete process.env["MASSEY_API_TOKEN"];
+		delete process.env["SECRETS_BACKEND"];
 	});
 
 	it("no-ops set/delete on env backend (read-only CI)", async () => {
-		process.env.SECRETS_BACKEND = "env";
+		process.env["SECRETS_BACKEND"] = "env";
 
 		await Effect.runPromise(
 			Effect.gen(function* () {
@@ -54,6 +54,6 @@ describe("SecretClient", () => {
 			}).pipe(Effect.provide(EnvSecretsLive)),
 		);
 
-		delete process.env.SECRETS_BACKEND;
+		delete process.env["SECRETS_BACKEND"];
 	});
 });

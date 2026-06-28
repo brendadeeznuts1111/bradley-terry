@@ -4,8 +4,8 @@ import { checkRateLimit, parseRateLimitConfig, resetRateLimits } from "../src/se
 describe("rate-limit", () => {
 	afterEach(() => {
 		resetRateLimits();
-		delete process.env.REFRESH_RATE_LIMIT;
-		delete process.env.REFRESH_RATE_WINDOW;
+		delete process.env["REFRESH_RATE_LIMIT"];
+		delete process.env["REFRESH_RATE_WINDOW"];
 	});
 
 	it("parseRateLimitConfig returns defaults (5 per 60s)", () => {
@@ -13,7 +13,7 @@ describe("rate-limit", () => {
 	});
 
 	it("parseRateLimitConfig returns null when limit is 0 (disabled)", () => {
-		process.env.REFRESH_RATE_LIMIT = "0";
+		process.env["REFRESH_RATE_LIMIT"] = "0";
 		expect(parseRateLimitConfig()).toBeNull();
 	});
 

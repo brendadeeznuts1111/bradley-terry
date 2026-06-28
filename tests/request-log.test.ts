@@ -8,7 +8,7 @@ import {
 
 describe("request-log", () => {
 	afterEach(() => {
-		delete process.env.REQUEST_LOG;
+		delete process.env["REQUEST_LOG"];
 	});
 
 	it("is enabled by default", () => {
@@ -16,7 +16,7 @@ describe("request-log", () => {
 	});
 
 	it("can be disabled with REQUEST_LOG=0", () => {
-		process.env.REQUEST_LOG = "0";
+		process.env["REQUEST_LOG"] = "0";
 		expect(isRequestLogEnabled()).toBe(false);
 	});
 

@@ -21,8 +21,8 @@ describe("production depth", () => {
 
 	beforeEach(async () => {
 		originalFetch = globalThis.fetch;
-		process.env.DB_PATH = `/tmp/bt-prod-${Date.now()}.db`;
-		process.env.SECRETS_BACKEND = "env";
+		process.env["DB_PATH"] = `/tmp/bt-prod-${Date.now()}.db`;
+		process.env["SECRETS_BACKEND"] = "env";
 		await disposeAppRuntime();
 	});
 
@@ -32,8 +32,8 @@ describe("production depth", () => {
 		resetRefreshLock();
 		resetMetrics();
 		resetInFlightTracking();
-		delete process.env.REFRESH_TOKEN;
-		delete process.env.REFRESH_RATE_LIMIT;
+		delete process.env["REFRESH_TOKEN"];
+		delete process.env["REFRESH_RATE_LIMIT"];
 		await disposeAppRuntime();
 	});
 
@@ -46,9 +46,9 @@ describe("production depth", () => {
 	});
 
 	it("POST refresh requires REFRESH_TOKEN when configured", async () => {
-		process.env.REFRESH_TOKEN = "secret-token";
-		globalThis.fetch = () =>
-			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }));
+		process.env["REFRESH_TOKEN"] = "secret-token";
+		globalThis.fetch = (() =>
+			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }))) as unknown as typeof fetch;
 
 		const denied = await handleRequest(
 			new Request("http://localhost/api/ratings/refresh", { method: "POST" }),
@@ -65,12 +65,12 @@ describe("production depth", () => {
 	});
 
 	it("POST refresh returns 409 when refresh already in flight", async () => {
-		process.env.REFRESH_RATE_LIMIT = "0";
+		process.env["REFRESH_RATE_LIMIT"] = "0";
 		let resolveFetch: (value: Response) => void = () => {};
 		const fetchPromise = new Promise<Response>((resolve) => {
 			resolveFetch = resolve;
 		});
-		globalThis.fetch = () => fetchPromise;
+		globalThis.fetch = (() => fetchPromise) as unknown as typeof fetch;
 
 		const first = handleRequest(
 			new Request("http://localhost/api/ratings/refresh", { method: "POST" }),

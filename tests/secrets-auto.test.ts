@@ -21,9 +21,9 @@ describe("secrets env-key", () => {
 	});
 
 	it("resolves known aliases before slug env keys", () => {
-		process.env.MASSEY_API_TOKEN = "alias-token";
+		process.env["MASSEY_API_TOKEN"] = "alias-token";
 		expect(lookupEnv(MASSEY_NAMESPACE, MASSEY_SECRET_NAME)).toBe("alias-token");
-		delete process.env.MASSEY_API_TOKEN;
+		delete process.env["MASSEY_API_TOKEN"];
 	});
 
 	it("resolves slug env keys for arbitrary namespaces", () => {
@@ -36,8 +36,8 @@ describe("secrets env-key", () => {
 
 describe("AutoSecretsLive", () => {
 	it("reads from env without touching Bun.secrets", async () => {
-		process.env.SECRETS_BACKEND = "auto";
-		process.env.MASSEY_API_TOKEN = "auto-env-token";
+		process.env["SECRETS_BACKEND"] = "auto";
+		process.env["MASSEY_API_TOKEN"] = "auto-env-token";
 
 		const value = await Effect.runPromise(
 			Effect.gen(function* () {
@@ -47,7 +47,7 @@ describe("AutoSecretsLive", () => {
 		);
 
 		expect(value).toBe("auto-env-token");
-		delete process.env.MASSEY_API_TOKEN;
-		delete process.env.SECRETS_BACKEND;
+		delete process.env["MASSEY_API_TOKEN"];
+		delete process.env["SECRETS_BACKEND"];
 	});
 });

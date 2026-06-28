@@ -24,8 +24,8 @@ describe("POST /api/ratings/refresh integration", () => {
 
 	beforeEach(async () => {
 		originalFetch = globalThis.fetch;
-		process.env.DB_PATH = `/tmp/bt-refresh-${Date.now()}-${Math.random()}.db`;
-		process.env.SECRETS_BACKEND = "env";
+		process.env["DB_PATH"] = `/tmp/bt-refresh-${Date.now()}-${Math.random()}.db`;
+		process.env["SECRETS_BACKEND"] = "env";
 		await disposeAppRuntime();
 	});
 
@@ -35,13 +35,13 @@ describe("POST /api/ratings/refresh integration", () => {
 	});
 
 	it("fetches Massey data, computes BT ratings, and persists them", async () => {
-		globalThis.fetch = () =>
+		globalThis.fetch = (() =>
 			Promise.resolve(
 				new Response(JSON.stringify(sampleMassey), {
 					status: 200,
 					headers: { "Content-Type": "application/json" },
 				}),
-			);
+			)) as unknown as typeof fetch;
 
 		const res = await handleRefresh();
 		expect(res.status).toBe(202);
@@ -69,7 +69,7 @@ describe("POST /api/ratings/refresh integration", () => {
 	});
 
 	it("returns 502 when Massey fetch fails", async () => {
-		globalThis.fetch = () => Promise.reject(new Error("network down"));
+		globalThis.fetch = (() => Promise.reject(new Error("network down"))) as unknown as typeof fetch;
 
 		const res = await handleRefresh();
 		expect(res.status).toBe(502);

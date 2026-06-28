@@ -21,8 +21,8 @@ describe("HTTP handleRequest", () => {
 
 	beforeEach(async () => {
 		originalFetch = globalThis.fetch;
-		process.env.DB_PATH = `/tmp/bt-handlers-${Date.now()}.db`;
-		process.env.SECRETS_BACKEND = "env";
+		process.env["DB_PATH"] = `/tmp/bt-handlers-${Date.now()}.db`;
+		process.env["SECRETS_BACKEND"] = "env";
 		await disposeAppRuntime();
 	});
 
@@ -32,9 +32,9 @@ describe("HTTP handleRequest", () => {
 		resetRefreshLock();
 		resetMetrics();
 		resetInFlightTracking();
-		delete process.env.REFRESH_RATE_LIMIT;
-		delete process.env.REFRESH_RATE_WINDOW;
-		delete process.env.REFRESH_TOKEN;
+		delete process.env["REFRESH_RATE_LIMIT"];
+		delete process.env["REFRESH_RATE_WINDOW"];
+		delete process.env["REFRESH_TOKEN"];
 		await disposeAppRuntime();
 	});
 
@@ -103,8 +103,8 @@ describe("HTTP handleRequest", () => {
 	});
 
 	it("POST refresh then GET ratings end-to-end", async () => {
-		globalThis.fetch = () =>
-			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }));
+		globalThis.fetch = (() =>
+			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }))) as unknown as typeof fetch;
 
 		const refresh = await handleRequest(
 			new Request("http://localhost/api/ratings/refresh", { method: "POST" }),
@@ -126,10 +126,10 @@ describe("HTTP handleRequest", () => {
 	});
 
 	it("POST refresh returns 429 when rate limit exceeded", async () => {
-		process.env.REFRESH_RATE_LIMIT = "1";
-		process.env.REFRESH_RATE_WINDOW = "60";
-		globalThis.fetch = () =>
-			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }));
+		process.env["REFRESH_RATE_LIMIT"] = "1";
+		process.env["REFRESH_RATE_WINDOW"] = "60";
+		globalThis.fetch = (() =>
+			Promise.resolve(new Response(JSON.stringify(sampleMassey), { status: 200 }))) as unknown as typeof fetch;
 
 		const ip = "198.51.100.10";
 		const first = await handleRequest(
