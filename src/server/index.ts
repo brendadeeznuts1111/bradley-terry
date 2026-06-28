@@ -21,7 +21,7 @@ mkdirSync(dirname(config.dbPath), { recursive: true });
 const server = Bun.serve({
 	hostname: "0.0.0.0",
 	port: config.port,
-	fetch(req, srv) {
+	fetch(req: Request, srv: { port: number; hostname: string }) {
 		return handleRequest(req, srv);
 	},
 });

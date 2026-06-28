@@ -4,7 +4,7 @@ import { SecretClient, secretError } from "./client.js";
 const vaultPath = (namespace: string, name: string) => `${namespace.replace(/\./g, "/")}/${name}`;
 
 const vaultHeaders = () => {
-	const token = process.env.VAULT_TOKEN;
+	const token = process.env["VAULT_TOKEN"];
 	if (!token) {
 		throw new Error("VAULT_TOKEN required");
 	}
@@ -12,7 +12,7 @@ const vaultHeaders = () => {
 };
 
 const vaultBase = () => {
-	const addr = process.env.VAULT_ADDR;
+	const addr = process.env["VAULT_ADDR"];
 	if (!addr) {
 		throw new Error("VAULT_ADDR required");
 	}

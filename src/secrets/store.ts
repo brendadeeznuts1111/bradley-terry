@@ -8,7 +8,7 @@
  */
 import { Context, Data, Effect, Layer } from "effect";
 
-export interface SecretEntry {
+export interface SecretStoreEntry {
 	value: string;
 	expiresAt?: number; // Unix timestamp in milliseconds
 }
@@ -25,18 +25,18 @@ export class SecretStore extends Context.Tag("SecretStore")<
 		readonly get: (
 			domain: string,
 			name: string,
-		) => Effect.Effect<SecretEntry | null, SecretStoreError>;
+		) => Effect.Effect<SecretStoreEntry | null, SecretStoreError>;
 		readonly set: (
 			domain: string,
 			name: string,
-			entry: SecretEntry,
+			entry: SecretStoreEntry,
 		) => Effect.Effect<void, SecretStoreError>;
 		readonly delete: (domain: string, name: string) => Effect.Effect<void, SecretStoreError>;
 	}
 >() {}
 
 // In-memory store for testing (setSystemTime-safe)
-const inMemorySecretStore = new Map<string, SecretEntry>();
+const inMemorySecretStore = new Map<string, SecretStoreEntry>();
 
 export const InMemorySecretStoreLive = Layer.succeed(SecretStore, {
 	get: (_domain: string, _name: string) =>
@@ -49,7 +49,7 @@ export const InMemorySecretStoreLive = Layer.succeed(SecretStore, {
 			}
 			return entry;
 		}),
-	set: (_domain: string, _name: string, entry: SecretEntry) =>
+	set: (_domain: string, _name: string, entry: SecretStoreEntry) =>
 		Effect.sync(() => {
 			const key = `${_domain}:${_name}`;
 			inMemorySecretStore.set(key, entry);
@@ -69,7 +69,7 @@ export function setSecret(
 ): Effect.Effect<void, SecretStoreError> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
-		const entry: SecretEntry = {
+		const entry: SecretStoreEntry = {
 			value,
 			expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined,
 		};

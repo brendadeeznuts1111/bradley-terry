@@ -32,7 +32,7 @@ export const AutoSecretsLive = Layer.effect(
 );
 
 export const resolveSecretClientLive = (): Layer.Layer<SecretClient> => {
-	const backend = process.env.SECRETS_BACKEND ?? "auto";
+	const backend = process.env["SECRETS_BACKEND"] ?? "auto";
 	if (backend === "vault") return VaultSecretsLive;
 	if (backend === "env") return EnvSecretsLive;
 	if (backend === "bun") return BunSecretsLive;

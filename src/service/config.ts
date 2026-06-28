@@ -38,10 +38,10 @@ export const RatingsConfigLive = Layer.effect(
 			.pipe(Effect.catchTag("SecretError", () => Effect.succeed(null)));
 
 		return {
-			masseyUrl: process.env.MASSEY_URL ?? "https://masseyratings.com/data/json",
-			dbPath: process.env.DB_PATH ?? "./data/ratings.db",
-			interval: Number(process.env.REFRESH_INTERVAL ?? "3600"),
-			port: Number(process.env.PORT ?? "3000"),
+			masseyUrl: process.env["MASSEY_URL"] ?? "https://masseyratings.com/data/json",
+			dbPath: process.env["DB_PATH"] ?? "./data/ratings.db",
+			interval: Number(process.env["REFRESH_INTERVAL"] ?? "3600"),
+			port: Number(process.env["PORT"] ?? "3000"),
 			masseyApiKey,
 			dbEncryptionKey,
 		} satisfies RatingsConfig;

@@ -14,7 +14,7 @@ console.log(`Commit: ${commitUrl}`);
 const r1 = await runBench(
 	"fit-5k",
 	async () => {
-		const matches = [];
+		const matches: Array<{ winner: string; loser: string; weight: number; date: Date }> = [];
 		for (let i = 0; i < 5000; i++) {
 			const w = teams[Math.floor(Math.random() * 5)];
 			let l = teams[Math.floor(Math.random() * 5)];
@@ -37,7 +37,7 @@ const r1 = await runBench(
 const r2 = await runBench(
 	"fit-25k",
 	async () => {
-		const matches = [];
+		const matches: Array<{ winner: string; loser: string; weight: number; date: Date }> = [];
 		for (let i = 0; i < 25000; i++) {
 			const w = teams[Math.floor(Math.random() * 5)];
 			let l = teams[Math.floor(Math.random() * 5)];
