@@ -506,7 +506,7 @@ async function processDoc(
 		arch += newSection;
 		console.log(`Appended new section to ${archPath}`);
 	}
-	writeFileSync(archPath, arch);
+	await Bun.write(archPath, arch);
 
 	return 0;
 }
