@@ -137,3 +137,33 @@ Config fields (`masseyUrl`, `dbPath`, `port`) stay in env — not in keychain.
 - Add duplicate BT MLE — use `BradleyTerry` + `BradleyTerryLive` from `src/bradley-terry/`
 
 See [docs/BUN_RUNTIME.md](docs/BUN_RUNTIME.md) for Bun API mapping ([bun.com/docs/runtime](https://bun.com/docs/runtime)).
+
+## TypeScript Discipline
+
+6 strict flags are **compiler-enforced** in `tsconfig.json`:
+
+| Flag | Violations | Fix pattern |
+|------|-----------|-------------|
+| `noUncheckedIndexedAccess` | Array/Record access returns `T \| undefined` | Guard with `if (!v) throw`, `??` defaults |
+| `exactOptionalPropertyTypes` | `{ prop: undefined }` ≠ `{ prop?: T }` | Conditional spreads `...(v ? {prop: v} : {})` |
+| `noPropertyAccessFromIndexSignature` | `record.key` on index-signature types | Bracket notation `record['key']` |
+| `noUnusedLocals` | Unused imports/variables | Remove or prefix with `_` |
+| `noUnusedParameters` | Unused function params | Remove or prefix with `_` |
+| `strict` | All strict-mode checks | Enabled |
+
+### Escape gates (zero-tolerance)
+- **`as any`** — forbidden, caught by grep hook
+- **`as unknown as`** — forbidden, caught by grep hook  
+- **Bare `catch (e)`** — forbidden, must be `catch (e: unknown)`
+- **`!` non-null assertion** — forbidden on index access
+
+### Pre-commit hook
+```bash
+bash scripts/setup-hooks.sh  # Install once after clone
+```
+Runs `check:types` (strict tsc) + `bun test` (377 tests) on every commit.
+
+### Build
+```bash
+bun run build  # → dist/index.js (624 modules, ~1.25MB)
+```

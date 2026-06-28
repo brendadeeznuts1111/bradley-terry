@@ -24,7 +24,9 @@
 		"check:gates": "bun run check:types && bun test",
 		"update-readme-test-counts": "bun run scripts/update-readme-test-counts.ts",
 		"api-docs": "bun run scripts/api-docs.ts",
-		"check:full": "bun run check:gates && bun run check:completions && bun run lint && bun run update-readme-test-counts && bun run bench"
+		"check:full": "bun run check:gates && bun run check:completions && bun run lint && bun run update-readme-test-counts && bun run bench",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"setup": "bash scripts/setup-hooks.sh"
 	},
 	"dependencies": {
 		"effect": "3.21.4",
