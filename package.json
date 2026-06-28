@@ -3,6 +3,9 @@
 	"description": "Bradley-Terry model for ranking entities based on pairwise comparisons",
 	"version": "0.3.32",
 	"type": "module",
+	"engines": {
+		"bun": ">=1.4.0"
+	},
 	"packageManager": "bun@1.4.0",
 	"scripts": {
 		"start": "bun run examples/usage-complete.ts",
@@ -26,7 +29,8 @@
 		"api-docs": "bun run scripts/api-docs.ts",
 		"check:full": "bun run check:gates && bun run check:completions && bun run lint && bun run update-readme-test-counts && bun run bench",
 		"build": "bun build src/index.ts --outdir dist --target bun",
-		"setup": "bash scripts/setup-hooks.sh"
+		"setup": "bash scripts/setup-hooks.sh",
+		"version": "bun run scripts/bun-version.ts"
 	},
 	"dependencies": {
 		"effect": "3.21.4",
