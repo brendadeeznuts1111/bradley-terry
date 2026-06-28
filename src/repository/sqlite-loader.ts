@@ -136,7 +136,7 @@ export const SqliteLoader = {
 				try: () => {
 					const db = new Database(dbPath, { readonly: true });
 					try {
-						return db.query(countSql).get(...countParams) as { count: number };
+						return db.query(countSql).get(...(countParams as [string])) as { count: number };
 					} finally {
 						db.close();
 					}
@@ -168,7 +168,7 @@ export const SqliteLoader = {
 				try: () => {
 					const db = new Database(dbPath, { readonly: true });
 					try {
-						return db.query(sql).all(...params) as RawMatchRow[];
+						return db.query(sql).all(...(params as [string])) as RawMatchRow[];
 					} finally {
 						db.close();
 					}
@@ -187,7 +187,9 @@ export const SqliteLoader = {
 
 			const rows: MatchRow[] = [];
 			for (let i = 0; i < rawRows.length; i++) {
-				rows.push(yield* decodeRow(rawRows[i], i));
+				const row = rawRows[i];
+				if (!row) continue;
+				rows.push(yield* decodeRow(row, i));
 			}
 
 			return rows;

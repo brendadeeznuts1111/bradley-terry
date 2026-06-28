@@ -75,7 +75,7 @@ const errorResponse = (error: unknown) =>
 
 const runHandler = <A, E, R>(
 	effect: Effect.Effect<A, E, R>,
-	encode: (value: A) => Effect.Effect<Response, never, never>,
+	encode: (value: A) => Effect.Effect<Response, never, never> | Effect.Effect<Response, ParseError, never>,
 ) =>
 	getAppRuntime().runPromise(
 		effect.pipe(

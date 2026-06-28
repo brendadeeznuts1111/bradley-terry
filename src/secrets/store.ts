@@ -66,7 +66,7 @@ export function setSecret(
 	name: string,
 	value: string,
 	ttlSeconds?: number,
-): Effect.Effect<void, SecretStoreError> {
+): Effect.Effect<void, SecretStoreError, SecretStore> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		const entry: SecretStoreEntry = {
@@ -80,7 +80,7 @@ export function setSecret(
 export function getSecret(
 	domain: string,
 	name: string,
-): Effect.Effect<string | null, SecretStoreError> {
+): Effect.Effect<string | null, SecretStoreError, SecretStore> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		const entry = yield* store.get(domain, name);
@@ -89,7 +89,7 @@ export function getSecret(
 	});
 }
 
-export function deleteSecret(domain: string, name: string): Effect.Effect<void, SecretStoreError> {
+export function deleteSecret(domain: string, name: string): Effect.Effect<void, SecretStoreError, SecretStore> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		yield* store.delete(domain, name);
