@@ -450,36 +450,37 @@ describe("SQLite history", () => {
 		]);
 	});
 
-	test.skip("transaction commits on success and rolls back on error", () => {
-		// Scope to ensure Database is cleaned up before next test
-		{
-			using db = new Database(":memory:");
-		db.run("CREATE TABLE counters (k TEXT PRIMARY KEY, v INTEGER)");
+	test("transaction commits on success and rolls back on error", () => {
+		const db = new Database(":memory:");
+		try {
+			db.run("CREATE TABLE counters (k TEXT PRIMARY KEY, v INTEGER)");
 
-		const insertMany = db.transaction((items: [string, number][]) => {
-			for (const [k, v] of items) db.run("INSERT INTO counters VALUES (?, ?)", [k, v]);
-			return items.length;
-		});
+			const insertMany = db.transaction((items: [string, number][]) => {
+				for (const [k, v] of items) db.run("INSERT INTO counters VALUES (?, ?)", [k, v]);
+				return items.length;
+			});
 
-		insertMany([
-			["a", 1],
-			["b", 2],
-		]);
-		expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
-			c: 2,
-		});
-
-		expect(() =>
 			insertMany([
-				["c", 3],
-				["a", 4],
-			]),
-		).toThrow();
-		// Transaction rolled back — no rows added
-		expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
-			c: 2,
-		});
-		} // end scope — force Database cleanup
+				["a", 1],
+				["b", 2],
+			]);
+			expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
+				c: 2,
+			});
+
+			expect(() =>
+				insertMany([
+					["c", 3],
+					["a", 4],
+				]),
+			).toThrow();
+			// Transaction rolled back — no rows added
+			expect(db.query("SELECT count(*) AS c FROM counters").get()).toEqual({
+				c: 2,
+			});
+		} finally {
+			db.close();
+		}
 	});
 });
 
