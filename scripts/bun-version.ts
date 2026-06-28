@@ -2,6 +2,8 @@
 // Report Bun version information for the project.
 // https://bun.com/docs/runtime/bun
 
+export {};
+
 const pkg = await Bun.file("package.json").json();
 
 console.log(`Bradley-Terry v${pkg.version}`);
