@@ -18,12 +18,8 @@
  * shell completions (fish, bash, zsh).
  */
 
-import {
-	mkdirSync,
-	mkdtempSync,
-	realpathSync,
-	rmSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "bun";
 
@@ -110,7 +106,7 @@ interface CompletionData {
 	};
 }
 
-const BUN_EXECUTABLE = process.env["BUN_DEBUG_BUILD"] || "bun";
+const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
 
 /**
  * Clean env for spawning Bun subprocesses — strips debug noise that would
@@ -135,8 +131,7 @@ for (const key of Object.keys(bunEnv)) {
  * Modeled after the Bun repo's `bunExe()` from test/harness.ts.
  */
 function bunExe(): string {
-	if (process.platform === "win32")
-		return process.execPath.replaceAll("\\", "/");
+	if (process.platform === "win32") return process.execPath.replaceAll("\\", "/");
 	return BUN_EXECUTABLE;
 }
 
@@ -162,8 +157,8 @@ class DisposableTempDir extends String {
  * Returns a DisposableTempDir — use with `using` for auto-cleanup.
  */
 function createTempPackageDir(): DisposableTempDir {
-	const base = mkdtempSync(join(realpathSync(Bun.env["TMPDIR"] || "/tmp"), "bun-completions-"));
-	Bun.write(
+	const base = mkdtempSync(join(realpathSync(os.tmpdir()), "bun-completions-"));
+	writeFileSync(
 		join(base, "package.json"),
 		JSON.stringify({ name: "test", version: "1.0.0", scripts: {} }),
 	);
@@ -222,8 +217,8 @@ function parseFlag(line: string): FlagInfo | null {
 	// Flexible fallback: split on 2+ spaces to separate flags from description
 	const flexibleMatch = line.match(/^\s*(.+?)\s{2,}(.+)$/);
 	if (flexibleMatch) {
-		const flagPart = (flexibleMatch[1] ?? "").trim();
-		const description = (flexibleMatch[2] ?? "").trim();
+		const flagPart = flexibleMatch[1].trim();
+		const description = flexibleMatch[2].trim();
 
 		// Parse the flag part: could be "-h, --help", "--flag=<val>", "--flag", "-h"
 		const tokens = flagPart.split(/[,\s]+/).filter(Boolean);
@@ -258,50 +253,32 @@ function parseFlag(line: string): FlagInfo | null {
 /**
  * Extract FlagInfo from a regex match array.
  */
-function extractFlagFromMatch(
-	match: RegExpMatchArray,
-	_line: string,
-): FlagInfo | null {
+function extractFlagFromMatch(match: RegExpMatchArray, _line: string): FlagInfo | null {
 	let shortName: string | undefined;
-	let longName: string | undefined;
+	let longName: string;
 	let valueSpec: string | undefined;
-	let description: string | undefined;
+	let description: string;
 
 	if (match.length === 5) {
-		shortName = match[1] || undefined;
-		longName = match[2];
-		valueSpec = match[3] || undefined;
-		description = match[4] || "";
+		[, shortName, longName, valueSpec, description] = match;
 	} else if (match.length === 4) {
-		const m1 = match[1] ?? "";
-		const m2 = match[2] ?? "";
-		if (m1.startsWith("-") && m1.length === 2) {
-			shortName = m1;
-			longName = m2;
-			description = match[3] ?? "";
-		} else if (m2.startsWith("<")) {
-			longName = m1;
-			valueSpec = m2;
-			description = match[3] ?? "";
+		if (match[1].startsWith("-") && match[1].length === 2) {
+			[, shortName, longName, description] = match;
+		} else if (match[2].startsWith("<")) {
+			[, longName, valueSpec, description] = match;
 		} else {
-			longName = m1;
-			description = m2;
+			[, longName, description] = match;
 		}
 	} else if (match.length === 3) {
-		const m1 = match[1] ?? "";
-		if (m1.length === 2) {
-			shortName = m1;
-			longName = m1.replace("-", "--");
-			description = match[2] ?? "";
+		if (match[1].length === 2) {
+			[, shortName, description] = match;
+			longName = shortName.replace("-", "--");
 		} else {
-			longName = m1;
-			description = match[2] ?? "";
+			[, longName, description] = match;
 		}
 	} else {
 		return null;
 	}
-
-	if (!longName || !description) return null;
 
 	return buildFlagInfo(longName, shortName, valueSpec, description);
 }
@@ -327,19 +304,9 @@ function buildFlagInfo(
 	if (valueSpec) {
 		// Normalize value type: <val> -> string, <NUM> -> number, <path> -> string
 		const rawType = valueSpec.replace(/[<>]/g, "");
-		if (
-			rawType === "val" ||
-			rawType === "path" ||
-			rawType === "file" ||
-			rawType === "dir"
-		) {
+		if (rawType === "val" || rawType === "path" || rawType === "file" || rawType === "dir") {
 			valueType = "string";
-		} else if (
-			rawType === "NUM" ||
-			rawType === "num" ||
-			rawType === "number" ||
-			rawType === "N"
-		) {
+		} else if (rawType === "NUM" || rawType === "num" || rawType === "number" || rawType === "N") {
 			valueType = "number";
 		} else {
 			valueType = rawType;
@@ -347,11 +314,9 @@ function buildFlagInfo(
 	}
 
 	// Look for default values in description
-	const defaultMatch = description.match(
-		/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/,
-	);
+	const defaultMatch = description.match(/[Dd]efault(?:s?)\s*(?:is|to|:)\s*"?([^".\s,]+)"?/);
 	if (defaultMatch) {
-		defaultValue = cleanDefaultValue(defaultMatch[1] ?? "");
+		defaultValue = cleanDefaultValue(defaultMatch[1]);
 	}
 
 	// Look for choices/enums
@@ -359,7 +324,7 @@ function buildFlagInfo(
 		/(?:One of|Valid (?:orders?|values?|options?)):?\s*"?([^"]+)"?/,
 	);
 	if (choicesMatch) {
-		choices = (choicesMatch[1] ?? "")
+		choices = choicesMatch[1]
 			.split(/[,\s]+/)
 			.map((s) => s.replace(/[",]/g, "").trim())
 			.filter(Boolean);
@@ -369,7 +334,7 @@ function buildFlagInfo(
 	if (!choices) {
 		const possibleMatch = description.match(/Possible values:\s*(.+?)(?:\.|$)/);
 		if (possibleMatch) {
-			choices = (possibleMatch[1] ?? "")
+			choices = possibleMatch[1]
 				.split(/[,\s]+/)
 				.map((s) => s.replace(/["'()]/g, "").trim())
 				.filter((s) => s && !s.startsWith("default"));
@@ -378,9 +343,7 @@ function buildFlagInfo(
 
 	// Look for quoted enum values in description like "browser", "bun" or "node"
 	if (!choices) {
-		const quotedMatch = description.match(
-			/"(\w+)"(?:,\s*"(\w+)")*(?:\s+or\s+"(\w+)")?/,
-		);
+		const quotedMatch = description.match(/"(\w+)"(?:,\s*"(\w+)")*(?:\s+or\s+"(\w+)")?/);
 		if (quotedMatch) {
 			const all = description.match(/"(\w+)"/g);
 			if (all && all.length >= 2) {
@@ -391,16 +354,14 @@ function buildFlagInfo(
 
 	return {
 		name,
-		...(shortName ? { shortName: shortName.replace(/^-/, "") } : {}),
+		shortName: shortName?.replace(/^-/, ""),
 		description: description.trim(),
 		hasValue,
-		...(valueType ? { valueType } : {}),
-		...(defaultValue ? { defaultValue } : {}),
-		...(choices ? { choices } : {}),
+		valueType,
+		defaultValue,
+		choices,
 		required: false,
-		multiple:
-			description.toLowerCase().includes("multiple") ||
-			description.includes("[]"),
+		multiple: description.toLowerCase().includes("multiple") || description.includes("[]"),
 	};
 }
 
@@ -461,8 +422,8 @@ function parseUsage(usage: string): {
 					name,
 					required,
 					multiple,
-					type: "string",
-					...(completionType ? { completionType } : {}),
+					type: "string", // Default type
+					completionType,
 				});
 			}
 		}
@@ -501,12 +462,10 @@ function getHelpOutput(command: string[], cwd: string): string {
 				console.warn(`⚠️  Empty help output for "${label}", retrying...`);
 				continue;
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg = error instanceof Error ? error.message : String(error);
 			if (attempt === 1) {
-				console.warn(
-					`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`,
-				);
+				console.warn(`⚠️  Spawn failed for "${label}" (attempt 1): ${msg} — retrying...`);
 				continue;
 			}
 			console.warn(`⚠️  Spawn failed for "${label}" (attempt 2): ${msg}`);
@@ -543,30 +502,18 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 			env: bunEnv,
 		});
 
-		const output = (
-			(result.stdout?.toString() ?? "") + (result.stderr?.toString() ?? "")
-		).trim();
+		const output = ((result.stdout?.toString() ?? "") + (result.stderr?.toString() ?? "")).trim();
 		if (!output) {
-			console.warn(
-				"⚠️  `bun getcompletes` returned no output — marking as unavailable.",
-			);
+			console.warn("⚠️  `bun getcompletes` returned no output — marking as unavailable.");
 			return { available: false };
 		}
 
-		if (
-			output.toLowerCase().includes("error") &&
-			!output.toLowerCase().includes("usage")
-		) {
-			console.warn(
-				"⚠️  `bun getcompletes` reported an error — marking as unavailable.",
-			);
+		if (output.toLowerCase().includes("error") && !output.toLowerCase().includes("usage")) {
+			console.warn("⚠️  `bun getcompletes` reported an error — marking as unavailable.");
 			return { available: false };
 		}
-	} catch (error: unknown) {
-		console.warn(
-			"⚠️  `bun getcompletes` could not be spawned — marking as unavailable:",
-			error,
-		);
+	} catch (error) {
+		console.warn("⚠️  `bun getcompletes` could not be spawned — marking as unavailable:", error);
 		return { available: false };
 	}
 
@@ -575,44 +522,29 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	for (const [key, _label] of Object.entries(subcommands)) {
 		try {
 			const result = spawnSync({
-				cmd: [bunExe(), "getcompletes", key === "packages" ? "a" : (key[0] ?? "?")],
+				cmd: [bunExe(), "getcompletes", key === "packages" ? "a" : key[0]],
 				stdout: "pipe",
 				stderr: "pipe",
 				cwd,
 				env: bunEnv,
 			});
-			if (
-				result.exitCode === 0 ||
-				(result.stdout?.toString() ?? "").length > 0
-			) {
+			if (result.exitCode === 0 || (result.stdout?.toString() ?? "").length > 0) {
 				working.push(key);
 			}
 		} catch {
-			console.warn(
-				`⚠️  \`bun getcompletes ${key[0] ?? "?"}\` failed — omitting from completions.`,
-			);
+			console.warn(`⚠️  \`bun getcompletes ${key[0]}\` failed — omitting from completions.`);
 		}
 	}
 
 	if (working.length === 0) {
-		console.warn(
-			"⚠️  No `bun getcompletes` subcommands responded — marking as unavailable.",
-		);
+		console.warn("⚠️  No `bun getcompletes` subcommands responded — marking as unavailable.");
 		return { available: false };
 	}
 
 	// Only include subcommands that actually worked
-	const out: { scripts: string; binaries: string; packages: string; files: string } = {
-		scripts: "",
-		binaries: "",
-		packages: "",
-		files: "",
-	};
+	const commands: Record<string, string> = {};
 	for (const key of working) {
-		if (key === "scripts") out.scripts = "getcompletes scripts";
-		else if (key === "binaries") out.binaries = "getcompletes binaries";
-		else if (key === "packages") out.packages = "getcompletes packages";
-		else if (key === "files") out.files = "getcompletes files";
+		commands[key] = subcommands[key];
 	}
 
 	console.log(
@@ -620,7 +552,7 @@ function checkGetCompletes(cwd: string): CompletionData["bunGetCompletes"] {
 	);
 	return {
 		available: true,
-		commands: out,
+		commands: commands as CompletionData["bunGetCompletes"]["commands"],
 	};
 }
 
@@ -670,9 +602,7 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 			// Try to match "bun pm <sub> <nested>  <desc>" (2+ spaces before desc)
 			const nestedTopMatch = line.match(/^\s+bun pm (\S+)\s+(\S+)\s{2,}(.+)$/);
 			if (nestedTopMatch) {
-				const parentName = nestedTopMatch[1] ?? "";
-				const nestedName = nestedTopMatch[2] ?? "";
-				const nestedDesc = nestedTopMatch[3] ?? "";
+				const [, parentName, nestedName, nestedDesc] = nestedTopMatch;
 				if (!parentName.startsWith("-") && parentName !== "pm") {
 					// Ensure parent exists
 					if (!subcommands[parentName]) {
@@ -720,15 +650,14 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 
 			const topMatch = line.match(/^\s+bun (?:pm )?(\S+)(?:\s+(.+))?$/);
 			if (topMatch) {
-				const name = topMatch[1] ?? "";
-				const description = topMatch[2]?.trim() ?? "";
+				const [, name, description = ""] = topMatch;
 				if (name.startsWith("-") || name === "pm") continue;
 
 				// Don't overwrite if already created by a nested-top-level match
 				if (!subcommands[name]) {
 					subcommands[name] = {
 						name,
-						description,
+						description: description.trim(),
 						flags: [],
 						positionalArgs: [],
 						subcommands: {},
@@ -745,15 +674,15 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 		// or "  └ -g                        print the global path to bin folder"
 		const nestedMatch = line.match(/^\s*[├└]\s+(.+)$/);
 		if (nestedMatch && currentSub) {
-			const nestedContent = nestedMatch[1] ?? "";
+			const nestedContent = nestedMatch[1];
 			// Split on 2+ spaces to separate name from description
 			const parts = nestedContent.split(/\s{2,}/);
-			const namePart = (parts[0] ?? "").trim();
+			const namePart = parts[0].trim();
 			const descPart = parts.slice(1).join("  ").trim();
 
 			if (namePart.startsWith("--")) {
 				// Long flag
-				const flagName = namePart.replace(/^--/, "").split("=")[0] ?? "";
+				const flagName = namePart.replace(/^--/, "").split("=")[0];
 				currentSub.flags = currentSub.flags || [];
 				currentSub.flags.push({
 					name: flagName,
@@ -772,9 +701,7 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 				});
 			} else {
 				// Nested subcommand (e.g., "get [key ...]")
-				const nestedName = namePart.split(/\s/)[0] ?? "";
-
-				if (!nestedName) continue;
+				const nestedName = namePart.split(/\s/)[0];
 
 				// Skip if this is a duplicate of an existing positional arg
 				// (e.g., "increment" appears as both [increment] positional and ├ increment)
@@ -797,16 +724,15 @@ function parsePmSubcommands(helpText: string): Record<string, SubcommandInfo> {
 	}
 
 	// Standardize "list" -> "ls" (bun list is the alias, bun pm ls is canonical)
-	if (!subcommands["ls"] && subcommands["list"]) {
-		subcommands["ls"] = subcommands["list"];
-		subcommands["ls"].name = "ls";
-		subcommands["ls"].description += " (alias: bun list)";
-		delete subcommands["list"];
-	} else if (!subcommands["ls"]) {
-		subcommands["ls"] = {
+	if (!subcommands.ls && subcommands.list) {
+		subcommands.ls = subcommands.list;
+		subcommands.ls.name = "ls";
+		subcommands.ls.description += " (alias: bun list)";
+		delete subcommands.list;
+	} else if (!subcommands.ls) {
+		subcommands.ls = {
 			name: "ls",
-			description:
-				"List installed dependencies and their versions (alias: bun list)",
+			description: "List installed dependencies and their versions (alias: bun list)",
 			flags: [],
 			positionalArgs: [],
 			subcommands: {},
@@ -837,7 +763,6 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (!line) continue;
 		const trimmed = line.trim();
 
 		// Extract command description (usually the first non-usage line)
@@ -856,7 +781,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 		if (trimmed.startsWith("Alias:")) {
 			const aliasMatch = trimmed.match(/Alias:\s*(.+)/);
 			if (aliasMatch) {
-				command.aliases = (aliasMatch[1] ?? "")
+				command.aliases = aliasMatch[1]
 					.split(/[,\s]+/)
 					.map((a) => a.trim())
 					.filter(Boolean)
@@ -871,9 +796,7 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 			command.usage = trimmed;
 			console.log(`✅ Parsed usage: ${command.usage}`);
 			command.positionalArgs = parseUsage(trimmed);
-			console.log(
-				`✅ Parsed positional args: ${JSON.stringify(command.positionalArgs)}`,
-			);
+			console.log(`✅ Parsed positional args: ${JSON.stringify(command.positionalArgs)}`);
 			continue;
 		}
 
@@ -910,19 +833,13 @@ function parseHelpOutput(helpText: string, commandName: string): CommandInfo {
 				command.flags.push(flag);
 			} else {
 				// Flag-looking line that didn't match any parser pattern
-				console.warn(
-					`⚠️  Unparsed flag line in "${commandName}": ${line.trim()}`,
-				);
+				console.warn(`⚠️  Unparsed flag line in "${commandName}": ${line.trim()}`);
 			}
 		}
 
 		// Parse examples
 		if (inExamples && trimmed && !trimmed.startsWith("Full documentation")) {
-			if (
-				trimmed.startsWith("bun ") ||
-				trimmed.startsWith("./") ||
-				trimmed.startsWith("Bundle")
-			) {
+			if (trimmed.startsWith("bun ") || trimmed.startsWith("./") || trimmed.startsWith("Bundle")) {
 				command.examples.push(trimmed);
 			}
 		}
@@ -1012,8 +929,7 @@ function getMainCommands(cwd: string): string[] {
 			// Extract command name (first word after whitespace)
 			const match = line.match(/^\s+(\w+)/);
 			if (match) {
-				const cmdName = match[1];
-				if (cmdName) commands.push(cmdName);
+				commands.push(match[1]);
 			}
 		}
 	}
@@ -1060,6 +976,74 @@ function parseGlobalFlags(helpText: string): FlagInfo[] {
 }
 
 /**
+ * Bundler/build flags that were historically appended to globalFlags.
+ * They belong on `bun build` only. See https://bun.com/docs/bundler
+ */
+export const BUILD_ONLY_FLAG_NAMES = new Set([
+	"main-fields",
+	"preserve-symlinks",
+	"preserve-symlinks-main",
+	"extension-order",
+	"tsconfig-override",
+	"define",
+	"drop",
+	"feature",
+	"loader",
+	"no-macros",
+	"jsx-factory",
+	"jsx-fragment",
+	"jsx-import-source",
+	"jsx-runtime",
+	"jsx-side-effects",
+	"ignore-dce-annotations",
+	"experimental-stream-iter",
+]);
+
+function reconcileBuildFlags(
+	globalFlags: FlagInfo[],
+	commands: Record<string, CommandInfo>,
+): FlagInfo[] {
+	const build = commands.build;
+	if (!build) return globalFlags;
+
+	const buildNames = new Set(build.flags.map((f) => f.name));
+	const kept: FlagInfo[] = [];
+	const moved: FlagInfo[] = [];
+
+	for (const flag of globalFlags) {
+		if (BUILD_ONLY_FLAG_NAMES.has(flag.name)) {
+			moved.push(flag);
+		} else {
+			kept.push(flag);
+		}
+	}
+
+	for (const flag of moved) {
+		if (!buildNames.has(flag.name)) {
+			build.flags.push(flag);
+			console.log(`📦 Moved build-only flag global → build: --${flag.name}`);
+		}
+	}
+
+	return kept;
+}
+
+/**
+ * `-i` in `bun --help` is shorthand for `--install=fallback`, not a separate `--i` global.
+ * Upstream: oven-sh/bun test/cli + bun --help Flags section.
+ */
+function mergeStandaloneInstallShort(globalFlags: FlagInfo[]): FlagInfo[] {
+	const installShortIdx = globalFlags.findIndex((f) => f.name === "i");
+	if (installShortIdx < 0) return globalFlags;
+
+	const install = globalFlags.find((f) => f.name === "install");
+	if (!install) return globalFlags;
+
+	if (!install.shortName) install.shortName = "i";
+	return globalFlags.filter((_, idx) => idx !== installShortIdx);
+}
+
+/**
  * Add fallback aliases for commands that don't have an "Alias:" line in help.
  * Aliases parsed from help text (in parseHelpOutput) take priority.
  */
@@ -1103,16 +1087,14 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			{
 				name: "production",
 				shortName: "p",
-				description:
-					"Audit only production dependencies (excludes devDependencies)",
+				description: "Audit only production dependencies (excludes devDependencies)",
 				hasValue: false,
 			},
 		],
 		init: [
 			{
 				name: "cwd",
-				description:
-					"Run bun init as if started in a different working directory",
+				description: "Run bun init as if started in a different working directory",
 				hasValue: true,
 			},
 		],
@@ -1160,7 +1142,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	// GOMAXPROCS"). The ParamField default="5" appears to be inconsistent with
 	// both --help and the prose, so we use the --help value.
 	const pmDefaults: Record<string, string> = {
-		backend: "clonefile",
+		backend: "hardlink",
 		"concurrent-scripts": "2x CPU cores",
 		"network-concurrency": "48",
 		save: "true",
@@ -1182,17 +1164,13 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		// publish doesn't have --save in docs
 		documentedDefaults[cmd] =
 			cmd === "publish"
-				? Object.fromEntries(
-					Object.entries(pmDefaults).filter(([k]) => k !== "save"),
-				)
+				? { ...pmDefaults, save: undefined as unknown as string }
 				: { ...pmDefaults };
 	}
 	// Remove undefined entries
 	for (const cmd of Object.keys(documentedDefaults)) {
-		const entry = documentedDefaults[cmd];
-		if (!entry) continue;
-		for (const key of Object.keys(entry)) {
-			if (!entry[key]) delete entry[key];
+		for (const key of Object.keys(documentedDefaults[cmd])) {
+			if (!documentedDefaults[cmd][key]) delete documentedDefaults[cmd][key];
 		}
 	}
 
@@ -1203,14 +1181,12 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			if (!existingNames.has(flag.name)) {
 				commands[cmd].flags.push({
 					name: flag.name,
-					...(flag.shortName ? { shortName: flag.shortName } : {}),
+					shortName: flag.shortName,
 					description: flag.description,
 					hasValue: flag.hasValue ?? false,
-					...(flag.hasValue ? { valueType: "string" } : {}),
+					valueType: flag.hasValue ? "string" : undefined,
 				});
-				console.log(
-					`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`,
-				);
+				console.log(`📝 Adding documented flag not in --help: ${cmd} --${flag.name}`);
 			}
 		}
 	}
@@ -1222,10 +1198,8 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, defaults] of Object.entries(documentedDefaults)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			const val = defaults[flag.name];
-			const cleaned = cleanDefaultValue(val ?? "");
-			if (cleaned !== undefined) {
-				flag.defaultValue = cleaned;
+			if (defaults[flag.name]) {
+				flag.defaultValue = cleanDefaultValue(defaults[flag.name]);
 			}
 		}
 	}
@@ -1239,12 +1213,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, aliases] of Object.entries(documentedAliases)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			const alias = aliases[flag.name];
-			if (alias !== undefined && !flag.shortName) {
-				flag.shortName = alias;
-				console.log(
-					`📝 Adding documented alias: ${cmd} --${flag.name} (-${alias})`,
-				);
+			if (aliases[flag.name] && !flag.shortName) {
+				flag.shortName = aliases[flag.name];
+				console.log(`📝 Adding documented alias: ${cmd} --${flag.name} (-${aliases[flag.name]})`);
 			}
 		}
 	}
@@ -1259,9 +1230,8 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, flagAliases] of Object.entries(documentedExtraAliases)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			const extraAliases = flagAliases[flag.name];
-			if (extraAliases && !flag.aliases) {
-				flag.aliases = extraAliases;
+			if (flagAliases[flag.name] && !flag.aliases) {
+				flag.aliases = flagAliases[flag.name];
 			}
 		}
 	}
@@ -1324,9 +1294,8 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, flagChoices] of Object.entries(documentedChoices)) {
 		if (!commands[cmd]) continue;
 		for (const flag of commands[cmd].flags) {
-			const choices = flagChoices[flag.name];
-			if (choices && !flag.choices) {
-				flag.choices = choices;
+			if (flagChoices[flag.name] && !flag.choices) {
+				flag.choices = flagChoices[flag.name];
 			}
 		}
 	}
@@ -1347,8 +1316,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		info: [
 			{
 				name: "property",
-				description:
-					"Specific property to display (e.g. version, dependencies, repository.url)",
+				description: "Specific property to display (e.g. version, dependencies, repository.url)",
 				required: false,
 				multiple: false,
 				type: "string",
@@ -1358,15 +1326,11 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	for (const [cmd, args] of Object.entries(documentedPositionalArgs)) {
 		if (!commands[cmd]) continue;
-		const existingNames = new Set(
-			commands[cmd].positionalArgs.map((a) => a.name),
-		);
+		const existingNames = new Set(commands[cmd].positionalArgs.map((a) => a.name));
 		for (const arg of args) {
 			if (!existingNames.has(arg.name)) {
 				commands[cmd].positionalArgs.push(arg);
-				console.log(
-					`📝 Adding documented positional arg: ${cmd} <${arg.name}>`,
-				);
+				console.log(`📝 Adding documented positional arg: ${cmd} <${arg.name}>`);
 			}
 		}
 	}
@@ -1392,11 +1356,8 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 	for (const [cmd, argTypes] of Object.entries(completionTypeMap)) {
 		if (!commands[cmd]) continue;
 		for (const arg of commands[cmd].positionalArgs) {
-			const cType = argTypes[arg.name];
-			if (cType &&
-				(!arg.completionType || arg.completionType === "none")
-			) {
-				arg.completionType = cType;
+			if (argTypes[arg.name] && (!arg.completionType || arg.completionType === "none")) {
+				arg.completionType = argTypes[arg.name];
 			}
 		}
 	}
@@ -1421,12 +1382,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun add --global cowsay",
 		],
 		remove: ["bun remove ts-node"],
-		update: [
-			"bun update",
-			"bun update zod",
-			"bun update --interactive",
-			"bun update --latest",
-		],
+		update: ["bun update", "bun update zod", "bun update --interactive", "bun update --latest"],
 		run: [
 			"bun run index.js",
 			"bun run index.ts",
@@ -1434,6 +1390,10 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 			"bun run --bun vite",
 			"bun --watch run index.tsx",
 			"bun run -",
+			"bun --smol run index.tsx",
+			"bun --console-depth 5 run index.tsx",
+			"bun run - < script.ts",
+			"bun --inspect-brk run index.ts",
 		],
 		test: [
 			"bun test",
@@ -1465,7 +1425,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	// Add positional args to pm pkg subcommands.
 	// From --help: "get [key ...]", "set key=value ...", "delete key ..."
-	const pmPkg = commands["pm"]?.subcommands?.["pkg"];
+	const pmPkg = commands.pm?.subcommands?.pkg;
 	if (pmPkg?.subcommands) {
 		const pkgArgs: Record<
 			string,
@@ -1511,7 +1471,7 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 		};
 		for (const [sub, args] of Object.entries(pkgArgs)) {
 			const subcommand = pmPkg.subcommands[sub];
-			if (subcommand && (subcommand.positionalArgs?.length ?? 0) === 0) {
+			if (subcommand && subcommand.positionalArgs.length === 0) {
 				subcommand.positionalArgs = args;
 			}
 		}
@@ -1519,9 +1479,9 @@ function addDocumentedFlags(commands: Record<string, CommandInfo>): void {
 
 	// Add choices to pm version increment arg.
 	// From --help: "patch, minor, major, prepatch, preminor, premajor, prerelease, from-git, or a specific version"
-	const pmVersion = commands["pm"]?.subcommands?.["version"];
+	const pmVersion = commands.pm?.subcommands?.version;
 	if (pmVersion) {
-		for (const arg of pmVersion.positionalArgs ?? []) {
+		for (const arg of pmVersion.positionalArgs) {
 			if (arg.name === "increment" && !arg.choices) {
 				arg.choices = [
 					"patch",
@@ -1574,19 +1534,14 @@ interface CliArgs {
  * Strip matching surrounding quotes from all default values across commands
  * and global flags.
  */
-function cleanAllDefaults(
-	commands: Record<string, CommandInfo>,
-	globalFlags: FlagInfo[],
-): void {
+function cleanAllDefaults(commands: Record<string, CommandInfo>, globalFlags: FlagInfo[]): void {
 	for (const command of Object.values(commands)) {
 		for (const flag of command.flags) {
-		const dv = cleanDefaultValue(flag.defaultValue ?? "");
-			if (dv !== undefined) flag.defaultValue = dv;
+			flag.defaultValue = cleanDefaultValue(flag.defaultValue);
 		}
 	}
 	for (const flag of globalFlags) {
-	const dv = cleanDefaultValue(flag.defaultValue ?? "");
-			if (dv !== undefined) flag.defaultValue = dv;
+		flag.defaultValue = cleanDefaultValue(flag.defaultValue);
 	}
 }
 
@@ -1634,9 +1589,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 	const cwd = String(tempDir);
 
 	if (cliArgs.dryRun) {
-		console.log(
-			"🔍 Discovering Bun commands (dry-run, no file will be written)...",
-		);
+		console.log("🔍 Discovering Bun commands (dry-run, no file will be written)...");
 	} else {
 		console.log("🔍 Discovering Bun commands...");
 	}
@@ -1652,16 +1605,14 @@ function generateCompletions(cliArgs: CliArgs): void {
 	const mainCommands = getMainCommands(cwd);
 	const globalFlags = parseGlobalFlags(mainHelpText);
 
-	console.log(
-		`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`,
-	);
+	console.log(`📋 Found ${mainCommands.length} main commands: ${mainCommands.join(", ")}`);
 
 	// Probe getcompletes
 	const bunGetCompletes = checkGetCompletes(cwd);
 
 	const completionData: CompletionData = {
 		version: "1.1.0",
-		...(bunVersion ? { bunVersion } : {}),
+		bunVersion,
 		commands: {},
 		globalFlags,
 		specialHandling: {
@@ -1703,17 +1654,11 @@ function generateCompletions(cliArgs: CliArgs): void {
 			console.log(`📖 Parsing help for additional command: ${commandName}`);
 
 			const helpText = getHelpOutput([commandName], cwd);
-			if (
-				helpText.trim() &&
-				!helpText.includes("error:") &&
-				!helpText.includes("Error:")
-			) {
+			if (helpText.trim() && !helpText.includes("error:") && !helpText.includes("Error:")) {
 				const commandInfo = parseHelpOutput(helpText, commandName);
 				completionData.commands[commandName] = commandInfo;
 			} else if (!helpText.trim()) {
-				console.warn(
-					`⚠️  No help output for additional command "${commandName}" — skipping.`,
-				);
+				console.warn(`⚠️  No help output for additional command "${commandName}" — skipping.`);
 			}
 		}
 	}
@@ -1724,9 +1669,12 @@ function generateCompletions(cliArgs: CliArgs): void {
 	// Add documented flags that don't appear in --help output.
 	// These are flags documented on bun.com/docs but not yet in the CLI --help.
 	addDocumentedFlags(completionData.commands);
+	completionData.globalFlags = mergeStandaloneInstallShort(
+		reconcileBuildFlags(completionData.globalFlags, completionData.commands),
+	);
 
 	// Strip any surrounding quotes from default values that leaked through parsers.
-	cleanAllDefaults(completionData.commands, globalFlags);
+	cleanAllDefaults(completionData.commands, completionData.globalFlags);
 
 	// Write the JSON file (unless --dry-run)
 	if (!cliArgs.dryRun) {
@@ -1738,7 +1686,7 @@ function generateCompletions(cliArgs: CliArgs): void {
 		}
 
 		const jsonData = JSON.stringify(completionData, null, 2);
-		Bun.write(cliArgs.outputPath, jsonData);
+		writeFileSync(cliArgs.outputPath, jsonData, "utf8");
 		console.log(`✅ Generated CLI completion data at: ${cliArgs.outputPath}`);
 	} else {
 		console.log(`⏭️  Dry-run — skipping file write`);
@@ -1756,16 +1704,11 @@ function generateCompletions(cliArgs: CliArgs): void {
 	for (const [name, cmd] of Object.entries(completionData.commands)) {
 		totalFlags += cmd.flags.length;
 		totalExamples += cmd.examples.length;
-		const subcommandCount = cmd.subcommands
-			? Object.keys(cmd.subcommands).length
-			: 0;
+		const subcommandCount = cmd.subcommands ? Object.keys(cmd.subcommands).length : 0;
 		totalSubcommands += subcommandCount;
 
-		const aliasInfo = cmd.aliases
-			? ` (aliases: ${cmd.aliases.join(", ")})`
-			: "";
-		const subcommandInfo =
-			subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
+		const aliasInfo = cmd.aliases ? ` (aliases: ${cmd.aliases.join(", ")})` : "";
+		const subcommandInfo = subcommandCount > 0 ? `, ${subcommandCount} subcommands` : "";
 		const dynamicInfo = cmd.dynamicCompletions
 			? ` [dynamic: ${Object.keys(cmd.dynamicCompletions).join(", ")}]`
 			: "";
@@ -1786,7 +1729,7 @@ if (import.meta.main) {
 	const cliArgs = parseCliArgs(process.argv.slice(2));
 	try {
 		generateCompletions(cliArgs);
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Fatal error:", error);
 		process.exit(1);
 	}

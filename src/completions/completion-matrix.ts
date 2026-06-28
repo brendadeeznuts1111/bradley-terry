@@ -181,10 +181,7 @@ export function classifyFlag(name: string): FlagCategory[] {
 	return categories.length ? categories : ["uncategorized"];
 }
 
-export function countCategory(
-	flags: FlagEntry[],
-	category: keyof typeof FLAG_CATEGORIES,
-): number {
+export function countCategory(flags: FlagEntry[], category: keyof typeof FLAG_CATEGORIES): number {
 	return flags.filter((f) => classifyFlag(f.name).includes(category)).length;
 }
 
@@ -207,20 +204,14 @@ export function flagsWithChoices(flags: FlagEntry[]): number {
 export function defaultList(flags: FlagEntry[]): string {
 	const defs = flags
 		.filter((f) => f.defaultValue !== undefined)
-		.map(
-			(f) =>
-				`${f.shortName ? `-${f.shortName}/` : ""}--${f.name}=${f.defaultValue}`,
-		);
+		.map((f) => `${f.shortName ? `-${f.shortName}/` : ""}--${f.name}=${f.defaultValue}`);
 	return defs.join(", ") || "—";
 }
 
 export function choiceList(flags: FlagEntry[]): string {
 	const choices = flags
 		.filter((f): f is FlagEntry & { choices: string[] } => !!f.choices?.length)
-		.map(
-			(f) =>
-				`${f.shortName ? `-${f.shortName}/` : ""}--${f.name}={${f.choices.join(", ")}}`,
-		);
+		.map((f) => `${f.shortName ? `-${f.shortName}/` : ""}--${f.name}={${f.choices.join(", ")}}`);
 	return choices.join(", ") || "—";
 }
 
@@ -234,9 +225,7 @@ export function dynamicList(cmd: CommandEntry): string {
 	return keys.length ? keys.join(", ") : "";
 }
 
-export function collectPmRows(
-	cmd: CommandEntry,
-): { name: string; path: string }[] {
+export function collectPmRows(cmd: CommandEntry): { name: string; path: string }[] {
 	const rows: { name: string; path: string }[] = [];
 	if (cmd.subcommands) {
 		for (const [subName, sub] of Object.entries(cmd.subcommands)) {
@@ -253,9 +242,7 @@ export function collectPmRows(
 
 export function cleanAliases(aliases: string[] | undefined): string[] {
 	if (!aliases) return [];
-	const cleaned = aliases.filter(
-		(a) => a !== "bun" && a !== "bunx" && a.length > 0,
-	);
+	const cleaned = aliases.filter((a) => a !== "bun" && a !== "bunx" && a.length > 0);
 	if (cleaned.some((a) => a === "bun")) {
 		throw new Error('Parser leak: "bun" cannot be an alias of itself');
 	}
@@ -273,21 +260,14 @@ export function inheritsGlobals(cmdName: string): boolean {
 	return !PM_TOP_COMMANDS.has(cmdName);
 }
 
-export function makeTable<T extends Record<string, string | number>>(
-	rows: T[],
-): string {
+export function makeTable<T extends Record<string, string | number>>(rows: T[]): string {
 	if (rows.length === 0) return "";
-	const firstRow = rows[0];
-	if (!firstRow) return "";
-	const cols = Object.keys(firstRow);
+	const cols = Object.keys(rows[0]);
 
 	// Compute max visual width per column (Bun.stringWidth accounts for CJK/emoji)
 	const colWidths = cols.map((col) => {
 		const headerWidth = Bun.stringWidth(col);
-		const maxDataWidth = rows.reduce(
-			(max, r) => Math.max(max, Bun.stringWidth(String(r[col]))),
-			0,
-		);
+		const maxDataWidth = rows.reduce((max, r) => Math.max(max, Bun.stringWidth(String(r[col]))), 0);
 		return Math.max(headerWidth, maxDataWidth);
 	});
 
@@ -296,24 +276,17 @@ export function makeTable<T extends Record<string, string | number>>(
 		return text + " ".repeat(width - visualWidth);
 	};
 
-	const header = `| ${cols.map((c, i) => padCell(c, colWidths[i] ?? 0)).join(" | ")} |`;
-	const sep = `|${cols.map((_, i) => "-".repeat((colWidths[i] ?? 0) + 2)).join("|")}|`;
+	const header = `| ${cols.map((c, i) => padCell(c, colWidths[i])).join(" | ")} |`;
+	const sep = `|${cols.map((_, i) => "-".repeat(colWidths[i] + 2)).join("|")}|`;
 	const body = rows
-		.map(
-			(r) =>
-				`| ${cols.map((c, i) => padCell(String(r[c]), colWidths[i] ?? 0)).join(" | ")} |`,
-		)
+		.map((r) => `| ${cols.map((c, i) => padCell(String(r[c]), colWidths[i])).join(" | ")} |`)
 		.join("\n");
 	return [header, sep, body].join("\n");
 }
 
-export function makeCSV<T extends Record<string, string | number>>(
-	rows: T[],
-): string {
+export function makeCSV<T extends Record<string, string | number>>(rows: T[]): string {
 	if (rows.length === 0) return "";
-	const firstRow = rows[0];
-	if (!firstRow) return "";
-	const cols = Object.keys(firstRow);
+	const cols = Object.keys(rows[0]);
 	const quoteCsv = (v: string) => {
 		const s = String(v);
 		if (s.includes(",") || s.includes('"') || s.includes("\n")) {
@@ -335,14 +308,9 @@ export function makeHTML(
 	jsonHash: string,
 ): string {
 	const esc = Bun.escapeHTML;
-	const makeTableHTML = (
-		rows: Record<string, string | number>[],
-		title: string,
-	) => {
+	const makeTableHTML = (rows: Record<string, string | number>[], title: string) => {
 		if (!rows.length) return "";
-		const firstRow = rows[0];
-		if (!firstRow) return "";
-		const cols = Object.keys(firstRow);
+		const cols = Object.keys(rows[0]);
 		let html = `<h2>${esc(title)}</h2><table border="1" cellpadding="4"><thead><tr>`;
 		for (const c of cols) {
 			html += `<th>${esc(c)}</th>`;

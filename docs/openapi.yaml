@@ -1,0 +1,217 @@
+openapi: 3.1.0
+info:
+  title: Bradley-Terry Ratings API
+  description: Effect TS + Bun HTTP service for Massey ingestion, BT computation, and SQLite persistence.
+  version: 0.3.33
+servers:
+  - url: http://localhost:3000
+    description: Local development (default PORT)
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Service health and dependency checks
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/ratings/bt:
+    get:
+      operationId: getRatings
+      summary: Current Bradley-Terry ratings
+      parameters:
+        - $ref: "#/components/parameters/sport"
+        - $ref: "#/components/parameters/season"
+      responses:
+        "200":
+          description: Rating list (may be empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BTRating"
+        "500":
+          $ref: "#/components/responses/DBError"
+  /api/ratings/history:
+    get:
+      operationId: getRatingHistory
+      summary: Historical rating snapshots
+      parameters:
+        - $ref: "#/components/parameters/sport"
+        - $ref: "#/components/parameters/season"
+      responses:
+        "200":
+          description: History rows with snapshotAt
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BTRatingHistory"
+        "500":
+          $ref: "#/components/responses/DBError"
+  /api/ratings/refresh:
+    post:
+      operationId: refreshRatings
+      summary: Fetch Massey data, compute BT ratings, persist to SQLite
+      responses:
+        "202":
+          description: Refresh accepted and completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshSummary"
+        "400":
+          $ref: "#/components/responses/SchemaDecodeError"
+        "401":
+          $ref: "#/components/responses/SecretError"
+        "422":
+          $ref: "#/components/responses/BTComputationError"
+        "500":
+          $ref: "#/components/responses/DBError"
+        "502":
+          $ref: "#/components/responses/MasseyFetchError"
+        "503":
+          $ref: "#/components/responses/SecretError"
+        "429":
+          $ref: "#/components/responses/RateLimitExceeded"
+components:
+  parameters:
+    sport:
+      name: sport
+      in: query
+      schema:
+        type: string
+        default: default
+      description: Sport key
+    season:
+      name: season
+      in: query
+      schema:
+        type: string
+        default: default
+      description: Season key
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, version, timestamp, checks]
+      properties:
+        status:
+          type: string
+          const: ok
+        version:
+          type: string
+          description: Bun runtime version
+        timestamp:
+          type: integer
+          format: int64
+        checks:
+          $ref: "#/components/schemas/HealthChecks"
+    HealthChecks:
+      type: object
+      required: [db, secretsBackend]
+      properties:
+        db:
+          type: string
+          enum: [ok, error]
+        secretsBackend:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        teamCount:
+          type: integer
+          minimum: 0
+    BTRating:
+      type: object
+      required: [teamID, teamName, rating, confidence, rank]
+      properties:
+        teamID:
+          type: string
+        teamName:
+          type: string
+        rating:
+          type: number
+        confidence:
+          type: number
+        rank:
+          type: integer
+          minimum: 1
+        sport:
+          type: string
+        season:
+          type: string
+    BTRatingHistory:
+      allOf:
+        - $ref: "#/components/schemas/BTRating"
+        - type: object
+          required: [snapshotAt]
+          properties:
+            snapshotAt:
+              type: string
+              format: date-time
+    RefreshSummary:
+      type: object
+      required: [stored, sport, season]
+      properties:
+        stored:
+          type: integer
+          minimum: 0
+        sport:
+          type: string
+        season:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+  responses:
+    SchemaDecodeError:
+      description: Upstream JSON invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    SecretError:
+      description: Secret missing or expired
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BTComputationError:
+      description: BT fit failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    DBError:
+      description: SQLite failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    MasseyFetchError:
+      description: Upstream fetch failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimitExceeded:
+      description: Too many refresh requests from this client IP
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until the client may retry
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

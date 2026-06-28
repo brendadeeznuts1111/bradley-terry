@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+- `GET /ready` readiness probe (503 when DB unavailable); `/health` is liveness-only
+- `GET /metrics` Prometheus counters; `X-Request-Id` on all responses
+- Refresh mutex (409 `RefreshInProgress`); SQLite transactions for `storeBT`
+- `REFRESH_TOKEN` auth on manual refresh; Massey fetch timeout + retry
+- Graceful shutdown with in-flight request drain (`SHUTDOWN_TIMEOUT_MS`)
+- `Dockerfile` + `docs/DEPLOYMENT.md`
+
+## Unreleased
+
+- Bun runtime alignment: `Bun.env`, `Bun.file`, `Bun.revision`, `server.pendingRequests` on `/metrics`
+- `docs/BUN_RUNTIME.md` — maps service to [bun.com/docs/runtime](https://bun.com/docs/runtime)
+- Graceful `await server.stop()`; `server.url` startup log; `hostname: 0.0.0.0`
+
+## v0.3.33
+
+- Effect HTTP service on `main`: MasseyClient, RatingsDB, BTCompute, 4 data routes + health
+- `src/secrets/` — SecretClient with Bun/env/vault backends, TTL entries
+- OpenAPI 3.1 at `GET /openapi.json` and `GET /openapi.yaml`
+- Structured JSON request logging (`REQUEST_LOG`, default on)
+- Per-IP rate limit on `POST /api/ratings/refresh` (default 5 req / 60s)
+- `bt_ratings_history` snapshots, ManagedRuntime, CORS, auto-refresh scheduler
+- `AGENTS.md`, `docs/MERGE.md`, `docs/ARCHITECTURE.md`, `docs/API.md`, `.env.example`
+- BTCompute wired to production `BradleyTerry` MM fitter (v0.3.32 core)
+- 40 tests in `tests/` (154 total with core suite)
+
 ## v0.3.32
 
 - **Core engine implemented** — `src/bradley-terry/index.ts` MM fitter with

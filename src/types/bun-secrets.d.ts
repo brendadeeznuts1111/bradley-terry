@@ -1,18 +1,11 @@
 /**
- * Module augmentation for `Bun.secrets`.
- *
- * Bun exposes a secure, OS-backed credential store via `Bun.secrets.get()`,
- * `Bun.secrets.set()`, and `Bun.secrets.delete()`. Secrets are scoped by a
- * `service` namespace and a `name` key, providing data isolation without
- * process-level sandboxing.
- *
- * This declaration augments the `bun` module so `Bun.secrets` is available
- * without casting through `unknown` or `any`.
+ * Global type augmentation for `Bun.secrets`.
+ * @see https://bun.sh/docs/api/secrets
  */
-declare module "bun" {
+declare namespace Bun {
 	interface SecretsOptions {
-		service: string;
-		name: string;
+		readonly service: string;
+		readonly name: string;
 	}
 
 	interface Secrets {

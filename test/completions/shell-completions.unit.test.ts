@@ -46,7 +46,7 @@ describe("Shell completion generator", () => {
 		expect(bash).toContain("--target=browser");
 		expect(bash).toContain("--target=bun");
 		expect(bash).toContain("--target=node");
-		expect(bash).toContain("--backend=clonefile");
+		expect(bash).toContain("--backend=hardlink");
 		expect(bash).toContain("--linker=isolated");
 	});
 
@@ -65,7 +65,7 @@ describe("Shell completion generator", () => {
 			'--target[The intended execution environment for the bundle. "browser", "bun" or "node"]:target:(browser bun node)',
 		);
 		expect(zsh).toContain(
-			'--backend[Platform-specific optimizations for installing dependencies. Possible values: "clonefile" (default), "hardlink", "symlink", "copyfile"]:backend:(clonefile hardlink symlink copyfile)',
+			'--backend[Platform-specific optimizations for installing dependencies. Possible values: "hardlink" (default), "symlink", "copyfile"]:backend:(hardlink symlink copyfile)',
 		);
 	});
 
@@ -101,23 +101,15 @@ describe("Shell completion generator", () => {
 	test("fish completions expose choice values for enum-like flags", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
 		expect(fish).toContain("-l target -a 'browser bun node'");
-		expect(fish).toContain(
-			"-l backend -a 'clonefile hardlink symlink copyfile'",
-		);
+		expect(fish).toContain("-l backend -a 'hardlink symlink copyfile'");
 		expect(fish).toContain("-l linker -a 'isolated hoisted'");
 	});
 
 	test("fish completions add dynamic bun getcompletes for run, test, and build", async () => {
 		const fish = await Bun.file(`${SHELL_DIR}/bun.fish`).text();
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from run' -a '(bun getcompletes scripts)'",
-		);
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from test' -a '(bun getcompletes files)'",
-		);
-		expect(fish).toContain(
-			"__fish_seen_subcommand_from build' -a '(bun getcompletes files)'",
-		);
+		expect(fish).toContain("__fish_seen_subcommand_from run' -a '(bun getcompletes scripts)'");
+		expect(fish).toContain("__fish_seen_subcommand_from test' -a '(bun getcompletes files)'");
+		expect(fish).toContain("__fish_seen_subcommand_from build' -a '(bun getcompletes files)'");
 	});
 
 	test("fish completions mark value flags with -r", async () => {

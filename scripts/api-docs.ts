@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-import { readFileSync, writeFileSync } from "node:fs";
 /**
  * api-docs — scaffold Bun native API docs and tests from bun-types MDX.
  *
@@ -126,14 +125,14 @@ function declarationName(node: ts.Node): string | undefined {
 	return undefined;
 }
 
-function extractTypeSignatures(
+async function extractTypeSignatures(
 	filePath: string,
 	keywords: string[],
 	maxChars = 12000,
-): string {
+): Promise<string> {
 	const source = ts.createSourceFile(
 		filePath,
-		readFileSync(filePath, "utf8"),
+		await Bun.file(filePath).text(),
 		ts.ScriptTarget.Latest,
 		true,
 	);
@@ -163,7 +162,10 @@ function extractTypeSignatures(
 	return matches.join("\n\n");
 }
 
-function getTypeSignaturesForDoc(bunTypesRoot: string, slug: string): string {
+async function getTypeSignaturesForDoc(
+	bunTypesRoot: string,
+	slug: string,
+): Promise<string> {
 	const sources = API_DOC_TYPE_SOURCES[slug];
 	if (!sources || sources.length === 0) return "";
 
@@ -171,7 +173,7 @@ function getTypeSignaturesForDoc(bunTypesRoot: string, slug: string): string {
 	for (const { file, keywords } of sources) {
 		const filePath = join(bunTypesRoot, file);
 		try {
-			const sigs = extractTypeSignatures(filePath, keywords);
+			const sigs = await extractTypeSignatures(filePath, keywords);
 			if (sigs) parts.push(`// ${file}\n\n${sigs}`);
 		} catch (err: unknown) {
 			console.warn(`Failed to extract types from ${filePath}: ${err}`);
@@ -464,16 +466,16 @@ async function processDoc(
 	const testDir = "test/bun-api";
 	await mkdir(testDir, { recursive: true });
 	const testPath = `${testDir}/${fileSlug}.test.ts`;
-	writeFileSync(testPath, generateTestFile(name, codeBlocks));
+	await Bun.write(testPath, generateTestFile(name, codeBlocks));
 	console.log(`Wrote ${testPath}`);
 
-	const typeSignatures = getTypeSignaturesForDoc(bunTypesRoot, slug);
+	const typeSignatures = await getTypeSignaturesForDoc(bunTypesRoot, slug);
 	if (typeSignatures) {
 		console.log(`Augmented with type signatures for ${slug}`);
 	}
 
 	const archPath = "docs/ARCHITECTURE.md";
-	let arch = readFileSync(archPath, "utf8");
+	let arch = await Bun.file(archPath).text();
 	const displayTitle =
 		parseFrontmatterTitle(loaded.raw, name) || extractTitle(loaded.body, name);
 	const newSection = generateArchSection(

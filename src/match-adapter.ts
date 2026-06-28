@@ -2,13 +2,9 @@ import { Effect, Schema } from "effect";
 import {
 	type GetMatchesOptions,
 	SqliteLoader,
+	type SqliteLoaderError,
 } from "./repository/sqlite-loader";
-import {
-	type EntityId,
-	type Match,
-	type MatchRow,
-	MatchSchema,
-} from "./schema";
+import { type EntityId, type Match, type MatchRow, MatchSchema } from "./schema";
 
 /**
  * MatchAdapter — SQLite (MatchRow) → Bradley-Terry (Match) pipeline
@@ -28,7 +24,7 @@ export const MatchAdapter = {
 	 * Convert a single validated MatchRow into a branded Match.
 	 * Performs light business logic for winner/loser derivation.
 	 */
-	fromMatchRow: (row: MatchRow): Effect.Effect<Match, unknown> =>
+	fromMatchRow: (row: MatchRow): Effect.Effect<Match, never> =>
 		Effect.gen(function* () {
 			const homeTeam = row.home_team as EntityId;
 			const awayTeam = row.away_team as EntityId;
@@ -56,10 +52,7 @@ export const MatchAdapter = {
 			return yield* Schema.decodeUnknown(MatchSchema)(candidate).pipe(
 				Effect.mapError(() => {
 					// Should never happen for well-formed rows; surface as diagnostic
-					console.warn(
-						"MatchAdapter: decode failed for row",
-						row.match_id ?? row.home_team,
-					);
+					console.warn("MatchAdapter: decode failed for row", row.match_id ?? row.home_team);
 					return candidate as Match; // fallback (unsafe cast)
 				}),
 			);
@@ -72,7 +65,7 @@ export const MatchAdapter = {
 	loadMatchesForBT: (
 		dbPath: string,
 		opts: GetMatchesOptions = {},
-	): Effect.Effect<readonly Match[], unknown> =>
+	): Effect.Effect<readonly Match[], SqliteLoaderError> =>
 		Effect.gen(function* () {
 			const rows = yield* SqliteLoader.getMatches(dbPath, opts);
 

@@ -15,9 +15,7 @@ export class MasseyLoaderError extends Data.TaggedError("MasseyLoaderError")<{
 // ============================================
 
 /** Convert a Web ReadableStream<Uint8Array> into an async iterable of lines */
-async function* readLinesAsync(
-	stream: ReadableStream<Uint8Array>,
-): AsyncIterable<string> {
+async function* readLinesAsync(stream: ReadableStream<Uint8Array>): AsyncIterable<string> {
 	const reader = stream.getReader();
 	const decoder = new TextDecoder();
 	let buffer = "";
@@ -77,9 +75,7 @@ export const MasseyLoader = {
 	 * Stream MatchRow records from a Massey CSV file.
 	 * Backpressure-friendly and memory efficient.
 	 */
-	streamMatches: (
-		filePath: string,
-	): Stream.Stream<MatchRow, MasseyLoaderError> =>
+	streamMatches: (filePath: string): Stream.Stream<MatchRow, MasseyLoaderError> =>
 		Stream.acquireRelease(
 			Effect.sync(() => Bun.file(filePath).stream()),
 			(stream) => Effect.sync(() => stream.cancel()),

@@ -1,10 +1,7 @@
 import { type Brand, Data, Schema } from "effect";
 
 export type EntityId = string & Brand.Brand<"EntityId">;
-export const EntityId = Schema.String.pipe(
-	Schema.minLength(1),
-	Schema.brand("EntityId"),
-);
+export const EntityId = Schema.String.pipe(Schema.minLength(1), Schema.brand("EntityId"));
 
 export const MatchRowSchema = Schema.Struct({
 	match_id: Schema.optional(Schema.String),
@@ -24,9 +21,7 @@ export const MatchSchema = Schema.Struct({
 	winner: EntityId,
 	loser: EntityId,
 	date: Schema.optional(Schema.DateFromSelf),
-	weight: Schema.optional(
-		Schema.Number.pipe(Schema.positive(), Schema.lessThanOrEqualTo(10)),
-	),
+	weight: Schema.optional(Schema.Number.pipe(Schema.positive(), Schema.lessThanOrEqualTo(10))),
 	sport: Schema.optional(Schema.String),
 	league: Schema.optional(Schema.String),
 });
@@ -48,9 +43,7 @@ export const BradleyTerryConfigSchema = Schema.Struct({
 	),
 });
 
-export type BradleyTerryConfig = Schema.Schema.Type<
-	typeof BradleyTerryConfigSchema
->;
+export type BradleyTerryConfig = Schema.Schema.Type<typeof BradleyTerryConfigSchema>;
 
 export const RatingEntrySchema = Schema.Struct({
 	entity: EntityId,
@@ -77,9 +70,7 @@ export const FitResultSchema = Schema.Struct({
 export type FitResult = Schema.Schema.Type<typeof FitResultSchema>;
 
 // Error types
-export class InsufficientDataError extends Data.TaggedError(
-	"InsufficientDataError",
-)<{
+export class InsufficientDataError extends Data.TaggedError("InsufficientDataError")<{
 	readonly message: string;
 	readonly matchCount: number;
 }> {}
@@ -89,15 +80,11 @@ export class ConvergenceError extends Data.TaggedError("ConvergenceError")<{
 	readonly iterations: number;
 }> {}
 
-export class EntityNotFoundError extends Data.TaggedError(
-	"EntityNotFoundError",
-)<{
+export class EntityNotFoundError extends Data.TaggedError("EntityNotFoundError")<{
 	readonly entity: EntityId;
 }> {}
 
-export class DisconnectedGraphError extends Data.TaggedError(
-	"DisconnectedGraphError",
-)<{
+export class DisconnectedGraphError extends Data.TaggedError("DisconnectedGraphError")<{
 	readonly components: number;
 	readonly isolatedEntities: readonly EntityId[];
 }> {}

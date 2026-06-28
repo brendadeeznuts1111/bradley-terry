@@ -60,22 +60,10 @@ describe("error-handling", () => {
 
 	it.each([
 		["SelfMatchError", new SelfMatchError({ entity: "abc" as EntityId })],
-		[
-			"InsufficientDataError",
-			new InsufficientDataError({ message: "empty", matchCount: 0 }),
-		],
-		[
-			"ConvergenceError",
-			new ConvergenceError({ message: "diverged", iterations: 0 }),
-		],
-		[
-			"DisconnectedGraphError",
-			new DisconnectedGraphError({ components: 0, isolatedEntities: [] }),
-		],
-		[
-			"EntityNotFoundError",
-			new EntityNotFoundError({ entity: "xyz" as EntityId }),
-		],
+		["InsufficientDataError", new InsufficientDataError({ message: "empty", matchCount: 0 })],
+		["ConvergenceError", new ConvergenceError({ message: "diverged", iterations: 0 })],
+		["DisconnectedGraphError", new DisconnectedGraphError({ components: 0, isolatedEntities: [] })],
+		["EntityNotFoundError", new EntityNotFoundError({ entity: "xyz" as EntityId })],
 	] as const)("error type %s is a tagged BradleyTerryError", (_label, instance) => {
 		expect(instance._tag).toBeDefined();
 	});

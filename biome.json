@@ -1,10 +1,17 @@
 {
-	"files": {
-		"includes": ["**", "!.devin", "!.reasonix", "!completions"]
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab",
-		"lineWidth": 80
-	}
+  "$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
+  "files": {
+    "includes": ["src/**", "tests/**", "test/**", "scripts/**"],
+    "ignoreUnknown": true
+  },
+  "formatter": {
+    "indentStyle": "tab",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  }
 }

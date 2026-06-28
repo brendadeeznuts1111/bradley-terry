@@ -31,10 +31,7 @@ export class SecretStore extends Context.Tag("SecretStore")<
 			name: string,
 			entry: SecretEntry,
 		) => Effect.Effect<void, SecretStoreError>;
-		readonly delete: (
-			domain: string,
-			name: string,
-		) => Effect.Effect<void, SecretStoreError>;
+		readonly delete: (domain: string, name: string) => Effect.Effect<void, SecretStoreError>;
 	}
 >() {}
 
@@ -69,12 +66,12 @@ export function setSecret(
 	name: string,
 	value: string,
 	ttlSeconds?: number,
-): Effect.Effect<void, SecretStoreError, SecretStore> {
+): Effect.Effect<void, SecretStoreError> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		const entry: SecretEntry = {
 			value,
-			...(ttlSeconds ? { expiresAt: Date.now() + ttlSeconds * 1000 } : {}),
+			expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined,
 		};
 		yield* store.set(domain, name, entry);
 	});
@@ -83,7 +80,7 @@ export function setSecret(
 export function getSecret(
 	domain: string,
 	name: string,
-): Effect.Effect<string | null, SecretStoreError, SecretStore> {
+): Effect.Effect<string | null, SecretStoreError> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		const entry = yield* store.get(domain, name);
@@ -92,10 +89,7 @@ export function getSecret(
 	});
 }
 
-export function deleteSecret(
-	domain: string,
-	name: string,
-): Effect.Effect<void, SecretStoreError, SecretStore> {
+export function deleteSecret(domain: string, name: string): Effect.Effect<void, SecretStoreError> {
 	return Effect.gen(function* () {
 		const store = yield* SecretStore;
 		yield* store.delete(domain, name);

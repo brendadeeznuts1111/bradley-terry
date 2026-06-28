@@ -46,10 +46,7 @@ export const RatingsConfigLive = Layer.effect(
 		const secrets = yield* SecretClient;
 		const apiKey = yield* secrets.get(NAMESPACE.ratings.massey, "api-key");
 		const dbPath = yield* secrets.get(NAMESPACE.ratings.db, "sqlite-path");
-		const dbPassphrase = yield* secrets.get(
-			NAMESPACE.ratings.db,
-			"encryption-passphrase",
-		);
+		const dbPassphrase = yield* secrets.get(NAMESPACE.ratings.db, "encryption-passphrase");
 		return {
 			masseyUrl: "https://masseyratings.com/api",
 			apiKey,

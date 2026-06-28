@@ -1,11 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import type {
-	BradleyTerryConfig,
-	BradleyTerryError,
-	EntityId,
-	FitResult,
-	Match,
-} from "../schema";
+import type { BradleyTerryConfig, BradleyTerryError, EntityId, FitResult, Match } from "../schema";
 import {
 	EntityNotFoundError as EntityNotFoundErrorCtor,
 	InsufficientDataError as InsufficientDataErrorCtor,
@@ -306,9 +300,7 @@ export const BradleyTerryLive = Layer.succeed(
 				// Validate: self-matches
 				for (const m of matches) {
 					if (m.winner === m.loser) {
-						return yield* Effect.fail(
-							new SelfMatchErrorCtor({ entity: m.winner }),
-						);
+						return yield* Effect.fail(new SelfMatchErrorCtor({ entity: m.winner }));
 					}
 				}
 
@@ -322,8 +314,7 @@ export const BradleyTerryLive = Layer.succeed(
 				if (entitySet.size < 2) {
 					return yield* Effect.fail(
 						new InsufficientDataErrorCtor({
-							message:
-								"Need at least 2 distinct entities to fit Bradley-Terry model",
+							message: "Need at least 2 distinct entities to fit Bradley-Terry model",
 							matchCount: matches.length,
 						}),
 					);
@@ -402,9 +393,7 @@ export const BradleyTerryLive = Layer.succeed(
 					);
 					fitEntities = entities.filter((e) => largestComponentEntities.has(e));
 					fitMatches = internalMatches.filter(
-						(m) =>
-							largestComponentEntities.has(m.winner) &&
-							largestComponentEntities.has(m.loser),
+						(m) => largestComponentEntities.has(m.winner) && largestComponentEntities.has(m.loser),
 					);
 				}
 

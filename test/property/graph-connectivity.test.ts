@@ -18,14 +18,10 @@ describe("graph-connectivity", () => {
 					const result = await fitMatches(matches);
 
 					expect(result.largestComponentSize).toBeGreaterThanOrEqual(1);
-					expect(result.largestComponentSize).toBeLessThanOrEqual(
-						result.entityCount,
-					);
+					expect(result.largestComponentSize).toBeLessThanOrEqual(result.entityCount);
 
 					if (result.warnings?.some((w) => w.includes("disconnected"))) {
-						expect(result.largestComponentSize).toBeLessThan(
-							result.entityCount,
-						);
+						expect(result.largestComponentSize).toBeLessThan(result.entityCount);
 					}
 				},
 			),

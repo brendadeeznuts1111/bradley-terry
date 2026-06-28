@@ -1,10 +1,18 @@
 /**
  * Secrets module — barrel export.
  *
- * - `src/secrets/client.ts` — low-level, namespace-based `SecretClient`
- *   (get/set/delete) backed by Bun.secrets, env vars, or Vault.
- * - `src/secrets/store.ts` — TTL-aware in-memory store helpers
- *   (`setSecret`, `getSecret`, `deleteSecret`) for tests and short-lived caches.
+ * - `client.ts` — SecretClient tag + SecretError
+ * - `bun-live.ts`, `env-live.ts`, `vault-live.ts`, `live.ts` — backends
+ * - `entry.ts` — TTL JSON encode/decode for Bun.secrets values
+ * - `store.ts` — in-memory TTL store for tests (from PR #2)
  */
-export * from "./client";
-export * from "./store";
+
+export * from "./bun-live.js";
+export * from "./client.js";
+export * from "./entry.js";
+export * from "./env-key.js";
+export * from "./env-live.js";
+export * from "./live.js";
+export * from "./namespaces.js";
+export * from "./store.js";
+export * from "./vault-live.js";

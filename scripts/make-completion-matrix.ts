@@ -64,6 +64,7 @@ Options:
 
 // ── Constants ───────────────────────────────────────────────────
 const JSON_PATH = "completions/bun-cli.json";
+const BUNFIG_PATH = "completions/bunfig-settings.json";
 const MATRIX_PATH = "completions/COMPLETION_MATRIX.md";
 const DYNAMIC_SOURCES_PATH = "completions/DYNAMIC_SOURCES.json";
 const CSV_PATH = "completions/COMPLETION_MATRIX.csv";
@@ -124,9 +125,7 @@ try {
 }
 
 if (flags.verbose) {
-	console.log(
-		`📦 Bun ${liveBunVersion} (${liveBunRevision}) — probe took ${toc("version")}`,
-	);
+	console.log(`📦 Bun ${liveBunVersion} (${liveBunRevision}) — probe took ${toc("version")}`);
 }
 
 // ── Streaming JSON read ─────────────────────────────────────────
@@ -138,9 +137,7 @@ const rawJson = await Bun.readableStreamToText(rawJsonStream);
 tic("hash");
 const sha256 = new Bun.CryptoHasher("sha256").update(rawJson).digest("hex");
 const sha512 = new Bun.CryptoHasher("sha512").update(rawJson).digest("hex");
-const blake2b256 = new Bun.CryptoHasher("blake2b256")
-	.update(rawJson)
-	.digest("hex");
+const blake2b256 = new Bun.CryptoHasher("blake2b256").update(rawJson).digest("hex");
 const jsonHash = sha256.slice(0, 12);
 
 if (flags.verbose) {
@@ -159,6 +156,26 @@ if (flags.verbose) {
 
 const typedData = data as CompletionData;
 
+interface BunfigCompletionData {
+	settings: Array<{
+		key: string;
+		section?: string;
+		description: string;
+		cliEquivalent?: string;
+	}>;
+}
+
+let bunfigData: BunfigCompletionData | null = null;
+let bunfigHash = "missing";
+
+if (await Bun.file(BUNFIG_PATH).exists()) {
+	const rawBunfig = await Bun.file(BUNFIG_PATH).text();
+	bunfigHash = new Bun.CryptoHasher("sha256").update(rawBunfig).digest("hex").slice(0, 12);
+	bunfigData = JSON.parse(rawBunfig) as BunfigCompletionData;
+} else if (!flags.dryRun) {
+	console.warn(`⚠️ ${BUNFIG_PATH} not found — run bun run completions:bunfig`);
+}
+
 // ── Bun.peek shape debug ────────────────────────────────────────
 if (flags.verbose) {
 	console.log("🔬 Command keys:", Bun.peek(Object.keys(typedData.commands)));
@@ -168,9 +185,9 @@ if (flags.verbose) {
 // ── Helpers that depend on the loaded JSON fixture ───────────────
 function resolvePmPath(path: string): CommandEntry | undefined {
 	const parts = path.split(" ");
-	let target: CommandEntry | undefined = typedData.commands["pm"];
+	let target: CommandEntry | undefined = typedData.commands.pm;
 	for (let i = 1; i < parts.length; i++) {
-		target = target?.subcommands?.[parts[i] ?? ""];
+		target = target?.subcommands?.[parts[i]];
 	}
 	return target;
 }
@@ -181,9 +198,7 @@ function totalSurface(cmd: CommandEntry): number {
 
 function criticalInheritedFlags(cmdName: string): string {
 	const globalFlagNames = new Set(typedData.globalFlags.map((f) => f.name));
-	const ownFlagNames = new Set(
-		(typedData.commands[cmdName]?.flags || []).map((f) => f.name),
-	);
+	const ownFlagNames = new Set((typedData.commands[cmdName]?.flags || []).map((f) => f.name));
 
 	const critical = [
 		"watch",
@@ -246,36 +261,32 @@ const topLevelRows = Object.entries(typedData.commands)
 	});
 
 // ── Build PM rows ───────────────────────────────────────────────
-const pmRows = collectPmRows(typedData.commands["pm"] as CommandEntry).map(
-	(row) => {
-		const target = resolvePmPath(row.path);
-		const reqPos = (target?.positionalArgs || []).filter(
-			(a) => a.required,
-		).length;
-		const optPos = (target?.positionalArgs || []).length - reqPos;
-		return {
-			Path: row.path,
-			Flags: target?.flags?.length || 0,
-			"Value flags": flagsWithValues(target?.flags || []),
-			"Positional args": target?.positionalArgs?.length || 0,
-			"Req pos": reqPos,
-			"Opt pos": optPos,
-			"File I/O": countCategory(target?.flags || [], "fileIO"),
-			PM: countCategory(target?.flags || [], "pm"),
-			Runtime: countCategory(target?.flags || [], "runtime"),
-			Debug: countCategory(target?.flags || [], "debug"),
-			Network: countCategory(target?.flags || [], "network"),
-			Subcommands: subcommandCount(target),
-			Examples: target?.examples?.length || 0,
-			"Defaults (#)": flagsWithDefaults(target?.flags || []),
-			"Default values": defaultList(target?.flags || []),
-			"Choices (#)": flagsWithChoices(target?.flags || []),
-			"Choice values": choiceList(target?.flags || []),
-			Isolated: "Yes",
-			"Drift hash": jsonHash,
-		};
-	},
-);
+const pmRows = collectPmRows(typedData.commands.pm).map((row) => {
+	const target = resolvePmPath(row.path);
+	const reqPos = (target?.positionalArgs || []).filter((a) => a.required).length;
+	const optPos = (target?.positionalArgs || []).length - reqPos;
+	return {
+		Path: row.path,
+		Flags: target?.flags?.length || 0,
+		"Value flags": flagsWithValues(target?.flags || []),
+		"Positional args": target?.positionalArgs?.length || 0,
+		"Req pos": reqPos,
+		"Opt pos": optPos,
+		"File I/O": countCategory(target?.flags || [], "fileIO"),
+		PM: countCategory(target?.flags || [], "pm"),
+		Runtime: countCategory(target?.flags || [], "runtime"),
+		Debug: countCategory(target?.flags || [], "debug"),
+		Network: countCategory(target?.flags || [], "network"),
+		Subcommands: subcommandCount(target),
+		Examples: target?.examples?.length || 0,
+		"Defaults (#)": flagsWithDefaults(target?.flags || []),
+		"Default values": defaultList(target?.flags || []),
+		"Choices (#)": flagsWithChoices(target?.flags || []),
+		"Choice values": choiceList(target?.flags || []),
+		Isolated: "Yes",
+		"Drift hash": jsonHash,
+	};
+});
 
 if (flags.verbose) {
 	console.log(`🏗️ Matrix built in ${toc("build")}`);
@@ -300,6 +311,7 @@ const output = [
 	"# Bun CLI Completion Behavior Matrix",
 	"",
 	`Generated from \`completions/bun-cli.json\` (schema v${typedData.version}, Bun ${liveBunVersion}, revision ${liveBunRevision}, hash \`${jsonHash}\`).`,
+	`- **bunfig-json:** \`${bunfigHash}\``,
 	"",
 	"## Top-level commands",
 	"",
@@ -319,6 +331,22 @@ const output = [
 			const isolated = !inheritsGlobals(name);
 			return `| ${name} | ${isolated ? "—" : typedData.globalFlags.length} | ${cmd.flags.length} | ${isolated ? cmd.flags.length : totalSurface(cmd)} | ${isolated ? "Yes" : "No"} | ${isolated ? "—" : criticalInheritedFlags(name)} |`;
 		}),
+	"",
+	"## Bunfig settings (non-CLI)",
+	"",
+	bunfigData
+		? [
+				`Canonical \`bunfig.toml\` keys live in \`${BUNFIG_PATH}\` (${bunfigData.settings.length} settings).`,
+				"",
+				"Examples that are **not** duplicated as global CLI flags:",
+				...bunfigData.settings
+					.filter((s) => !s.cliEquivalent)
+					.slice(0, 6)
+					.map((s) => `- \`${s.key}\` — ${s.description}`),
+				"",
+				"Regenerate with `bun run completions:bunfig`.",
+			].join("\n")
+		: `_Run \`bun run completions:bunfig\` to generate \`${BUNFIG_PATH}\`._`,
 	"",
 	"## Global flags",
 	"",
@@ -380,23 +408,23 @@ output.push(
 	"",
 	"### `bun install` flag defaults",
 	"",
-	flagsTable(typedData.commands["install"]),
+	flagsTable(typedData.commands.install),
 	"",
 	"### `bun add` flag defaults",
 	"",
-	flagsTable(typedData.commands["add"]),
+	flagsTable(typedData.commands.add),
 	"",
 	"### `bun test` flag defaults",
 	"",
-	flagsTable(typedData.commands["test"]),
+	flagsTable(typedData.commands.test),
 	"",
 	"### `bun build` flag defaults",
 	"",
-	flagsTable(typedData.commands["build"]),
+	flagsTable(typedData.commands.build),
 );
 
 // ── HMAC-signed artifact manifest ─────────────────────────────────
-const hmacKey = Bun.env["BUN_COMPLETION_HMAC_KEY"] || jsonHash;
+const hmacKey = Bun.env.BUN_COMPLETION_HMAC_KEY || jsonHash;
 const manifest = {
 	jsonHash,
 	sha256,
@@ -405,21 +433,15 @@ const manifest = {
 	bunVersion: liveBunVersion,
 	revision: liveBunRevision,
 	generatedAt: new Date().toISOString(),
-	files: [MATRIX_PATH, DYNAMIC_SOURCES_PATH, CSV_PATH, HTML_PATH].filter(
-		Boolean,
-	),
+	files: [MATRIX_PATH, DYNAMIC_SOURCES_PATH, CSV_PATH, HTML_PATH].filter(Boolean),
 };
 const manifestString = JSON.stringify(manifest);
-const hmac = new Bun.CryptoHasher("sha256", hmacKey)
-	.update(manifestString)
-	.digest("hex");
+const hmac = new Bun.CryptoHasher("sha256", hmacKey).update(manifestString).digest("hex");
 
 // ── Check mode ────────────────────────────────────────────────────
 if (flags.check) {
 	const matrixContent = await Bun.file(MATRIX_PATH).text();
-	const dynamicSources = JSON.parse(
-		await Bun.file(DYNAMIC_SOURCES_PATH).text(),
-	);
+	const dynamicSources = JSON.parse(await Bun.file(DYNAMIC_SOURCES_PATH).text());
 	let ok = true;
 	if (!matrixContent.includes(jsonHash)) {
 		console.error("❌ Matrix hash mismatch");
@@ -465,10 +487,7 @@ if (flags.csv) {
 
 // ── Write HTML ──────────────────────────────────────────────────
 if (flags.html) {
-	await Bun.write(
-		HTML_PATH,
-		makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash),
-	);
+	await Bun.write(HTML_PATH, makeHTML(topLevelRows, pmRows, liveBunVersion, jsonHash));
 	console.log(`✅ Wrote ${HTML_PATH}`);
 }
 
@@ -522,20 +541,15 @@ const dynamicSources = {
 	},
 };
 
-await Bun.write(
-	DYNAMIC_SOURCES_PATH,
-	`${JSON.stringify(dynamicSources, null, 2)}\n`,
-);
+await Bun.write(DYNAMIC_SOURCES_PATH, `${JSON.stringify(dynamicSources, null, 2)}\n`);
 console.log(`✅ Wrote ${DYNAMIC_SOURCES_PATH}`);
 
 // ── Optional gzip backup ────────────────────────────────────────
-if (flags.backup || Bun.env["BUN_COMPLETION_BACKUP"] === "1") {
+if (flags.backup || Bun.env.BUN_COMPLETION_BACKUP === "1") {
 	const backupPath = `${JSON_PATH}.gz`;
-	const compressed = Bun.gzipSync(rawJson);
+	const compressed = Bun.gzipSync(new TextEncoder().encode(rawJson));
 	await Bun.write(backupPath, compressed);
-	console.log(
-		`📦 Compressed backup: ${backupPath} (${compressed.length} bytes)`,
-	);
+	console.log(`📦 Compressed backup: ${backupPath} (${compressed.length} bytes)`);
 }
 
 // ── Validation ──────────────────────────────────────────────────
@@ -552,7 +566,7 @@ if (roundTrip.jsonHash !== jsonHash) {
 console.log(`📝 All writes completed in ${toc("write")}`);
 
 // ── DNS registry validation (async, non-blocking) ───────────────
-if (typedData.commands["add"]?.flags.some((f) => f.name === "registry")) {
+if (typedData.commands.add?.flags.some((f) => f.name === "registry")) {
 	Bun.dns
 		.lookup("registry.npmjs.org")
 		.then((address) => {
@@ -645,10 +659,7 @@ if (flags.serve) {
 			const stat = await Bun.file(JSON_PATH).stat();
 			if (stat.mtime && stat.mtime.getTime() !== lastMtime) {
 				lastMtime = stat.mtime.getTime();
-				server.publish(
-					"matrix-updates",
-					JSON.stringify({ event: "changed", hash: jsonHash }),
-				);
+				server.publish("matrix-updates", JSON.stringify({ event: "changed", hash: jsonHash }));
 				console.log("📡 Published matrix change to WebSocket clients");
 			}
 		}, 2000);
@@ -707,7 +718,7 @@ if (flags.html) {
 console.log(`\n${Bun.inspect.table(statusRows, { colors: true })}`);
 
 // ── UDP status broadcast (optional, fire-and-forget) ───────────
-if (Bun.env["BUN_COMPLETION_UDP_BROADCAST"] === "1") {
+if (Bun.env.BUN_COMPLETION_UDP_BROADCAST === "1") {
 	const udp = await Bun.udpSocket({});
 	udp.send(
 		JSON.stringify({
@@ -715,8 +726,8 @@ if (Bun.env["BUN_COMPLETION_UDP_BROADCAST"] === "1") {
 			hash: jsonHash,
 			version: liveBunVersion,
 		}),
-		9123,
 		"255.255.255.255",
+		9123,
 	);
 	udp.close();
 	console.log("📻 UDP broadcast sent");

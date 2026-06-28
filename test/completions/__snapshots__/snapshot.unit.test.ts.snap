@@ -3,11 +3,11 @@
 exports[`Snapshot contracts DYNAMIC_SOURCES.json schema contract full schema with dynamic value matchers 1`] = `
 {
   "blake2b256": Any<String>,
-  "bunVersion": Any<String>,
+  "bunVersion": "1.4.0",
   "generatedAt": Any<String>,
   "hmac": Any<String>,
   "jsonHash": Any<String>,
-  "revision": Any<String>,
+  "revision": StringMatching /^1\\.4\\.0/,
   "schema": "1.1.0",
   "sha256": Any<String>,
   "sha512": Any<String>,
@@ -83,9 +83,9 @@ exports[`Snapshot contracts DYNAMIC_SOURCES.json schema contract full schema wit
 
 exports[`Snapshot contracts COMPLETION_MATRIX.md header format header object with dynamic value matchers 1`] = `
 {
-  "bunVersion": Any<String>,
+  "bunVersion": "1.4.0",
   "hash": Any<String>,
-  "revision": Any<String>,
+  "revision": StringMatching /^1\\.4\\.0/,
   "schema": "1.1.0",
   "source": "completions/bun-cli.json",
 }

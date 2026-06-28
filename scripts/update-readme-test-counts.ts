@@ -10,7 +10,7 @@ import { spawnSync } from "bun";
  * Usage: bun run scripts/update-readme-test-counts.ts
  */
 
-const BUN_EXECUTABLE = process.env["BUN_DEBUG_BUILD"] || "bun";
+const BUN_EXECUTABLE = process.env.BUN_DEBUG_BUILD || "bun";
 
 function runBunTest(): { output: string; exitCode: number } {
 	const result = spawnSync({
@@ -25,14 +25,12 @@ function runBunTest(): { output: string; exitCode: number } {
 	return { output: `${stdout}\n${stderr}`, exitCode: result.exitCode ?? 1 };
 }
 
-function extractTotalCounts(
-	output: string,
-): { tests: number; files: number } | null {
+function extractTotalCounts(output: string): { tests: number; files: number } | null {
 	const match = output.match(/Ran (\d+) tests across (\d+) files?/);
 	if (!match) return null;
 	return {
-		tests: Number.parseInt(match[1] ?? "0", 10),
-		files: Number.parseInt(match[2] ?? "0", 10),
+		tests: Number.parseInt(match[1], 10),
+		files: Number.parseInt(match[2], 10),
 	};
 }
 
@@ -47,9 +45,7 @@ function collectPerFileCounts(output: string): FileCount[] {
 
 	for (const line of output.split("\n")) {
 		const trimmed = line.trim();
-		const fileHeader = trimmed.match(
-			/^test\/[\w.\-/]+\.(?:test|spec)\.(?:ts|tsx|js|jsx):$/,
-		);
+		const fileHeader = trimmed.match(/^test\/[\w.\-/]+\.(?:test|spec)\.(?:ts|tsx|js|jsx):$/);
 		if (fileHeader) {
 			currentFile = trimmed.slice(0, -1);
 			entries.set(currentFile, 0);
@@ -66,16 +62,12 @@ function collectPerFileCounts(output: string): FileCount[] {
 		.sort((a, b) => a.file.localeCompare(b.file));
 }
 
-function updateReadme(
-	total: { tests: number; files: number },
-	fileCounts: FileCount[],
-): void {
+function updateReadme(total: { tests: number; files: number }, fileCounts: FileCount[]): void {
 	const readmePath = "README.md";
 	let readme = readFileSync(readmePath, "utf8");
 
 	// Update project version badge from package.json.
-	const packageVersion = JSON.parse(readFileSync("package.json", "utf8"))
-		.version as string;
+	const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version as string;
 	readme = readme.replace(
 		/\[BT_Core\]\(https:\/\/img\.shields\.io\/badge\/BT_Core-v[\d.]+-[a-z]+\)\]/,
 		`[BT_Core](https://img.shields.io/badge/BT_Core-v${packageVersion}-success)]`,
@@ -100,10 +92,7 @@ function updateReadme(
 	const tableHeader = "| File | Count | Purpose |\n| --- | --- | --- |";
 	const tablePattern =
 		/\| File \| Count \| Purpose \|\n\| --- \| --- \| --- \|\n(?:\| `[^`]+` \| \d+ \| [^|]+\|\n)+/;
-	readme = readme.replace(
-		tablePattern,
-		`${tableHeader}\n${tableRows.join("\n")}\n`,
-	);
+	readme = readme.replace(tablePattern, `${tableHeader}\n${tableRows.join("\n")}\n`);
 
 	writeFileSync(readmePath, readme);
 }
@@ -122,12 +111,7 @@ function purposeForFile(file: string): string {
 			"`largestComponentSize` reflects the biggest connected component; disconnected graphs still produce valid ratings",
 		"test/property/error-handling.test.ts":
 			"Self-matches always produce `SelfMatchError`; empty match list produces `InsufficientDataError`; error types are tagged `BradleyTerryError`",
-		"test/integration/cli-completions.test.ts":
-			"CLI completions generator integration tests",
-		"test/ratings-config.unit.test.ts":
-			"Effect `RatingsConfig` layer and `SecretClient` integration",
-		"test/bun-api/one-liners.test.ts":
-			"Curated `bun -e` one-liners executed as living API specifications",
+		"test/integration/cli-completions.test.ts": "CLI completions generator integration tests",
 	};
 	return purposes[file] ?? "";
 }
