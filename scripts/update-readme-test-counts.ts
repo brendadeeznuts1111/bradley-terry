@@ -116,7 +116,7 @@ function purposeForFile(file: string): string {
 	return purposes[file] ?? "";
 }
 
-function main(): number {
+async function main(): Promise<number> {
 	console.log("Running full test suite to collect counts...");
 	const totalResult = runBunTest();
 	const total = extractTotalCounts(totalResult.output);
@@ -140,9 +140,13 @@ function main(): number {
 		);
 	}
 
-	updateReadme(total, fileCounts);
+	await updateReadme(total, fileCounts);
 	console.log("Updated README.md with current test counts.");
 	return 0;
 }
 
-process.exit(main());
+async function mainAsync(): Promise<void> {
+	process.exit(await main());
+}
+
+mainAsync();
